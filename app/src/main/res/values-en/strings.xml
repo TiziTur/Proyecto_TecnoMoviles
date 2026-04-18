@@ -1,0 +1,125 @@
+<resources>
+    <!-- App -->
+    <string name="app_name">Super Ahorro</string>
+    <string name="splash_subtitle">Your shopping assistant</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_history">History</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Screen titles -->
+    <string name="screen_home">Home</string>
+    <string name="screen_history">History</string>
+    <string name="screen_stats">Statistics</string>
+    <string name="screen_profile">My Profile</string>
+    <string name="screen_settings">Settings</string>
+    <string name="screen_new_purchase">New Purchase</string>
+    <string name="screen_edit_purchase">Edit Purchase</string>
+    <string name="screen_purchase_detail">Purchase Detail</string>
+    <string name="screen_new_product">New Product</string>
+    <string name="screen_edit_product">Edit Product</string>
+
+    <!-- Actions -->
+    <string name="action_back">Back</string>
+    <string name="action_menu">Menu</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_login">Sign in</string>
+    <string name="action_register">Sign up</string>
+    <string name="action_create_account">Create account</string>
+    <string name="action_logout">Sign out</string>
+    <string name="action_new_purchase">New purchase</string>
+    <string name="action_add_product">Add product</string>
+    <string name="action_see_all">See all</string>
+    <string name="action_attach">Attach</string>
+
+    <!-- Home -->
+    <string name="home_welcome">Hello, %1$s</string>
+    <string name="home_subtitle">Keep track of your expenses</string>
+    <string name="home_month_total">This month\'s expenses</string>
+    <string name="home_recent">Recent purchases</string>
+    <string name="home_empty">No purchases registered yet</string>
+
+    <!-- Auth -->
+    <string name="login_title">Sign in to continue</string>
+    <string name="login_forgot_password">Forgot your password?</string>
+    <string name="login_no_account">Don\'t have an account?</string>
+    <string name="register_title">Create account</string>
+    <string name="register_subtitle">Fill in your details to register</string>
+
+    <!-- Fields -->
+    <string name="field_email">Email address</string>
+    <string name="field_password">Password</string>
+    <string name="field_confirm_password">Confirm password</string>
+    <string name="field_first_name">First name</string>
+    <string name="field_last_name">Last name</string>
+    <string name="field_phone">Phone</string>
+    <string name="field_supermarket">Supermarket</string>
+    <string name="field_date">Date</string>
+    <string name="field_time">Time</string>
+    <string name="field_code">Code</string>
+    <string name="field_name">Product name</string>
+    <string name="field_description">Description</string>
+    <string name="field_price">Price (ARS)</string>
+    <string name="field_quantity">Quantity</string>
+
+    <!-- Errors -->
+    <string name="error_email">Enter a valid email address</string>
+    <string name="error_password_mismatch">Passwords do not match</string>
+    <string name="error_price">Enter a valid price</string>
+
+    <!-- Purchase -->
+    <string name="purchase_total">Total</string>
+    <string name="purchase_total_hint">Calculated automatically</string>
+    <string name="purchase_ticket">Purchase ticket</string>
+    <string name="purchase_ticket_hint">Attach a photo of the receipt</string>
+    <string name="purchase_products">Products (%1$d)</string>
+    <string name="purchase_no_products">No products in this purchase</string>
+    <string name="purchase_new_title">New purchase</string>
+    <string name="purchase_edit_title">Edit purchase</string>
+
+    <!-- Product -->
+    <string name="product_subtotal">Subtotal</string>
+    <string name="product_new_title">New product</string>
+    <string name="product_edit_title">Edit product</string>
+
+    <!-- History -->
+    <string name="history_search">Search by supermarket</string>
+    <string name="history_result_count">%1$d results</string>
+    <string name="history_empty">No purchases found</string>
+
+    <!-- Stats -->
+    <string name="stats_monthly_evolution">Monthly evolution</string>
+    <string name="stats_by_supermarket">Expenses by supermarket</string>
+    <string name="stats_top_products">Most purchased products</string>
+    <string name="stat_purchases">Purchases</string>
+    <string name="stat_supermarkets">Supermarkets</string>
+    <string name="stat_total_spent">Total spent</string>
+    <string name="stat_avg_purchase">Average</string>
+
+    <!-- Profile -->
+    <string name="profile_change_photo">Change photo</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_dark_mode">Dark mode</string>
+    <string name="settings_dark_mode_desc">Change app theme</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_label">Notifications</string>
+    <string name="settings_notifications_desc">Shopping reminders</string>
+    <string name="settings_info">Information</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version 1.0.0</string>
+    <string name="settings_privacy">Privacy policy</string>
+    <string name="settings_terms">Terms and conditions</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_delete_title">Delete?</string>
+    <string name="dialog_delete_purchase_msg">This will delete the purchase and all its products. This action cannot be undone.</string>
+</resources>

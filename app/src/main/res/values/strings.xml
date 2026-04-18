@@ -1,3 +1,125 @@
 <resources>
+    <!-- App -->
     <string name="app_name">Super Ahorro</string>
+    <string name="splash_subtitle">Tu asistente de compras</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_history">Historial</string>
+    <string name="nav_stats">Estadísticas</string>
+    <string name="nav_profile">Perfil</string>
+
+    <!-- Screen titles -->
+    <string name="screen_home">Inicio</string>
+    <string name="screen_history">Historial</string>
+    <string name="screen_stats">Estadísticas</string>
+    <string name="screen_profile">Mi Perfil</string>
+    <string name="screen_settings">Configuración</string>
+    <string name="screen_new_purchase">Nueva Compra</string>
+    <string name="screen_edit_purchase">Editar Compra</string>
+    <string name="screen_purchase_detail">Detalle de Compra</string>
+    <string name="screen_new_product">Nuevo Producto</string>
+    <string name="screen_edit_product">Editar Producto</string>
+
+    <!-- Actions -->
+    <string name="action_back">Volver</string>
+    <string name="action_menu">Menú</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_confirm">Confirmar</string>
+    <string name="action_login">Iniciar sesión</string>
+    <string name="action_register">Registrarse</string>
+    <string name="action_create_account">Crear cuenta</string>
+    <string name="action_logout">Cerrar sesión</string>
+    <string name="action_new_purchase">Nueva compra</string>
+    <string name="action_add_product">Agregar producto</string>
+    <string name="action_see_all">Ver todo</string>
+    <string name="action_attach">Adjuntar</string>
+
+    <!-- Home -->
+    <string name="home_welcome">Hola, %1$s</string>
+    <string name="home_subtitle">Llevá el control de tus gastos</string>
+    <string name="home_month_total">Gasto del mes</string>
+    <string name="home_recent">Últimas compras</string>
+    <string name="home_empty">No hay compras registradas aún</string>
+
+    <!-- Auth -->
+    <string name="login_title">Iniciá sesión para continuar</string>
+    <string name="login_forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="login_no_account">¿No tenés cuenta?</string>
+    <string name="register_title">Crear cuenta</string>
+    <string name="register_subtitle">Completá tus datos para registrarte</string>
+
+    <!-- Fields -->
+    <string name="field_email">Correo electrónico</string>
+    <string name="field_password">Contraseña</string>
+    <string name="field_confirm_password">Confirmar contraseña</string>
+    <string name="field_first_name">Nombre</string>
+    <string name="field_last_name">Apellido</string>
+    <string name="field_phone">Teléfono</string>
+    <string name="field_supermarket">Supermercado</string>
+    <string name="field_date">Fecha</string>
+    <string name="field_time">Hora</string>
+    <string name="field_code">Código</string>
+    <string name="field_name">Nombre del producto</string>
+    <string name="field_description">Descripción</string>
+    <string name="field_price">Precio (ARS)</string>
+    <string name="field_quantity">Cantidad</string>
+
+    <!-- Errors -->
+    <string name="error_email">Ingresá un correo válido</string>
+    <string name="error_password_mismatch">Las contraseñas no coinciden</string>
+    <string name="error_price">Ingresá un precio válido</string>
+
+    <!-- Purchase -->
+    <string name="purchase_total">Total</string>
+    <string name="purchase_total_hint">Calculado automáticamente</string>
+    <string name="purchase_ticket">Ticket de compra</string>
+    <string name="purchase_ticket_hint">Adjuntá una foto del ticket</string>
+    <string name="purchase_products">Productos (%1$d)</string>
+    <string name="purchase_no_products">No hay productos en esta compra</string>
+    <string name="purchase_new_title">Nueva compra</string>
+    <string name="purchase_edit_title">Editar compra</string>
+
+    <!-- Product -->
+    <string name="product_subtotal">Subtotal</string>
+    <string name="product_new_title">Nuevo producto</string>
+    <string name="product_edit_title">Editar producto</string>
+
+    <!-- History -->
+    <string name="history_search">Buscar por supermercado</string>
+    <string name="history_result_count">%1$d resultados</string>
+    <string name="history_empty">No se encontraron compras</string>
+
+    <!-- Stats -->
+    <string name="stats_monthly_evolution">Evolución mensual</string>
+    <string name="stats_by_supermarket">Gasto por supermercado</string>
+    <string name="stats_top_products">Productos más comprados</string>
+    <string name="stat_purchases">Compras</string>
+    <string name="stat_supermarkets">Supermercados</string>
+    <string name="stat_total_spent">Total gastado</string>
+    <string name="stat_avg_purchase">Promedio</string>
+
+    <!-- Profile -->
+    <string name="profile_change_photo">Cambiar foto</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance">Apariencia</string>
+    <string name="settings_dark_mode">Modo oscuro</string>
+    <string name="settings_dark_mode_desc">Cambiar tema de la app</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_notifications">Notificaciones</string>
+    <string name="settings_notifications_label">Notificaciones</string>
+    <string name="settings_notifications_desc">Recordatorios de compras</string>
+    <string name="settings_info">Información</string>
+    <string name="settings_about">Acerca de</string>
+    <string name="settings_version">Versión 1.0.0</string>
+    <string name="settings_privacy">Política de privacidad</string>
+    <string name="settings_terms">Términos y condiciones</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_delete_title">¿Eliminar?</string>
+    <string name="dialog_delete_purchase_msg">Esta acción eliminará la compra y todos sus productos. No se puede deshacer.</string>
 </resources>
