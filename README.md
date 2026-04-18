@@ -1,7 +1,7 @@
 # SUPER AHORRO
 
 Aplicación Android para el registro y seguimiento de compras en supermercados.  
-Trabajo Práctico — Materia: Tecnologías Móviles — Universidad Nacional de Entre Ríos (UNER)
+Trabajo Práctico — Materia: Tecnologías Móviles — Instituto Universitario Aeronautico (IUA)
 
 ---
 
