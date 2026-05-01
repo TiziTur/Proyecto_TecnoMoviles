@@ -1,7 +1,7 @@
 <resources>
     <!-- App -->
-    <string name="app_name">Super Ahorro</string>
-    <string name="splash_subtitle">Tu asistente de compras</string>
+    <string name="app_name">Klarity</string>
+    <string name="splash_subtitle">Conocé a dónde va tu dinero</string>
 
     <!-- Navigation -->
     <string name="nav_home">Inicio</string>

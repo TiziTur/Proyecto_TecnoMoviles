@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
+import com.undef.superahorroturina.ui.components.KlarityButton
 
 @Composable
 fun ProductFormScreen(
@@ -132,17 +133,14 @@ fun ProductFormScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            Button(
+            KlarityButton(
+                text = stringResource(R.string.action_save),
                 onClick = {
-                    if (price.toDoubleOrNull() == null) { priceError = true; return@Button }
+                    if (price.toDoubleOrNull() == null) { priceError = true; return@KlarityButton }
                     onNavigateBack()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Text(stringResource(R.string.action_save))
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

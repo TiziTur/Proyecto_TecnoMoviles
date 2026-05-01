@@ -1,6 +1,7 @@
-# SUPER AHORRO
+# Klarity — Android App
 
-Aplicación Android para el registro y seguimiento de compras en supermercados.  
+Aplicación Android para el registro y seguimiento de compras en supermercados.
+Mismo nombre y paleta de colores que el proyecto web Klarity.
 Trabajo Práctico — Materia: Tecnologías Móviles — Universidad Nacional de Entre Ríos (UNER)
 
 ---
@@ -145,4 +146,5 @@ El APK de debug queda en:
 |--------|-------------|
 | `02d9e65` | feat: estructura base completa — 11 pantallas, navegación, tema, datos mockeados, i18n |
 | `345fcaa` | fix: agregar useAndroidX y enableJetifier a gradle.properties |
-| HEAD | fix: corregir warnings de deprecación (AutoMirrored icons, menuAnchor, statusBarColor) |
+| `c480034` | fix: corregir warnings de deprecación (AutoMirrored icons, menuAnchor, statusBarColor) + README |
+| HEAD | feat: renombrar a Klarity, logo vectorial, paleta exacta del proyecto web, diseño premium (shapes, tipografía, KlarityButton, botones en 1 línea) |

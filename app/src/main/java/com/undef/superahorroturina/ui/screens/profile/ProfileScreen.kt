@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
+import com.undef.superahorroturina.ui.components.KlarityButton
 
 @Composable
 fun ProfileScreen(onNavigateBack: () -> Unit) {
@@ -134,12 +135,11 @@ fun ProfileScreen(onNavigateBack: () -> Unit) {
 
             if (editing) {
                 Spacer(Modifier.height(8.dp))
-                Button(
+                KlarityButton(
+                    text = stringResource(R.string.action_save),
                     onClick = { editing = false },
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) {
-                    Text(stringResource(R.string.action_save))
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             Spacer(Modifier.height(32.dp))

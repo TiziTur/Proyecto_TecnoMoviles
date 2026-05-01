@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
+import com.undef.superahorroturina.ui.components.KlarityButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,7 +96,8 @@ fun NewPurchaseScreen(
                 leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
                 placeholder = { Text("dd/MM/yyyy") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
             )
 
             // Time field
@@ -106,7 +108,8 @@ fun NewPurchaseScreen(
                 leadingIcon = { Icon(Icons.Default.AccessTime, contentDescription = null) },
                 placeholder = { Text("HH:mm") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
             )
 
             // Total (calculated)
@@ -145,24 +148,24 @@ fun NewPurchaseScreen(
             // Add products button
             OutlinedButton(
                 onClick = { onNavigateToAddProduct(purchaseId ?: 0) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.action_add_product))
+                Text(
+                    text = stringResource(R.string.action_add_product),
+                    maxLines = 1, softWrap = false
+                )
             }
 
             Spacer(Modifier.height(8.dp))
 
-            // Save button
-            Button(
+            KlarityButton(
+                text = stringResource(R.string.action_save),
                 onClick = onNavigateBack,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Text(stringResource(R.string.action_save))
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.AppTopBar
+import com.undef.superahorroturina.ui.components.KlarityButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,14 +61,16 @@ fun RegisterScreen(
                     onValueChange = { firstName = it },
                     label = { Text(stringResource(R.string.field_first_name)) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
                 )
                 OutlinedTextField(
                     value = lastName,
                     onValueChange = { lastName = it },
                     label = { Text(stringResource(R.string.field_last_name)) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
                 )
             }
 
@@ -78,7 +81,8 @@ fun RegisterScreen(
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
             )
 
             OutlinedTextField(
@@ -88,7 +92,8 @@ fun RegisterScreen(
                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
             )
 
             OutlinedTextField(
@@ -106,7 +111,8 @@ fun RegisterScreen(
                 },
                 visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
             )
 
             OutlinedTextField(
@@ -118,22 +124,20 @@ fun RegisterScreen(
                 isError = passError,
                 supportingText = if (passError) {{ Text(stringResource(R.string.error_password_mismatch)) }} else null,
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
             )
 
             Spacer(Modifier.height(8.dp))
 
-            Button(
+            KlarityButton(
+                text = stringResource(R.string.action_create_account),
                 onClick = {
-                    if (password != confirmPass) { passError = true; return@Button }
+                    if (password != confirmPass) { passError = true; return@KlarityButton }
                     onRegisterSuccess()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Text(stringResource(R.string.action_create_account))
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(Modifier.height(24.dp))
         }

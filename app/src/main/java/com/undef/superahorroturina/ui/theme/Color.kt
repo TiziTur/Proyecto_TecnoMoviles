@@ -16,12 +16,18 @@ val CyanSoft  = Color(0xFFCFFAFE)
 val CyanDark  = Color(0xFF0D2030)
 
 // ── Semánticos ──────────────────────────────────────────────
-val Green400  = Color(0xFF34D399)
-val Green500  = Color(0xFF10B981)
-val Yellow400 = Color(0xFFFBBF24)
-val Yellow500 = Color(0xFFF59E0B)
-val Red400    = Color(0xFFF87171)
-val Red500    = Color(0xFFEF4444)
+val Green400      = Color(0xFF34D399)
+val Green500      = Color(0xFF10B981)
+val Yellow400     = Color(0xFFFBBF24)
+val Yellow500     = Color(0xFFF59E0B)
+val Red400        = Color(0xFFF87171)
+val Red500        = Color(0xFFEF4444)
+
+// Soft / dark containers
+val Color_GreenSoft = Color(0xFFD1FAE5)
+val Color_GreenDark = Color(0xFF064E3B)
+val Color_RedSoft   = Color(0xFFFEE2E2)
+val Color_RedDark   = Color(0xFF7F1D1D)
 
 // ── Light Mode ──────────────────────────────────────────────
 val LightBackground  = Color(0xFFF4F6FA)
