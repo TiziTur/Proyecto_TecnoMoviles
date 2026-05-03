@@ -3,7 +3,6 @@ package com.undef.superahorroturina.ui.screens.stats
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -11,11 +10,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
@@ -28,10 +33,6 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
     val totalAll    = MockData.purchases.sumOf { it.total }
     val avgPurchase = if (MockData.purchases.isNotEmpty()) totalAll / MockData.purchases.size else 0.0
 
-    val primary   = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
-    val onSurface = MaterialTheme.colorScheme.onSurface
-
     val chartColors = listOf(
         Color(0xFF3B82F6),
         Color(0xFF06B6D4),
@@ -40,6 +41,9 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
         Color(0xFFEF4444),
         Color(0xFF8B5CF6)
     )
+
+    val labelColor  = MaterialTheme.colorScheme.onSurfaceVariant
+    val density     = LocalDensity.current
 
     Scaffold(
         topBar = {
@@ -77,40 +81,62 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
                 }
             }
 
-            // Monthly bar chart
+            // Monthly bar chart — Canvas puro, barras ancladas al fondo
             item {
                 SectionHeader(title = stringResource(R.string.stats_monthly_evolution))
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        val maxVal = MockData.monthlyExpenses.maxOf { it.amount }
-                        BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(180.dp)) {
-                            val barW = (maxWidth / MockData.monthlyExpenses.size) - 8.dp
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                MockData.monthlyExpenses.forEachIndexed { idx, stat ->
-                                    val ratio = (stat.amount / maxVal).toFloat()
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Bottom,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Canvas(modifier = Modifier.width(barW).fillMaxHeight(ratio)) {
-                                            drawRect(
-                                                color = chartColors[idx % chartColors.size],
-                                                size = Size(size.width, size.height)
-                                            )
-                                        }
-                                        Spacer(Modifier.height(4.dp))
-                                        Text(
-                                            stat.label,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                        val data    = MockData.monthlyExpenses
+                        val maxVal  = data.maxOfOrNull { it.amount } ?: 1.0
+                        val labelColorArgb  = labelColor.toArgb()
+
+                        // Altura total del canvas: área de barras + espacio etiqueta
+                        val canvasHeight = 200.dp
+                        val labelAreaDp  = 24.dp   // reservado para etiquetas de mes
+
+                        Canvas(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(canvasHeight)
+                        ) {
+                            val totalW      = size.width
+                            val totalH      = size.height
+                            val labelAreaPx = with(density) { labelAreaDp.toPx() }
+                            val barAreaH    = totalH - labelAreaPx
+
+                            val n           = data.size
+                            val groupW      = totalW / n
+                            val barW        = groupW * 0.55f
+                            val barRadius   = with(density) { 4.dp.toPx() }
+                            val textSize    = with(density) { 10.sp.toPx() }
+
+                            data.forEachIndexed { idx, stat ->
+                                val ratio   = (stat.amount / maxVal).toFloat().coerceIn(0f, 1f)
+                                val barH    = barAreaH * ratio
+                                val left    = groupW * idx + (groupW - barW) / 2f
+                                val top     = barAreaH - barH
+                                val color   = chartColors[idx % chartColors.size]
+
+                                // Barra con esquinas redondeadas arriba
+                                drawRoundRect(
+                                    color        = color,
+                                    topLeft      = Offset(left, top),
+                                    size         = Size(barW, barH),
+                                    cornerRadius = CornerRadius(barRadius, barRadius)
+                                )
+
+                                // Etiqueta de mes centrada debajo de la barra
+                                drawContext.canvas.nativeCanvas.drawText(
+                                    stat.label,
+                                    groupW * idx + groupW / 2f,
+                                    totalH,          // fondo del canvas
+                                    android.graphics.Paint().apply {
+                                        this.color     = labelColorArgb
+                                        this.textSize  = textSize
+                                        this.textAlign = android.graphics.Paint.Align.CENTER
+                                        isAntiAlias    = true
                                     }
-                                }
+                                )
                             }
                         }
                     }
@@ -125,16 +151,25 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
                         val total = MockData.expensesBySupermarket.sumOf { it.amount }
                         MockData.expensesBySupermarket.forEachIndexed { idx, stat ->
                             val pct = if (total > 0) (stat.amount / total).toFloat() else 0f
-                            Column {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(stat.label, style = MaterialTheme.typography.bodyMedium)
                                     Text(
-                                        "$ ${moneyFormat.format(stat.amount)}",
+                                        text = stat.label,
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = chartColors[idx % chartColors.size]
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "$ ${moneyFormat.format(stat.amount)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = chartColors[idx % chartColors.size],
+                                        maxLines = 1
                                     )
                                 }
                                 LinearProgressIndicator(
@@ -162,17 +197,24 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
                             ) {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
                                 ) {
                                     Badge(containerColor = chartColors[idx % chartColors.size]) {
                                         Text("${idx + 1}", color = Color.White)
                                     }
-                                    Text(stat.label, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        text = stat.label,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                                 Text(
-                                    "${stat.amount.toInt()} veces",
+                                    text = "${stat.amount.toInt()} veces",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
                                 )
                             }
                             if (idx < MockData.topProducts.lastIndex) HorizontalDivider()

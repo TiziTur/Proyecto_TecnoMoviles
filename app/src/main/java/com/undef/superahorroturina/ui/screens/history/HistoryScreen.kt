@@ -2,6 +2,7 @@ package com.undef.superahorroturina.ui.screens.history
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.model.MockData
@@ -25,9 +27,9 @@ fun HistoryScreen(
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val moneyFormat   = java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR"))
 
-    var searchQuery      by remember { mutableStateOf("") }
-    var selectedFilter   by remember { mutableStateOf("Todos") }
-    val filterOptions    = listOf("Todos") + MockData.supermarkets.filter { market ->
+    var searchQuery    by remember { mutableStateOf("") }
+    var selectedFilter by remember { mutableStateOf("Todos") }
+    val filterOptions  = listOf("Todos") + MockData.supermarkets.filter { market ->
         MockData.purchases.any { it.supermarket == market }
     }
 
@@ -58,13 +60,21 @@ fun HistoryScreen(
         ) {
             item { Spacer(Modifier.height(4.dp)) }
 
-            // Search bar
+            // Search bar — singleLine garantiza 1 renglón
             item {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text(stringResource(R.string.history_search)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    label = {
+                        Text(
+                            stringResource(R.string.history_search),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null)
+                    },
                     trailingIcon = {
                         if (searchQuery.isNotBlank()) {
                             IconButton(onClick = { searchQuery = "" }) {
@@ -77,17 +87,24 @@ fun HistoryScreen(
                 )
             }
 
-            // Filter chips
+            // Filter chips en LazyRow → nunca cortan ni envuelven
             item {
-                Row(
+                LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    contentPadding = PaddingValues(vertical = 2.dp)
                 ) {
-                    filterOptions.take(5).forEach { option ->
+                    items(filterOptions) { option ->
                         FilterChip(
                             selected = selectedFilter == option,
                             onClick  = { selectedFilter = option },
-                            label    = { Text(option) }
+                            label    = {
+                                Text(
+                                    text = option,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false
+                                )
+                            }
                         )
                     }
                 }
