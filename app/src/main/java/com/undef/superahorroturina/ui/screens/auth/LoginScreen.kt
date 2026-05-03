@@ -19,11 +19,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.KlarityButton
 import com.undef.superahorroturina.ui.components.KlarityLogoIcon
+import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 
 @Composable
 fun LoginScreen(
@@ -183,5 +185,23 @@ fun LoginScreen(
 
             Spacer(Modifier.height(48.dp))
         }
+    }
+}
+
+// ── Preview ───────────────────────────────────────────────────
+
+@Preview(showBackground = true, name = "Login Screen – Light")
+@Composable
+private fun LoginScreenPreview() {
+    SuperAhorroTheme(darkTheme = false) {
+        LoginScreen(onLoginSuccess = {}, onNavigateToRegister = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Login Screen – Dark", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun LoginScreenDarkPreview() {
+    SuperAhorroTheme(darkTheme = true) {
+        LoginScreen(onLoginSuccess = {}, onNavigateToRegister = {})
     }
 }
