@@ -219,12 +219,7 @@ private fun AppDrawerContent(
     ModalDrawerSheet {
         Column(modifier = Modifier.padding(16.dp)) {
             Spacer(Modifier.height(24.dp))
-            Icon(
-                imageVector = Icons.Default.ShoppingBasket,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp)
-            )
+            KlarityLogoIcon(size = 48)
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.titleLarge,

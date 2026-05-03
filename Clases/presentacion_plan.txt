@@ -184,6 +184,59 @@ GUION DE TIEMPO
   TOTAL:   10:30 min (demo en vivo puede reemplazar últimas slides)
 
 ====================================================
+CAPTURAS DE PANTALLA RECOMENDADAS PARA LA DEMO
+====================================================
+Orden sugerido para mostrar en el emulador durante la presentación:
+
+1. LOGIN SCREEN
+   → Mostrar campos email + contraseña + botón "Ingresar"
+   → Mencionar: validación de estado, Scaffold, animaciones implícitas de Compose
+
+2. HOME SCREEN — estado de carga
+   → Mostrar el CircularProgressIndicator mientras carga
+   → Mencionar: StateFlow, collectAsStateWithLifecycle, coroutines + delay
+
+3. HOME SCREEN — cargado
+   → Mostrar card de total del mes + StatCards (compras / supermercados)
+   → Mostrar sección "Últimas compras" con PurchaseCards
+   → Abrir Drawer lateral para mostrar logo Klarity + menú
+
+4. HISTORIAL (HistoryScreen)
+   → Lista completa de compras mockeadas
+   → Campo de búsqueda con filtro en tiempo real
+
+5. DETALLE DE COMPRA (PurchaseDetailScreen)
+   → Card de info (supermercado, fecha, total)
+   → Card de ticket con botón "Adjuntar" (FilledTonalButton)
+   → Lista de productos con íconos de editar/eliminar
+   → FAB para agregar producto
+
+6. FORMULARIO DE PRODUCTO (ProductFormScreen)
+   → Campo código EAN + botón de escaneo de cámara
+   → Campos nombre, descripción, precio × cantidad
+   → Card de subtotal calculado en tiempo real
+
+7. ESTADÍSTICAS (StatsScreen)
+   → Gráfico de barras mockeado (si está implementado)
+   → Alternativa: mostrar datos de HomeUiState en HomeScreen
+
+8. SETTINGS (SettingsScreen)
+   → Toggle con Switch (dark mode)
+   → RadioButton (moneda)
+   → Slider (días de historial)
+   → Checkbox (notificaciones)
+   → Mencionar: estos son los componentes Material3 pedidos en clase
+
+9. DARK MODE
+   → Cambiar el tema del sistema → mostrar que la app responde automáticamente
+   → Demostrar que todos los colores cambian (MaterialTheme.colorScheme)
+
+TIPS DE DEMO:
+- Abrir el drawer primero para mostrar el logo Klarity
+- Navegar con la bottom nav bar para mostrar la navegación entre tabs
+- Al mostrar ProductFormScreen, tipear un precio y ver el subtotal actualizarse en vivo
+
+====================================================
 NOTAS PARA LA PRESENTACIÓN
 ====================================================
 - En cada slide: señalar la LÍNEA EXACTA del archivo con una flecha

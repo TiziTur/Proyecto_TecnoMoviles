@@ -137,14 +137,26 @@ fun PurchaseDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Receipt, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Column {
-                                Text(stringResource(R.string.purchase_ticket), style = MaterialTheme.typography.titleSmall)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                Icons.Default.Receipt,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    stringResource(R.string.purchase_ticket),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
                                 Text(
                                     stringResource(R.string.purchase_ticket_hint),
                                     style = MaterialTheme.typography.bodySmall,
@@ -152,10 +164,22 @@ fun PurchaseDetailScreen(
                                 )
                             }
                         }
-                        Button(onClick = { /* TODO: intent camera/gallery */ }) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        FilledTonalButton(
+                            onClick = { /* TODO: intent camera/gallery */ },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.action_attach))
+                            Text(
+                                text = stringResource(R.string.action_attach),
+                                maxLines = 1,
+                                style = MaterialTheme.typography.labelMedium
+                            )
                         }
                     }
                 }

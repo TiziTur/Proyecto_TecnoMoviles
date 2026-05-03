@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -57,15 +58,33 @@ fun ProductFormScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            OutlinedTextField(
-                value = code,
-                onValueChange = { code = it },
-                label = { Text(stringResource(R.string.field_code)) },
-                leadingIcon = { Icon(Icons.Default.QrCode, contentDescription = null) },
-                placeholder = { Text("7790895000084") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            // Código EAN con botón de escaneo
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it },
+                    label = { Text(stringResource(R.string.field_code)) },
+                    leadingIcon = { Icon(Icons.Default.QrCode, contentDescription = null) },
+                    placeholder = { Text("7790895000084") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    supportingText = { Text("EAN / código de barras", style = MaterialTheme.typography.labelSmall) }
+                )
+                FilledTonalIconButton(
+                    onClick = { /* TODO: abrir cámara para escanear */ },
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = "Escanear código de barras",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
 
             OutlinedTextField(
                 value = name,

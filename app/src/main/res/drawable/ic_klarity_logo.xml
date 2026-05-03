@@ -3,12 +3,13 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Circle background -->
-    <path
-        android:fillColor="#3B82F6"
-        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/>
-    <!-- Bolt / lightning bolt (white) -->
+    <!--
+        Logo Klarity — replicado del favicon del sitio web.
+        Círculo con indicador de flecha hacia arriba (insight / claridad).
+        Path original: M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2
+                       zm1 15h-2v-4H9l3-7 3 7h-2v4z
+    -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M13,7L10,13L12,13L11,17L14,11L12,11Z"/>
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zm1,15h-2v-4H9l3,-7 3,7h-2v4z"/>
 </vector>
