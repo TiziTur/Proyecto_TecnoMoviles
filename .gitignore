@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Archivos locales de trabajo
+Log errores.txt
+Contenido clases.docx
