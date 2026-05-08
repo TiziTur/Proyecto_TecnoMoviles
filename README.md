@@ -2,7 +2,7 @@
 
 Aplicación Android para el registro y seguimiento de compras en supermercados.
 Mismo nombre y paleta de colores que el proyecto web Klarity.
-Trabajo Práctico — Materia: Tecnologías Móviles — Universidad Nacional de Entre Ríos (UNER)
+Trabajo Práctico — Materia: Tecnologías Móviles — Instituto Universitario Aeronautico (IUA)
 
 ---
 
