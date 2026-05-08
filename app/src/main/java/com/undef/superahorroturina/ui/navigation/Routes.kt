@@ -1,3 +1,7 @@
+// Defino las rutas de navegación como sealed class para tener type-safety.
+// Cada pantalla es un object dentro de Routes; las que necesitan parámetros
+// (purchaseId, productId) usan funciones createRoute() para armar la URL sin
+// concatenar strings a mano en cada llamada — menos chances de typos.
 package com.undef.superahorroturina.ui.navigation
 
 sealed class Routes(val route: String) {

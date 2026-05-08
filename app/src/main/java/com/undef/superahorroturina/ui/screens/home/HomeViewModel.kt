@@ -1,3 +1,8 @@
+// ViewModel de la pantalla principal. Aplico el patrón MVVM que vimos en clase:
+// la UI solo observa el StateFlow, nunca toca los datos directamente.
+// @HiltViewModel + @Inject constructor() permiten que Hilt cree el ViewModel
+// sin tener que escribir una ViewModelFactory a mano.
+// El delay(300ms) simula latencia de red para que se vea el CircularProgressIndicator.
 package com.undef.superahorroturina.ui.screens.home
 
 import androidx.lifecycle.ViewModel

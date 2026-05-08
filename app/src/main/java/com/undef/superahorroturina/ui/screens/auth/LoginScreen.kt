@@ -1,3 +1,8 @@
+// Pantalla de login. La validación es mínima: solo chequeo que el email no esté vacío.
+// Cualquier contraseña sirve — lo dejé así porque el TP pide datos mockeados.
+// El campo de contraseña tiene toggle de visibilidad con VisualTransformation,
+// que es el approach correcto en Compose (no hay InputType como en XML).
+// Incluyo dos @Preview: light y dark, para verificar el tema sin correr la app.
 package com.undef.superahorroturina.ui.screens.auth
 
 import androidx.compose.foundation.background

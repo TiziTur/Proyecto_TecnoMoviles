@@ -1,3 +1,8 @@
+// Detalle de una compra: muestra info general, placeholder del ticket y lista de productos.
+// Recibe el purchaseId por parámetro de navegación y busca en MockData.
+// El AlertDialog de confirmación de eliminación es un buen ejemplo de diálogos en Compose —
+// el estado showDeleteDialog lo manejo local con remember porque es solo UI.
+// FilledTonalButton para adjuntar ticket: lo mantuve en 36dp de alto para no romper el layout.
 package com.undef.superahorroturina.ui.screens.purchase
 
 import androidx.compose.foundation.layout.*

@@ -1,3 +1,8 @@
+// Pantalla de historial de compras con búsqueda y filtros por supermercado.
+// Los chips de filtro están en LazyRow para que nunca se corten ni envuelvan en
+// múltiples líneas, sin importar cuántos supermercados haya.
+// El filtrado es reactivo: cada vez que cambia searchQuery o selectedFilter,
+// Compose recompone automáticamente la lista — no necesito llamar a ninguna función.
 package com.undef.superahorroturina.ui.screens.history
 
 import androidx.compose.foundation.layout.*

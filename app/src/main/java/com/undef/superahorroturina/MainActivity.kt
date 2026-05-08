@@ -1,3 +1,7 @@
+// La única Activity de la app. Con Compose no necesito múltiples Activities —
+// todo el flujo de navegación lo manejo con NavGraph dentro de setContent.
+// @AndroidEntryPoint es necesario para que Hilt pueda inyectar en ViewModels que
+// se crean desde composables dentro de esta Activity.
 package com.undef.superahorroturina
 
 import android.os.Bundle

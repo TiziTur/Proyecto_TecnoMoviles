@@ -1,3 +1,7 @@
+// Acá armo el grafo de navegación completo con NavHost de Compose Navigation.
+// Uso popUpTo con inclusive = true para limpiar el backstack en flujos de auth,
+// así el usuario no puede volver a Splash o Login con el botón atrás del sistema.
+// Los navArguments con NavType.IntType permiten pasar IDs entre pantallas de forma segura.
 package com.undef.superahorroturina.ui.navigation
 
 import androidx.compose.runtime.Composable

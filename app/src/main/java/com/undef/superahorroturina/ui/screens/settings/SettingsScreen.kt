@@ -1,3 +1,8 @@
+// Pantalla de configuración. Acá demuestro el uso de los widgets de selección
+// que vimos en clase: Switch para toggles, Checkbox para opciones independientes,
+// RadioButton para elección única dentro de un grupo, y Slider para valores continuos.
+// El estado de cada control es local con remember/mutableStateOf — no necesita ViewModel
+// porque no hay lógica de negocio compleja, solo preferencias visuales.
 package com.undef.superahorroturina.ui.screens.settings
 
 import androidx.compose.foundation.layout.*

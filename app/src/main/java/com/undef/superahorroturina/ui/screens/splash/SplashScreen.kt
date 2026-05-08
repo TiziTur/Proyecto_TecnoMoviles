@@ -1,3 +1,7 @@
+// Pantalla de splash con animación de entrada del logo.
+// Uso Animatable + LaunchedEffect para la animación — es el patrón que vimos en clase
+// para efectos que corren una sola vez al componer. Spring para el logo (rebote) y
+// tween para el texto (fade suave). Después de 1.2 segundos navega sola al login.
 package com.undef.superahorroturina.ui.screens.splash
 
 import androidx.compose.animation.core.*

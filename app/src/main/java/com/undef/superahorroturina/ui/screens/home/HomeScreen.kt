@@ -1,3 +1,8 @@
+// Pantalla principal de la app. Conecta con HomeViewModel usando hiltViewModel()
+// y observa el estado con collectAsStateWithLifecycle (más eficiente que collectAsState
+// porque para la colección cuando la app va a background).
+// El drawer lateral se abre/cierra con un CoroutineScope + drawerState — necesito el
+// scope porque drawerState.open() es una suspend function.
 package com.undef.superahorroturina.ui.screens.home
 
 import androidx.compose.foundation.layout.*

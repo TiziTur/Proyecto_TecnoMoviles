@@ -1,3 +1,9 @@
+// Pantalla de estadísticas con tres secciones: resumen, evolución mensual y ranking.
+// El gráfico de barras lo dibujé con Canvas puro usando drawRoundRect — intenté
+// hacerlo con fillMaxHeight(ratio) dentro de un Row y no funcionaba en Compose
+// porque el height fill necesita un padre con height definido. Canvas resuelve todo.
+// Para el texto de las etiquetas uso nativeCanvas.drawText con android.graphics.Paint
+// porque la API de Canvas de Compose no expone drawText directamente.
 package com.undef.superahorroturina.ui.screens.stats
 
 import androidx.compose.foundation.Canvas

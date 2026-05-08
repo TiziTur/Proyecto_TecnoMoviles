@@ -1,3 +1,6 @@
+// MockData centraliza todos los datos de prueba de la app. Como no tenemos backend todavía,
+// uso un object (singleton de Kotlin) para que sea accesible desde cualquier pantalla sin
+// pasarlo como parámetro. En clase vimos que object es más limpio que companion object para esto.
 package com.undef.superahorroturina.model
 
 import java.time.LocalDate

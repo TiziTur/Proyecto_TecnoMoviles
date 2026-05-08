@@ -1,3 +1,9 @@
+// Formulario para agregar o editar un producto dentro de una compra.
+// Sirve para los dos casos (new/edit) según si productId es null o no.
+// El campo EAN tiene un FilledTonalIconButton al lado para simular el escaneo con cámara
+// (el TODO real vendría después con CameraX o un Intent implícito a la cámara del sistema).
+// Muestro el subtotal en tiempo real mientras el usuario escribe precio y cantidad —
+// eso es lo copado de Compose, no necesito nada extra, solo calcular en la composición.
 package com.undef.superahorroturina.ui.screens.product
 
 import androidx.compose.foundation.layout.*

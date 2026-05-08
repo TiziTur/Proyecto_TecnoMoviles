@@ -1,3 +1,7 @@
+// Componentes reutilizables de la app. Los centralizo acá para no repetir código
+// en cada pantalla. KlarityButton resuelve el problema de botones que cortaban texto
+// en dos líneas — la clave fue maxLines=1 + softWrap=false en el Text interno.
+// KlarityLogoIcon usa painterResource con el XML vectorial real del logo (no ImageVector).
 package com.undef.superahorroturina.ui.components
 
 import androidx.compose.foundation.background
