@@ -8,7 +8,7 @@ package com.undef.superahorroturina.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.undef.superahorroturina.model.MockData
-import com.undef.superahorroturina.model.Purchase
+import com.undef.superahorroturina.ui.state.HomeUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,17 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-// ── UI State ─────────────────────────────────────────────────
-
-data class HomeUiState(
-    val isLoading: Boolean = true,
-    val userName: String = "",
-    val totalThisMonth: Double = 0.0,
-    val recentPurchases: List<Purchase> = emptyList(),
-    val purchaseCount: Int = 0,
-    val supermarketCount: Int = 0
-)
 
 // ── ViewModel ────────────────────────────────────────────────
 
