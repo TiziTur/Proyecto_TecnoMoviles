@@ -1,3 +1,4 @@
+// Pantalla de perfil conectada a ProfileViewModel.
 package com.undef.superahorroturina.ui.screens.profile
 
 import androidx.compose.foundation.background
@@ -16,19 +17,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.KlarityButton
 
 @Composable
-fun ProfileScreen(onNavigateBack: () -> Unit) {
-    val user     = MockData.currentUser
-    var editing  by remember { mutableStateOf(false) }
-    var firstName by remember { mutableStateOf(user.firstName) }
-    var lastName  by remember { mutableStateOf(user.lastName) }
-    var email     by remember { mutableStateOf(user.email) }
-    var phone     by remember { mutableStateOf(user.phone) }
+fun ProfileScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -37,9 +37,10 @@ fun ProfileScreen(onNavigateBack: () -> Unit) {
                 showBack = true,
                 onBack = onNavigateBack,
                 actions = {
-                    IconButton(onClick = { editing = !editing }) {
+                    IconButton(onClick = { viewModel.onToggleEditing() }) {
                         Icon(
-                            imageVector = if (editing) Icons.Default.Check else Icons.Default.Edit,
+                            imageVector = if (uiState.isEditing) Icons.Default.Check
+                                          else Icons.Default.Edit,
                             contentDescription = stringResource(R.string.action_edit)
                         )
                     }
@@ -58,7 +59,6 @@ fun ProfileScreen(onNavigateBack: () -> Unit) {
         ) {
             Spacer(Modifier.height(16.dp))
 
-            // Avatar
             Box(
                 modifier = Modifier
                     .size(96.dp)
@@ -66,78 +66,83 @@ fun ProfileScreen(onNavigateBack: () -> Unit) {
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
+                val initials = buildString {
+                    if (uiState.firstName.isNotEmpty()) append(uiState.firstName.first())
+                    if (uiState.lastName.isNotEmpty()) append(uiState.lastName.first())
+                }
                 Text(
-                    text = "${user.firstName.first()}${user.lastName.first()}",
+                    text = initials,
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            if (editing) {
-                TextButton(onClick = { /* TODO: intent gallery */ }) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+            if (uiState.isEditing) {
+                TextButton(onClick = { /* TODO: intent galería */ }) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = null,
+                        modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(stringResource(R.string.profile_change_photo))
                 }
             }
 
             Text(
-                text = "${user.firstName} ${user.lastName}",
+                text = "${uiState.firstName} ${uiState.lastName}",
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
-                text = user.email,
+                text = uiState.email,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             HorizontalDivider()
 
-            // Fields
             OutlinedTextField(
-                value = firstName,
-                onValueChange = { firstName = it },
+                value = uiState.firstName,
+                onValueChange = { viewModel.onFirstNameChange(it) },
                 label = { Text(stringResource(R.string.field_first_name)) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                enabled = editing,
+                enabled = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
             OutlinedTextField(
-                value = lastName,
-                onValueChange = { lastName = it },
+                value = uiState.lastName,
+                onValueChange = { viewModel.onLastNameChange(it) },
                 label = { Text(stringResource(R.string.field_last_name)) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                enabled = editing,
+                enabled = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = uiState.email,
+                onValueChange = { viewModel.onEmailChange(it) },
                 label = { Text(stringResource(R.string.field_email)) },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                enabled = editing,
+                enabled = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
             OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
+                value = uiState.phone,
+                onValueChange = { viewModel.onPhoneChange(it) },
                 label = { Text(stringResource(R.string.field_phone)) },
                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                enabled = editing,
+                enabled = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
-            if (editing) {
+            if (uiState.isEditing) {
                 Spacer(Modifier.height(8.dp))
                 KlarityButton(
                     text = stringResource(R.string.action_save),
-                    onClick = { editing = false },
+                    onClick = { viewModel.onSave() },
+                    loading = uiState.isSaving,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

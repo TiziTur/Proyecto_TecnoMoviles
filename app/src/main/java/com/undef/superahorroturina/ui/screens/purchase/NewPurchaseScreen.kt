@@ -1,8 +1,8 @@
+// Pantalla de nueva/editar compra conectada a NewPurchaseViewModel.
 package com.undef.superahorroturina.ui.screens.purchase
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -10,45 +10,39 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.KlarityButton
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewPurchaseScreen(
     purchaseId: Int?,
     onNavigateBack: () -> Unit,
-    onNavigateToAddProduct: (Int) -> Unit
+    onNavigateToAddProduct: (Int) -> Unit,
+    viewModel: NewPurchaseViewModel = hiltViewModel()
 ) {
-    val isEditing = purchaseId != null
-    val existing  = if (isEditing) MockData.purchases.find { it.id == purchaseId } else null
+    // Carga los datos si es edición — LaunchedEffect garantiza que se ejecuta una sola vez
+    LaunchedEffect(purchaseId) {
+        viewModel.loadPurchase(purchaseId)
+    }
 
-    var supermarket   by remember { mutableStateOf(existing?.supermarket ?: "") }
-    var date          by remember { mutableStateOf(existing?.date?.toString() ?: "") }
-    var time          by remember { mutableStateOf(existing?.time?.toString() ?: "") }
-    var expanded      by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isEditing = purchaseId != null
+    val moneyFormat = NumberFormat.getNumberInstance(Locale("es", "AR"))
 
     val title = if (isEditing) stringResource(R.string.purchase_edit_title)
                 else           stringResource(R.string.purchase_new_title)
 
-    val totalDisplay = if (isEditing && existing != null) {
-        val moneyFormat = java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR"))
-        "$ ${moneyFormat.format(existing.products.sumOf { it.price * it.quantity })}"
-    } else {
-        "$ 0,00"
-    }
-
     Scaffold(
         topBar = {
-            AppTopBar(
-                title = title,
-                showBack = true,
-                onBack = onNavigateBack
-            )
+            AppTopBar(title = title, showBack = true, onBack = onNavigateBack)
         }
     ) { padding ->
         Column(
@@ -59,39 +53,40 @@ fun NewPurchaseScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Supermarket selector
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+                expanded = uiState.dropdownExpanded,
+                onExpandedChange = { viewModel.onDropdownExpandedChange(!uiState.dropdownExpanded) }
             ) {
                 OutlinedTextField(
-                    value = supermarket,
+                    value = uiState.supermarket,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.field_supermarket)) },
                     leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.dropdownExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 )
                 ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    expanded = uiState.dropdownExpanded,
+                    onDismissRequest = { viewModel.onDropdownExpandedChange(false) }
                 ) {
                     MockData.supermarkets.forEach { market ->
                         DropdownMenuItem(
                             text = { Text(market) },
-                            onClick = { supermarket = market; expanded = false }
+                            onClick = {
+                                viewModel.onSupermarketChange(market)
+                                viewModel.onDropdownExpandedChange(false)
+                            }
                         )
                     }
                 }
             }
 
-            // Date field
             OutlinedTextField(
-                value = date,
-                onValueChange = { date = it },
+                value = uiState.date,
+                onValueChange = { viewModel.onDateChange(it) },
                 label = { Text(stringResource(R.string.field_date)) },
                 leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
                 placeholder = { Text("dd/MM/yyyy") },
@@ -100,10 +95,9 @@ fun NewPurchaseScreen(
                 shape = MaterialTheme.shapes.medium
             )
 
-            // Time field
             OutlinedTextField(
-                value = time,
-                onValueChange = { time = it },
+                value = uiState.time,
+                onValueChange = { viewModel.onTimeChange(it) },
                 label = { Text(stringResource(R.string.field_time)) },
                 leadingIcon = { Icon(Icons.Default.AccessTime, contentDescription = null) },
                 placeholder = { Text("HH:mm") },
@@ -112,10 +106,11 @@ fun NewPurchaseScreen(
                 shape = MaterialTheme.shapes.medium
             )
 
-            // Total (calculated)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             ) {
                 Row(
                     modifier = Modifier
@@ -136,7 +131,7 @@ fun NewPurchaseScreen(
                         )
                     }
                     Text(
-                        totalDisplay,
+                        "$ ${moneyFormat.format(uiState.total)}",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -145,7 +140,6 @@ fun NewPurchaseScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // Add products button
             OutlinedButton(
                 onClick = { onNavigateToAddProduct(purchaseId ?: 0) },
                 modifier = Modifier.fillMaxWidth(),
@@ -163,7 +157,8 @@ fun NewPurchaseScreen(
 
             KlarityButton(
                 text = stringResource(R.string.action_save),
-                onClick = onNavigateBack,
+                onClick = { viewModel.onSave(onNavigateBack) },
+                loading = uiState.isSaving,
                 modifier = Modifier.fillMaxWidth()
             )
         }

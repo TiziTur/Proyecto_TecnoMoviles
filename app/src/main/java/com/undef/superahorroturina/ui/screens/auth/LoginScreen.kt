@@ -1,14 +1,13 @@
-// Pantalla de login. La validación es mínima: solo chequeo que el email no esté vacío.
-// Cualquier contraseña sirve — lo dejé así porque el TP pide datos mockeados.
-// El campo de contraseña tiene toggle de visibilidad con VisualTransformation,
-// que es el approach correcto en Compose (no hay InputType como en XML).
-// Incluyo dos @Preview: light y dark, para verificar el tema sin correr la app.
+// Pantalla de login conectada a LoginViewModel.
+// El estado (email, password, errores, loading) vive en el ViewModel y se observa
+// con collectAsStateWithLifecycle — patrón correcto según feedback del profesor.
+// Los composables solo manejan UI y delegan eventos al ViewModel.
 package com.undef.superahorroturina.ui.screens.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,16 +16,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.KlarityButton
 import com.undef.superahorroturina.ui.components.KlarityLogoIcon
@@ -35,12 +32,10 @@ import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
-    var email      by remember { mutableStateOf("") }
-    var password   by remember { mutableStateOf("") }
-    var showPass   by remember { mutableStateOf(false) }
-    var emailError by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -56,7 +51,6 @@ fun LoginScreen(
         ) {
             Spacer(Modifier.height(72.dp))
 
-            // Logo + nombre
             KlarityLogoIcon(size = 64)
             Spacer(Modifier.height(16.dp))
             Text(
@@ -75,17 +69,12 @@ fun LoginScreen(
 
             Spacer(Modifier.height(48.dp))
 
-            // Card del formulario
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.extraLarge,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp, MaterialTheme.colorScheme.outline
-                )
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -98,16 +87,16 @@ fun LoginScreen(
                     )
 
                     OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it; emailError = false },
+                        value = uiState.email,
+                        onValueChange = { viewModel.onEmailChange(it) },
                         label = { Text(stringResource(R.string.field_email)) },
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        isError = emailError,
-                        supportingText = if (emailError) {
+                        isError = uiState.emailError,
+                        supportingText = if (uiState.emailError) {
                             { Text(stringResource(R.string.error_email)) }
                         } else null,
                         modifier = Modifier.fillMaxWidth(),
@@ -116,23 +105,23 @@ fun LoginScreen(
                     )
 
                     OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
+                        value = uiState.password,
+                        onValueChange = { viewModel.onPasswordChange(it) },
                         label = { Text(stringResource(R.string.field_password)) },
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         },
                         trailingIcon = {
-                            IconButton(onClick = { showPass = !showPass }) {
+                            IconButton(onClick = { viewModel.onTogglePasswordVisibility() }) {
                                 Icon(
-                                    imageVector = if (showPass) Icons.Default.VisibilityOff
+                                    imageVector = if (uiState.showPassword) Icons.Default.VisibilityOff
                                                   else Icons.Default.Visibility,
                                     contentDescription = null
                                 )
                             }
                         },
-                        visualTransformation = if (showPass) VisualTransformation.None
+                        visualTransformation = if (uiState.showPassword) VisualTransformation.None
                                                else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth(),
@@ -154,10 +143,8 @@ fun LoginScreen(
 
                     KlarityButton(
                         text = stringResource(R.string.action_login),
-                        onClick = {
-                            if (email.isBlank()) { emailError = true; return@KlarityButton }
-                            onLoginSuccess()
-                        },
+                        onClick = { viewModel.onLogin(onLoginSuccess) },
+                        loading = uiState.isLoading,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -165,7 +152,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Registro
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -192,8 +178,6 @@ fun LoginScreen(
         }
     }
 }
-
-// ── Preview ───────────────────────────────────────────────────
 
 @Preview(showBackground = true, name = "Login Screen – Light")
 @Composable

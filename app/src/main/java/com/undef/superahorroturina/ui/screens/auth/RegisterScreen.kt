@@ -1,3 +1,5 @@
+// Pantalla de registro conectada a RegisterViewModel.
+// Toda la lógica de validación (contraseñas coinciden) vive en el ViewModel.
 package com.undef.superahorroturina.ui.screens.auth
 
 import androidx.compose.foundation.layout.*
@@ -8,11 +10,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.KlarityButton
@@ -21,16 +24,10 @@ import com.undef.superahorroturina.ui.components.KlarityButton
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: RegisterViewModel = hiltViewModel()
 ) {
-    var firstName     by remember { mutableStateOf("") }
-    var lastName      by remember { mutableStateOf("") }
-    var email         by remember { mutableStateOf("") }
-    var phone         by remember { mutableStateOf("") }
-    var password      by remember { mutableStateOf("") }
-    var confirmPass   by remember { mutableStateOf("") }
-    var showPass      by remember { mutableStateOf(false) }
-    var passError     by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -57,16 +54,16 @@ fun RegisterScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = firstName,
-                    onValueChange = { firstName = it },
+                    value = uiState.firstName,
+                    onValueChange = { viewModel.onFirstNameChange(it) },
                     label = { Text(stringResource(R.string.field_first_name)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = MaterialTheme.shapes.medium
                 )
                 OutlinedTextField(
-                    value = lastName,
-                    onValueChange = { lastName = it },
+                    value = uiState.lastName,
+                    onValueChange = { viewModel.onLastNameChange(it) },
                     label = { Text(stringResource(R.string.field_last_name)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -75,8 +72,8 @@ fun RegisterScreen(
             }
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = uiState.email,
+                onValueChange = { viewModel.onEmailChange(it) },
                 label = { Text(stringResource(R.string.field_email)) },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -86,8 +83,8 @@ fun RegisterScreen(
             )
 
             OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
+                value = uiState.phone,
+                onValueChange = { viewModel.onPhoneChange(it) },
                 label = { Text(stringResource(R.string.field_phone)) },
                 leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -97,32 +94,36 @@ fun RegisterScreen(
             )
 
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it; passError = false },
+                value = uiState.password,
+                onValueChange = { viewModel.onPasswordChange(it) },
                 label = { Text(stringResource(R.string.field_password)) },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = { showPass = !showPass }) {
+                    IconButton(onClick = { viewModel.onTogglePasswordVisibility() }) {
                         Icon(
-                            imageVector = if (showPass) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            imageVector = if (uiState.showPassword) Icons.Default.VisibilityOff
+                                          else Icons.Default.Visibility,
                             contentDescription = null
                         )
                     }
                 },
-                visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (uiState.showPassword) VisualTransformation.None
+                                       else PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium
             )
 
             OutlinedTextField(
-                value = confirmPass,
-                onValueChange = { confirmPass = it; passError = false },
+                value = uiState.confirmPassword,
+                onValueChange = { viewModel.onConfirmPasswordChange(it) },
                 label = { Text(stringResource(R.string.field_confirm_password)) },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 visualTransformation = PasswordVisualTransformation(),
-                isError = passError,
-                supportingText = if (passError) {{ Text(stringResource(R.string.error_password_mismatch)) }} else null,
+                isError = uiState.passwordError,
+                supportingText = if (uiState.passwordError) {
+                    { Text(stringResource(R.string.error_password_mismatch)) }
+                } else null,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium
@@ -132,10 +133,8 @@ fun RegisterScreen(
 
             KlarityButton(
                 text = stringResource(R.string.action_create_account),
-                onClick = {
-                    if (password != confirmPass) { passError = true; return@KlarityButton }
-                    onRegisterSuccess()
-                },
+                onClick = { viewModel.onRegister(onRegisterSuccess) },
+                loading = uiState.isLoading,
                 modifier = Modifier.fillMaxWidth()
             )
 

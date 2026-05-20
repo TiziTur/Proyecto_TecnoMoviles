@@ -1,8 +1,7 @@
-// Pantalla de configuración. Acá demuestro el uso de los widgets de selección
-// que vimos en clase: Switch para toggles, Checkbox para opciones independientes,
-// RadioButton para elección única dentro de un grupo, y Slider para valores continuos.
-// El estado de cada control es local con remember/mutableStateOf — no necesita ViewModel
-// porque no hay lógica de negocio compleja, solo preferencias visuales.
+// Pantalla de configuración conectada a SettingsViewModel.
+// Todo el estado (darkMode, notifications, language, sort, slider) vive en el ViewModel
+// y se expone como StateFlow — corrige el antipatrón señalado por el profesor.
+// En la segunda entrega, darkMode y language se persistirán con DataStore.
 package com.undef.superahorroturina.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
@@ -18,25 +17,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 
 @Composable
-fun SettingsScreen(onNavigateBack: () -> Unit) {
-    var darkMode        by remember { mutableStateOf(false) }
-    var notifications   by remember { mutableStateOf(true) }
-    var priceAlerts     by remember { mutableStateOf(true) }
-    var language        by remember { mutableStateOf("Español") }
-    var langExpanded    by remember { mutableStateOf(false) }
-    val languages       = listOf("Español", "English")
-
-    // RadioButton: orden de historial
-    val sortOptions     = listOf("Más reciente", "Más antiguo", "Mayor gasto")
-    var selectedSort    by remember { mutableStateOf(sortOptions[0]) }
-
-    // Slider: límite de alerta mensual
-    var monthlyLimit    by remember { mutableStateOf(50000f) }
+fun SettingsScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val languages   = listOf("Español", "English")
+    val sortOptions = listOf("Más reciente", "Más antiguo", "Mayor gasto")
 
     Scaffold(
         topBar = {
@@ -61,32 +55,33 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
             SettingsCategoryHeader(stringResource(R.string.settings_appearance))
 
             SettingsToggleItem(
-                icon             = Icons.Default.DarkMode,
-                title            = stringResource(R.string.settings_dark_mode),
-                subtitle         = stringResource(R.string.settings_dark_mode_desc),
-                checked          = darkMode,
-                onCheckedChange  = { darkMode = it }
+                icon            = Icons.Default.DarkMode,
+                title           = stringResource(R.string.settings_dark_mode),
+                subtitle        = stringResource(R.string.settings_dark_mode_desc),
+                checked         = uiState.darkMode,
+                onCheckedChange = { viewModel.onDarkModeChange(it) }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             SettingsSelectorItem(
-                icon     = Icons.Default.Language,
-                title    = stringResource(R.string.settings_language),
-                subtitle = language,
-                onClick  = { langExpanded = true }
+                icon    = Icons.Default.Language,
+                title   = stringResource(R.string.settings_language),
+                subtitle = uiState.language,
+                onClick = { viewModel.onLanguageExpandedChange(true) }
             )
 
             DropdownMenu(
-                expanded = langExpanded,
-                onDismissRequest = { langExpanded = false }
+                expanded = uiState.languageExpanded,
+                onDismissRequest = { viewModel.onLanguageExpandedChange(false) }
             ) {
                 languages.forEach { lang ->
                     DropdownMenuItem(
                         text = { Text(lang) },
-                        onClick = { language = lang; langExpanded = false },
+                        onClick = { viewModel.onLanguageChange(lang) },
                         leadingIcon = {
-                            if (language == lang) Icon(Icons.Default.Check, contentDescription = null)
+                            if (uiState.language == lang)
+                                Icon(Icons.Default.Check, contentDescription = null)
                         }
                     )
                 }
@@ -98,14 +93,13 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
             SettingsCategoryHeader(stringResource(R.string.settings_notifications))
 
             SettingsToggleItem(
-                icon             = Icons.Default.Notifications,
-                title            = stringResource(R.string.settings_notifications_label),
-                subtitle         = stringResource(R.string.settings_notifications_desc),
-                checked          = notifications,
-                onCheckedChange  = { notifications = it }
+                icon            = Icons.Default.Notifications,
+                title           = stringResource(R.string.settings_notifications_label),
+                subtitle        = stringResource(R.string.settings_notifications_desc),
+                checked         = uiState.notifications,
+                onCheckedChange = { viewModel.onNotificationsChange(it) }
             )
 
-            // Checkbox: alertas de precio
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -114,8 +108,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Checkbox(
-                    checked = priceAlerts,
-                    onCheckedChange = { priceAlerts = it }
+                    checked = uiState.priceAlerts,
+                    onCheckedChange = { viewModel.onPriceAlertsChange(it) }
                 )
                 Column {
                     Text("Alertas de precio", style = MaterialTheme.typography.bodyLarge)
@@ -139,14 +133,14 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                 ) {
                     Text("Límite de alerta", style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "$ ${monthlyLimit.toInt()}",
+                        "$ ${uiState.monthlyLimit.toInt()}",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 Slider(
-                    value = monthlyLimit,
-                    onValueChange = { monthlyLimit = it },
+                    value = uiState.monthlyLimit,
+                    onValueChange = { viewModel.onMonthlyLimitChange(it) },
                     valueRange = 10000f..200000f,
                     steps = 18,
                     modifier = Modifier.fillMaxWidth()
@@ -167,8 +161,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     RadioButton(
-                        selected = selectedSort == option,
-                        onClick  = { selectedSort = option }
+                        selected = uiState.selectedSort == option,
+                        onClick  = { viewModel.onSortChange(option) }
                     )
                     Text(option, style = MaterialTheme.typography.bodyLarge)
                 }
@@ -180,22 +174,22 @@ fun SettingsScreen(onNavigateBack: () -> Unit) {
             SettingsCategoryHeader(stringResource(R.string.settings_info))
 
             SettingsSelectorItem(
-                icon     = Icons.Default.Info,
-                title    = stringResource(R.string.settings_about),
+                icon    = Icons.Default.Info,
+                title   = stringResource(R.string.settings_about),
                 subtitle = stringResource(R.string.settings_version),
-                onClick  = {}
+                onClick = {}
             )
             SettingsSelectorItem(
-                icon     = Icons.Default.PrivacyTip,
-                title    = stringResource(R.string.settings_privacy),
+                icon    = Icons.Default.PrivacyTip,
+                title   = stringResource(R.string.settings_privacy),
                 subtitle = "",
-                onClick  = {}
+                onClick = {}
             )
             SettingsSelectorItem(
-                icon     = Icons.Default.Description,
-                title    = stringResource(R.string.settings_terms),
+                icon    = Icons.Default.Description,
+                title   = stringResource(R.string.settings_terms),
                 subtitle = "",
-                onClick  = {}
+                onClick = {}
             )
 
             Spacer(Modifier.height(24.dp))
@@ -291,8 +285,6 @@ private fun SettingsSelectorItem(
         }
     }
 }
-
-// ── Preview ───────────────────────────────────────────────────
 
 @Preview(showBackground = true, name = "Settings Screen")
 @Composable

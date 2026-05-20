@@ -1,7 +1,8 @@
 // Pantalla de splash con animación de entrada del logo.
-// Uso Animatable + LaunchedEffect para la animación — es el patrón que vimos en clase
-// para efectos que corren una sola vez al componer. Spring para el logo (rebote) y
-// tween para el texto (fade suave). Después de 1.2 segundos navega sola al login.
+// LaunchedEffect(Unit) se usa para dos propósitos:
+//   1. Animación: Animatable con Spring (rebote del logo) y tween (fade del texto).
+//   2. Auto-navegación: delay(1200ms) + onNavigateToLogin() — efecto de una sola vez.
+// Este es el patrón correcto en Compose para efectos de ciclo de vida (no runBlocking, no Thread.sleep).
 package com.undef.superahorroturina.ui.screens.splash
 
 import androidx.compose.animation.core.*
