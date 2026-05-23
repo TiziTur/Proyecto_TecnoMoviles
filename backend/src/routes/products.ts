@@ -45,12 +45,15 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
   const purchaseId = parseInt(req.params.purchaseId);
   const { code, name, description, price, quantity } = req.body;
+  console.log(`[POST product] purchaseId=${purchaseId} userId=${req.userId} name=${name} price=${price}`);
   if (!name || price === undefined) {
     res.status(400).json({ error: 'Nombre y precio son obligatorios' });
     return;
   }
   try {
-    if (!(await verifyOwnership(purchaseId, req.userId!))) {
+    const owns = await verifyOwnership(purchaseId, req.userId!);
+    console.log(`[POST product] verifyOwnership(${purchaseId}, ${req.userId}) = ${owns}`);
+    if (!owns) {
       res.status(404).json({ error: 'Compra no encontrada' });
       return;
     }
