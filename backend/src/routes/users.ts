@@ -31,7 +31,9 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
 
 // PUT /users/me — actualizar perfil
 router.put('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
-  const { firstName, lastName, phone } = req.body;
+  const firstName = req.body.firstName || req.body.first_name;
+  const lastName  = req.body.lastName  || req.body.last_name;
+  const { phone } = req.body;
   try {
     const result = await pool.query(
       `UPDATE users

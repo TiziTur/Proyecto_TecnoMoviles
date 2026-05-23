@@ -131,6 +131,24 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            // Error de validación de contraseña (longitud mínima)
+            if (uiState.passwordError) {
+                Text(
+                    text = stringResource(R.string.error_password_mismatch),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            // Error de red / servidor (email duplicado, sin conexión, etc.)
+            if (uiState.apiError.isNotBlank()) {
+                Text(
+                    text = uiState.apiError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
             KlarityButton(
                 text = stringResource(R.string.action_create_account),
                 onClick = { viewModel.onRegister(onRegisterSuccess) },

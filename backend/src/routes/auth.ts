@@ -7,7 +7,10 @@ const router = Router();
 
 // POST /auth/register
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
-  const { firstName, lastName, email, password, phone } = req.body;
+  // Acepta tanto camelCase (firstName) como snake_case (first_name) para compatibilidad con Android
+  const firstName = req.body.firstName || req.body.first_name;
+  const lastName  = req.body.lastName  || req.body.last_name;
+  const { email, password, phone } = req.body;
 
   if (!firstName || !lastName || !email || !password) {
     res.status(400).json({ error: 'Faltan campos obligatorios' });
