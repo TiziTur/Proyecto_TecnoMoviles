@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -103,6 +104,7 @@ fun ProfileScreen(
                 onValueChange = { viewModel.onFirstNameChange(it) },
                 label = { Text(stringResource(R.string.field_first_name)) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 enabled = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -112,6 +114,7 @@ fun ProfileScreen(
                 onValueChange = { viewModel.onLastNameChange(it) },
                 label = { Text(stringResource(R.string.field_last_name)) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 enabled = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true

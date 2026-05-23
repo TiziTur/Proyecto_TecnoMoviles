@@ -57,6 +57,7 @@ fun RegisterScreen(
                     value = uiState.firstName,
                     onValueChange = { viewModel.onFirstNameChange(it) },
                     label = { Text(stringResource(R.string.field_first_name)) },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = MaterialTheme.shapes.medium
@@ -65,6 +66,7 @@ fun RegisterScreen(
                     value = uiState.lastName,
                     onValueChange = { viewModel.onLastNameChange(it) },
                     label = { Text(stringResource(R.string.field_last_name)) },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = MaterialTheme.shapes.medium

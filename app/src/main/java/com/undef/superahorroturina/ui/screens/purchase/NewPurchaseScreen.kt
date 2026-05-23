@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
@@ -89,6 +91,7 @@ fun NewPurchaseScreen(
                 label = { Text(stringResource(R.string.field_date)) },
                 leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
                 placeholder = { Text("dd/MM/yyyy") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium
@@ -100,6 +103,7 @@ fun NewPurchaseScreen(
                 label = { Text(stringResource(R.string.field_time)) },
                 leadingIcon = { Icon(Icons.Default.AccessTime, contentDescription = null) },
                 placeholder = { Text("HH:mm") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium

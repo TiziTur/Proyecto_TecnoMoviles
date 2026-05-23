@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -92,6 +93,7 @@ fun ProductFormScreen(
                 onValueChange = { viewModel.onNameChange(it) },
                 label = { Text(stringResource(R.string.field_name)) },
                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -101,6 +103,7 @@ fun ProductFormScreen(
                 onValueChange = { viewModel.onDescriptionChange(it) },
                 label = { Text(stringResource(R.string.field_description)) },
                 leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 3

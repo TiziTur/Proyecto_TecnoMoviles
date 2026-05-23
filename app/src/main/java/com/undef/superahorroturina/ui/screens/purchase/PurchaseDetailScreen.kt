@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.*
 import java.text.NumberFormat
@@ -36,8 +37,15 @@ fun PurchaseDetailScreen(
     onNavigateToEditProduct: (Int, Int) -> Unit,
     viewModel: PurchaseDetailViewModel = hiltViewModel()
 ) {
+    // Carga inicial
     LaunchedEffect(purchaseId) {
         viewModel.loadPurchase(purchaseId)
+    }
+
+    // Recarga cada vez que la pantalla vuelve al foco (ej: al volver de agregar producto)
+    LifecycleResumeEffect(purchaseId) {
+        viewModel.loadPurchase(purchaseId)
+        onPauseOrDispose { }
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
