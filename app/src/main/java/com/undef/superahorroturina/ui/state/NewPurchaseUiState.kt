@@ -10,7 +10,8 @@ data class NewPurchaseUiState(
     val supermarketList: List<String> = emptyList(),
     val dropdownExpanded: Boolean = false,
     val isSaving: Boolean = false,
-    val saveError: String = ""
+    val saveError: String = "",
+    val savedPurchaseId: Int? = null   // ID de la compra recién creada, para navegar al detalle
 ) {
     // El total se calcula reactivamente desde los productos — no se almacena
     val total: Double get() = products.sumOf { it.price * it.quantity }

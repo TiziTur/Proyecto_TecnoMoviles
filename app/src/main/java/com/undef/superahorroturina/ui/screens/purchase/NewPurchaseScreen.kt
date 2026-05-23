@@ -25,9 +25,9 @@ fun NewPurchaseScreen(
     purchaseId: Int?,
     onNavigateBack: () -> Unit,
     onNavigateToAddProduct: (Int) -> Unit,
+    onNavigateToPurchaseDetail: ((Int) -> Unit)? = null,
     viewModel: NewPurchaseViewModel = hiltViewModel()
 ) {
-    // Carga los datos si es edición — LaunchedEffect garantiza que se ejecuta una sola vez
     LaunchedEffect(purchaseId) {
         viewModel.loadPurchase(purchaseId)
     }
@@ -154,9 +154,24 @@ fun NewPurchaseScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            if (uiState.saveError.isNotBlank()) {
+                Text(uiState.saveError, color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+
             KlarityButton(
                 text = stringResource(R.string.action_save),
-                onClick = { viewModel.onSave(onNavigateBack) },
+                onClick = {
+                    viewModel.onSave { newId ->
+                        if (newId != null && onNavigateToPurchaseDetail != null) {
+                            // Compra nueva: ir al detalle para agregar productos
+                            onNavigateToPurchaseDetail(newId)
+                        } else {
+                            // Edición: volver atrás
+                            onNavigateBack()
+                        }
+                    }
+                },
                 loading = uiState.isSaving,
                 modifier = Modifier.fillMaxWidth()
             )

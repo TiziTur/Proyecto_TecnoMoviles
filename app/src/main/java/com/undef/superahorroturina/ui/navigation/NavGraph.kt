@@ -116,6 +116,12 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAddProduct = { purchaseId ->
                     navController.navigate(Routes.NewProduct.createRoute(purchaseId))
+                },
+                onNavigateToPurchaseDetail = { newId ->
+                    // Al crear una compra nueva, ir directo al detalle para agregar productos
+                    navController.navigate(Routes.PurchaseDetail.createRoute(newId)) {
+                        popUpTo(Routes.NewPurchase.route) { inclusive = true }
+                    }
                 }
             )
         }

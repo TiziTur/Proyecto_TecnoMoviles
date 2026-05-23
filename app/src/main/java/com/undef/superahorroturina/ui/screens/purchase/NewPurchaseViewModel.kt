@@ -72,7 +72,7 @@ class NewPurchaseViewModel @Inject constructor(
     fun onTimeChange(value: String)                 { _uiState.value = _uiState.value.copy(time = value) }
     fun onDropdownExpandedChange(expanded: Boolean) { _uiState.value = _uiState.value.copy(dropdownExpanded = expanded) }
 
-    fun onSave(onSuccess: () -> Unit) {
+    fun onSave(onSuccess: (Int?) -> Unit) {
         val state = _uiState.value
         if (state.supermarket.isBlank() || state.date.isBlank()) return
 
@@ -93,8 +93,9 @@ class NewPurchaseViewModel @Inject constructor(
             }
             when (result) {
                 is ApiResult.Success -> {
-                    _uiState.value = _uiState.value.copy(isSaving = false)
-                    onSuccess()
+                    val newId = result.data.id
+                    _uiState.value = _uiState.value.copy(isSaving = false, savedPurchaseId = newId)
+                    onSuccess(if (editingPurchaseId == null) newId else null)
                 }
                 is ApiResult.Error -> {
                     _uiState.value = _uiState.value.copy(isSaving = false, saveError = result.message)

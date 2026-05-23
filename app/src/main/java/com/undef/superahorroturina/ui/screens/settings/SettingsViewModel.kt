@@ -1,24 +1,38 @@
 package com.undef.superahorroturina.ui.screens.settings
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.undef.superahorroturina.data.local.ThemeDataStore
 import com.undef.superahorroturina.ui.state.SettingsUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// ViewModel para Settings. Expone todo el estado de la pantalla como StateFlow,
-// sacando los remember/mutableStateOf del composable — antipatrón señalado por el profesor.
-// En la segunda entrega, darkMode y language se persistirán con DataStore.
+// ViewModel para Settings. darkMode se persiste en ThemeDataStore (DataStore Preferences)
+// y se lee en MainActivity para aplicar el tema globalmente.
 @HiltViewModel
-class SettingsViewModel @Inject constructor() : ViewModel() {
+class SettingsViewModel @Inject constructor(
+    private val themeDataStore: ThemeDataStore
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    init {
+        // Cargar preferencia guardada al abrir Settings
+        viewModelScope.launch {
+            themeDataStore.isDarkMode.collect { saved ->
+                _uiState.value = _uiState.value.copy(darkMode = saved)
+            }
+        }
+    }
+
     fun onDarkModeChange(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(darkMode = enabled)
+        viewModelScope.launch { themeDataStore.setDarkMode(enabled) }
     }
 
     fun onNotificationsChange(enabled: Boolean) {
