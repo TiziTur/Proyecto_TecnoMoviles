@@ -162,6 +162,15 @@ fun ProductFormScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            if (uiState.saveError.isNotBlank()) {
+                Text(
+                    text = uiState.saveError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             KlarityButton(
                 text = stringResource(R.string.action_save),
                 onClick = { viewModel.onSave(onNavigateBack) },

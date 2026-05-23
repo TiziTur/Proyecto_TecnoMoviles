@@ -28,9 +28,10 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     );
     res.json(result.rows.map(pr => ({
       id: pr.id,
-      code: pr.code,
+      purchase_id: pr.purchase_id,
+      code: pr.code ?? '',
       name: pr.name,
-      description: pr.description,
+      description: pr.description ?? '',
       price: parseFloat(pr.price),
       quantity: pr.quantity
     })));
@@ -71,9 +72,10 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
     res.status(201).json({
       id: pr.id,
-      code: pr.code,
+      purchase_id: pr.purchase_id,
+      code: pr.code ?? '',
       name: pr.name,
-      description: pr.description,
+      description: pr.description ?? '',
       price: parseFloat(pr.price),
       quantity: pr.quantity
     });
@@ -120,9 +122,10 @@ router.put('/:productId', async (req: AuthRequest, res: Response): Promise<void>
     const pr = result.rows[0];
     res.json({
       id: pr.id,
-      code: pr.code,
+      purchase_id: pr.purchase_id,
+      code: pr.code ?? '',
       name: pr.name,
-      description: pr.description,
+      description: pr.description ?? '',
       price: parseFloat(pr.price),
       quantity: pr.quantity
     });

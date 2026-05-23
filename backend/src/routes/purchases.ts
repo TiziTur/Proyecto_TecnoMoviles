@@ -5,6 +5,38 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 const router = Router();
 router.use(authMiddleware);
 
+// Convierte un row de PostgreSQL a JSON alineado con los DTOs de Android.
+// purchase_date y purchase_time llegan como objetos Date desde pg — los convertimos a string.
+function purchaseToJson(p: any, products: any[] = []) {
+  // purchase_date: pg devuelve un objeto Date → "yyyy-MM-dd"
+  const dateObj = p.purchase_date instanceof Date ? p.purchase_date : new Date(p.purchase_date);
+  const dateStr = dateObj.toISOString().split('T')[0];
+
+  // purchase_time: pg devuelve string "HH:mm:ss" o "HH:mm"
+  const timeStr = typeof p.purchase_time === 'string'
+    ? p.purchase_time.substring(0, 5)   // "HH:mm"
+    : '00:00';
+
+  return {
+    id:            p.id,
+    purchase_date: dateStr,
+    purchase_time: timeStr,
+    supermarket:   p.supermarket,
+    total:         parseFloat(p.total) || 0,
+    ticket_image_uri: p.ticket_image_uri ?? null,
+    product_count: products.length,
+    products:      products.map(pr => ({
+      id:          pr.id,
+      purchase_id: pr.purchase_id,
+      code:        pr.code ?? '',
+      name:        pr.name,
+      description: pr.description ?? '',
+      price:       parseFloat(pr.price),
+      quantity:    pr.quantity
+    }))
+  };
+}
+
 // GET /purchases — todas las compras del usuario autenticado
 router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -18,15 +50,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
        ORDER BY p.purchase_date DESC, p.purchase_time DESC`,
       [req.userId]
     );
-    res.json(result.rows.map(row => ({
-      id: row.id,
-      date: row.purchase_date,
-      time: row.purchase_time,
-      supermarket: row.supermarket,
-      total: parseFloat(row.total),
-      ticketImageUri: row.ticket_image_uri,
-      productCount: row.product_count
-    })));
+    res.json(result.rows.map(row => purchaseToJson(row)));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -51,23 +75,7 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       [purchaseId]
     );
 
-    const p = purchaseResult.rows[0];
-    res.json({
-      id: p.id,
-      date: p.purchase_date,
-      time: p.purchase_time,
-      supermarket: p.supermarket,
-      total: parseFloat(p.total),
-      ticketImageUri: p.ticket_image_uri,
-      products: productsResult.rows.map(pr => ({
-        id: pr.id,
-        code: pr.code,
-        name: pr.name,
-        description: pr.description,
-        price: parseFloat(pr.price),
-        quantity: pr.quantity
-      }))
-    });
+    res.json(purchaseToJson(purchaseResult.rows[0], productsResult.rows));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -76,28 +84,24 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
 
 // POST /purchases — crear nueva compra
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
-  const { date, time, supermarket, total, ticketImageUri } = req.body;
+  // Acepta purchase_date (Android @SerializedName) o date como fallback
+  const date        = req.body.purchase_date || req.body.purchaseDate || req.body.date;
+  const time        = req.body.purchase_time || req.body.purchaseTime || req.body.time;
+  const supermarket = req.body.supermarket;
+
   if (!date || !supermarket) {
     res.status(400).json({ error: 'Fecha y supermercado son obligatorios' });
     return;
   }
+
   try {
     const result = await pool.query(
-      `INSERT INTO purchases (user_id, purchase_date, purchase_time, supermarket, total, ticket_image_uri)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO purchases (user_id, purchase_date, purchase_time, supermarket, total)
+       VALUES ($1, $2, $3, $4, 0)
        RETURNING *`,
-      [req.userId, date, time ?? '00:00', supermarket, total ?? 0, ticketImageUri ?? null]
+      [req.userId, date, time ?? '00:00', supermarket]
     );
-    const p = result.rows[0];
-    res.status(201).json({
-      id: p.id,
-      date: p.purchase_date,
-      time: p.purchase_time,
-      supermarket: p.supermarket,
-      total: parseFloat(p.total),
-      ticketImageUri: p.ticket_image_uri,
-      products: []
-    });
+    res.status(201).json(purchaseToJson(result.rows[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -107,39 +111,32 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
 // PUT /purchases/:id — editar compra
 router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   const purchaseId = parseInt(req.params.id);
-  const { date, time, supermarket, total, ticketImageUri } = req.body;
+  const date        = req.body.purchase_date || req.body.purchaseDate || req.body.date;
+  const time        = req.body.purchase_time || req.body.purchaseTime || req.body.time;
+  const supermarket = req.body.supermarket;
+
   try {
     const result = await pool.query(
       `UPDATE purchases
-       SET purchase_date     = COALESCE($1, purchase_date),
-           purchase_time     = COALESCE($2, purchase_time),
-           supermarket       = COALESCE($3, supermarket),
-           total             = COALESCE($4, total),
-           ticket_image_uri  = COALESCE($5, ticket_image_uri)
-       WHERE id = $6 AND user_id = $7
+       SET purchase_date = COALESCE($1, purchase_date),
+           purchase_time = COALESCE($2, purchase_time),
+           supermarket   = COALESCE($3, supermarket)
+       WHERE id = $4 AND user_id = $5
        RETURNING *`,
-      [date, time, supermarket, total, ticketImageUri, purchaseId, req.userId]
+      [date, time, supermarket, purchaseId, req.userId]
     );
     if (result.rows.length === 0) {
       res.status(404).json({ error: 'Compra no encontrada' });
       return;
     }
-    const p = result.rows[0];
-    res.json({
-      id: p.id,
-      date: p.purchase_date,
-      time: p.purchase_time,
-      supermarket: p.supermarket,
-      total: parseFloat(p.total),
-      ticketImageUri: p.ticket_image_uri
-    });
+    res.json(purchaseToJson(result.rows[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// DELETE /purchases/:id — eliminar compra (también elimina sus productos por CASCADE)
+// DELETE /purchases/:id — elimina compra y sus productos por CASCADE
 router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   const purchaseId = parseInt(req.params.id);
   try {

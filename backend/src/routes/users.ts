@@ -33,16 +33,17 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
 router.put('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   const firstName = req.body.firstName || req.body.first_name;
   const lastName  = req.body.lastName  || req.body.last_name;
-  const { phone } = req.body;
+  const { email, phone } = req.body;
   try {
     const result = await pool.query(
       `UPDATE users
        SET first_name = COALESCE($1, first_name),
            last_name  = COALESCE($2, last_name),
-           phone      = COALESCE($3, phone)
-       WHERE id = $4
+           email      = COALESCE($3, email),
+           phone      = COALESCE($4, phone)
+       WHERE id = $5
        RETURNING id, first_name, last_name, email, phone`,
-      [firstName, lastName, phone, req.userId]
+      [firstName, lastName, email, phone, req.userId]
     );
     const u = result.rows[0];
     res.json({
