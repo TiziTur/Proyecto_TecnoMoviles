@@ -1,5 +1,7 @@
 package com.undef.superahorroturina.ui.components
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.History
@@ -60,8 +62,9 @@ fun AppBottomNavigationBar(
     onNavigate: (String) -> Unit
 ) {
     NavigationBar(
-        tonalElevation = 0.dp,
-        containerColor = MaterialTheme.colorScheme.surface
+        tonalElevation  = 0.dp,
+        containerColor  = MaterialTheme.colorScheme.surface,
+        windowInsets    = WindowInsets.navigationBars
     ) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route

@@ -30,7 +30,11 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val languages   = listOf("Español", "English")
-    val sortOptions = listOf("Más reciente", "Más antiguo", "Mayor gasto")
+    val sortOptions = listOf(
+        stringResource(R.string.settings_sort_newest),
+        stringResource(R.string.settings_sort_oldest),
+        stringResource(R.string.settings_sort_highest)
+    )
 
     Scaffold(
         topBar = {
@@ -112,9 +116,9 @@ fun SettingsScreen(
                     onCheckedChange = { viewModel.onPriceAlertsChange(it) }
                 )
                 Column {
-                    Text("Alertas de precio", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.settings_price_alerts), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Notificar cuando un producto suba de precio",
+                        stringResource(R.string.settings_price_alerts_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -124,14 +128,14 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // ── Límite mensual (Slider) ───────────────────────────
-            SettingsCategoryHeader("Presupuesto mensual")
+            SettingsCategoryHeader(stringResource(R.string.settings_budget))
 
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Límite de alerta", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.settings_budget_limit), style = MaterialTheme.typography.bodyLarge)
                     Text(
                         "$ ${uiState.monthlyLimit.toInt()}",
                         style = MaterialTheme.typography.bodyLarge,
@@ -150,7 +154,7 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // ── Ordenar historial (RadioButton) ───────────────────
-            SettingsCategoryHeader("Ordenar historial")
+            SettingsCategoryHeader(stringResource(R.string.settings_sort_history))
 
             sortOptions.forEach { option ->
                 Row(

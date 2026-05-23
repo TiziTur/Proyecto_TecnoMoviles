@@ -51,9 +51,9 @@ fun PurchaseDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    val moneyFormat   = NumberFormat.getNumberInstance(Locale("es", "AR"))
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+    val moneyFormat   = remember { NumberFormat.getNumberInstance(Locale("es", "AR")) }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
 

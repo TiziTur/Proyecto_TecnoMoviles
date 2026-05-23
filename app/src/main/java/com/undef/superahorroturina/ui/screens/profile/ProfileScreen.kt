@@ -14,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -64,17 +66,25 @@ fun ProfileScreen(
                 modifier = Modifier
                     .size(96.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 val initials = buildString {
-                    if (uiState.firstName.isNotEmpty()) append(uiState.firstName.first())
-                    if (uiState.lastName.isNotEmpty()) append(uiState.lastName.first())
+                    if (uiState.firstName.isNotEmpty()) append(uiState.firstName.first().uppercaseChar())
+                    if (uiState.lastName.isNotEmpty())  append(uiState.lastName.first().uppercaseChar())
                 }
                 Text(
                     text = initials,
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
 

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
@@ -21,6 +22,7 @@ data class StatsUiState(
     val supermarketStats: List<StatSummary> = emptyList(),
     val topProducts: List<StatSummary> = emptyList(),
     val totalAllTime: Double = 0.0,
+    val avgPurchase: Double = 0.0,
     val error: String = ""
 )
 
@@ -45,12 +47,15 @@ class StatsViewModel @Inject constructor(
                         val detail = purchaseRepository.getPurchase(purchase.id)
                         if (detail is ApiResult.Success) detail.data else purchase
                     }
+                    val totalAllTime = purchases.sumOf { it.total }
+                    val monthly      = buildMonthlyStats(purchases)
                     _uiState.value = StatsUiState(
                         isLoading        = false,
-                        monthlyStats     = buildMonthlyStats(purchases),
+                        monthlyStats     = monthly,
                         supermarketStats = buildSupermarketStats(purchases),
                         topProducts      = buildTopProducts(purchasesWithProducts),
-                        totalAllTime     = purchases.sumOf { it.total }
+                        totalAllTime     = totalAllTime,
+                        avgPurchase      = if (purchases.isNotEmpty()) totalAllTime / purchases.size else 0.0
                     )
                 }
                 is ApiResult.Error -> _uiState.value = StatsUiState(
@@ -62,12 +67,18 @@ class StatsViewModel @Inject constructor(
     }
 
     private fun buildMonthlyStats(purchases: List<Purchase>): List<StatSummary> {
-        val fmt = DateTimeFormatter.ofPattern("MMM yy")
+        val displayFmt = DateTimeFormatter.ofPattern("MMM yy")
+        // Agrupar por YearMonth real (para ordenar cronológicamente, no por string)
         return purchases
-            .groupBy { it.date.format(fmt) }
-            .map { (month, ps) -> StatSummary(month, ps.sumOf { it.total }) }
-            .sortedBy { it.label }
+            .groupBy { YearMonth.of(it.date.year, it.date.month) }
+            .entries
+            .sortedBy { (yearMonth, _) -> yearMonth }
             .takeLast(6)
+            .map { (yearMonth, ps) ->
+                val label = yearMonth.format(displayFmt)
+                    .replaceFirstChar { c -> c.uppercaseChar() }
+                StatSummary(label, ps.sumOf { it.total })
+            }
     }
 
     private fun buildSupermarketStats(purchases: List<Purchase>): List<StatSummary> =

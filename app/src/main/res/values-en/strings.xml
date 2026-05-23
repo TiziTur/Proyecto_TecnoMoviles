@@ -101,6 +101,7 @@
     <string name="stat_supermarkets">Supermarkets</string>
     <string name="stat_total_spent">Total spent</string>
     <string name="stat_avg_purchase">Average</string>
+    <string name="stats_no_data">No data yet</string>
 
     <!-- Profile -->
     <string name="profile_change_photo">Change photo</string>
@@ -118,6 +119,16 @@
     <string name="settings_version">Version 1.0.0</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_terms">Terms and conditions</string>
+
+    <!-- Settings extras -->
+    <string name="settings_price_alerts">Price alerts</string>
+    <string name="settings_price_alerts_desc">Notify when a product increases in price</string>
+    <string name="settings_budget">Monthly budget</string>
+    <string name="settings_budget_limit">Alert limit</string>
+    <string name="settings_sort_history">Sort history</string>
+    <string name="settings_sort_newest">Most recent</string>
+    <string name="settings_sort_oldest">Oldest first</string>
+    <string name="settings_sort_highest">Highest expense</string>
 
     <!-- Dialogs -->
     <string name="dialog_delete_title">Delete?</string>

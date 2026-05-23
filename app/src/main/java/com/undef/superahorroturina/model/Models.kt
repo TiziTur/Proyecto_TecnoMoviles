@@ -28,8 +28,13 @@ data class Purchase(
     val productCount: Int = 0,       // viene del backend en el listado (sin cargar productos completos)
     val ticketImageUri: String? = null
 ) {
-    // Si ya tenemos productos cargados usamos su tamaño, sino el count del backend
-    val displayProductCount: Int get() = if (products.isNotEmpty()) products.size else productCount
+    // Prioridad: lista de productos cargada > productCount del backend
+    // Nunca muestra 0 si productCount > 0 aunque products esté vacío (listado sin detalle)
+    val displayProductCount: Int get() = when {
+        products.isNotEmpty() -> products.size
+        productCount > 0      -> productCount
+        else                  -> 0
+    }
 }
 
 // Producto individual dentro de una compra. El código EAN es el de barras del super.

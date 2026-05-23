@@ -68,15 +68,21 @@ class PurchaseRepository @Inject constructor(
     }.getOrElse { ApiResult.Error(it.message ?: "Error de conexión") }
 
     // Convierte el DTO de red al modelo de dominio
-    private fun PurchaseDto.toDomain(): Purchase = Purchase(
-        id           = id,
-        date         = runCatching { LocalDate.parse(purchaseDate) }.getOrElse { LocalDate.now() },
-        time         = runCatching { LocalTime.parse(purchaseTime.take(5)) }.getOrElse { LocalTime.MIDNIGHT },
-        supermarket  = supermarket,
-        total        = total,
-        productCount = productCount,
-        products     = products.map { p ->
+    private fun PurchaseDto.toDomain(): Purchase {
+        val mappedProducts = products.map { p ->
             Product(p.id, p.code, p.name, p.description, p.price, p.quantity)
         }
-    )
+        // Si el backend embebió productos en el listado, el count real es su tamaño.
+        // Si no los trajo, confiamos en product_count. Tomamos el mayor para evitar mostrar 0.
+        val resolvedCount = maxOf(productCount, mappedProducts.size)
+        return Purchase(
+            id           = id,
+            date         = runCatching { LocalDate.parse(purchaseDate) }.getOrElse { LocalDate.now() },
+            time         = runCatching { LocalTime.parse(purchaseTime.take(5)) }.getOrElse { LocalTime.MIDNIGHT },
+            supermarket  = supermarket,
+            total        = total,
+            productCount = resolvedCount,
+            products     = mappedProducts
+        )
+    }
 }

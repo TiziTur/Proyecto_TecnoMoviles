@@ -2,8 +2,14 @@
 // Uso popUpTo con inclusive = true para limpiar el backstack en flujos de auth,
 // así el usuario no puede volver a Splash o Login con el botón atrás del sistema.
 // Los navArguments con NavType.IntType permiten pasar IDs entre pantallas de forma segura.
+// Las transiciones usan fadeIn/fadeOut + slideIn/slideOut para una experiencia fluida y profesional.
 package com.undef.superahorroturina.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -22,14 +28,49 @@ import com.undef.superahorroturina.ui.screens.settings.SettingsScreen
 import com.undef.superahorroturina.ui.screens.splash.SplashScreen
 import com.undef.superahorroturina.ui.screens.stats.StatsScreen
 
+// Duración estándar de las transiciones (ms)
+private const val NAV_ANIM_DURATION = 300
+
+// Entrar: desliza desde la derecha + fade in
+private val enterTransition = slideInHorizontally(
+    initialOffsetX = { fullWidth -> (fullWidth * 0.08f).toInt() },
+    animationSpec  = tween(NAV_ANIM_DURATION)
+) + fadeIn(animationSpec = tween(NAV_ANIM_DURATION))
+
+// Salir: desliza hacia la izquierda + fade out
+private val exitTransition = slideOutHorizontally(
+    targetOffsetX = { fullWidth -> -(fullWidth * 0.08f).toInt() },
+    animationSpec = tween(NAV_ANIM_DURATION)
+) + fadeOut(animationSpec = tween(NAV_ANIM_DURATION))
+
+// Pop enter: retorna desde la izquierda + fade in
+private val popEnterTransition = slideInHorizontally(
+    initialOffsetX = { fullWidth -> -(fullWidth * 0.08f).toInt() },
+    animationSpec  = tween(NAV_ANIM_DURATION)
+) + fadeIn(animationSpec = tween(NAV_ANIM_DURATION))
+
+// Pop exit: sale hacia la derecha + fade out
+private val popExitTransition = slideOutHorizontally(
+    targetOffsetX = { fullWidth -> (fullWidth * 0.08f).toInt() },
+    animationSpec = tween(NAV_ANIM_DURATION)
+) + fadeOut(animationSpec = tween(NAV_ANIM_DURATION))
+
 @Composable
 fun NavGraph(navController: NavHostController) {
     NavHost(
-        navController = navController,
-        startDestination = Routes.Splash.route
+        navController      = navController,
+        startDestination   = Routes.Splash.route,
+        enterTransition    = { enterTransition },
+        exitTransition     = { exitTransition },
+        popEnterTransition = { popEnterTransition },
+        popExitTransition  = { popExitTransition }
     ) {
         // ── Auth ─────────────────────────────────────────────────
-        composable(Routes.Splash.route) {
+        composable(
+            route           = Routes.Splash.route,
+            enterTransition = { fadeIn(animationSpec = tween(400)) },
+            exitTransition  = { fadeOut(animationSpec = tween(400)) }
+        ) {
             SplashScreen(
                 onNavigateToLogin = {
                     navController.navigate(Routes.Login.route) {

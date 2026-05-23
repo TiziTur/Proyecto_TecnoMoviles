@@ -1,6 +1,7 @@
 // Pantalla de historial de compras conectada al backend real.
 // Los chips de filtro se generan desde los supermercados de las compras cargadas.
 // El filtrado es reactivo: searchQuery y selectedFilter se manejan local (solo UI).
+// LifecycleResumeEffect recarga la lista al volver desde el detalle de una compra.
 package com.undef.superahorroturina.ui.screens.history
 
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.*
 import java.time.format.DateTimeFormatter
@@ -31,9 +33,15 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Recarga al volver desde detalle de compra (ej: producto eliminado cambia el total)
+    LifecycleResumeEffect(Unit) {
+        viewModel.loadPurchases()
+        onPauseOrDispose { }
+    }
+
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    val moneyFormat   = java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR"))
+    val moneyFormat   = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
 
     var searchQuery    by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Todos") }

@@ -101,6 +101,7 @@
     <string name="stat_supermarkets">Supermercados</string>
     <string name="stat_total_spent">Total gastado</string>
     <string name="stat_avg_purchase">Promedio</string>
+    <string name="stats_no_data">Sin datos aún</string>
 
     <!-- Profile -->
     <string name="profile_change_photo">Cambiar foto</string>
@@ -118,6 +119,16 @@
     <string name="settings_version">Versión 1.0.0</string>
     <string name="settings_privacy">Política de privacidad</string>
     <string name="settings_terms">Términos y condiciones</string>
+
+    <!-- Settings extras -->
+    <string name="settings_price_alerts">Alertas de precio</string>
+    <string name="settings_price_alerts_desc">Notificar cuando un producto suba de precio</string>
+    <string name="settings_budget">Presupuesto mensual</string>
+    <string name="settings_budget_limit">Límite de alerta</string>
+    <string name="settings_sort_history">Ordenar historial</string>
+    <string name="settings_sort_newest">Más reciente</string>
+    <string name="settings_sort_oldest">Más antiguo</string>
+    <string name="settings_sort_highest">Mayor gasto</string>
 
     <!-- Dialogs -->
     <string name="dialog_delete_title">¿Eliminar?</string>
