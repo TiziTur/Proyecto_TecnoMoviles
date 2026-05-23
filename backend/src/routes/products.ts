@@ -7,11 +7,16 @@ router.use(authMiddleware);
 
 // Verifica que la compra pertenece al usuario antes de operar sobre sus productos.
 async function verifyOwnership(purchaseId: number, userId: number): Promise<boolean> {
+  const pid = parseInt(String(purchaseId));
+  const uid = parseInt(String(userId));
+  console.log(`[verifyOwnership] checking purchaseId=${pid} (${typeof pid}) userId=${uid} (${typeof uid})`);
   const result = await pool.query(
-    'SELECT id FROM purchases WHERE id = $1 AND user_id = $2',
-    [purchaseId, userId]
+    'SELECT id, user_id FROM purchases WHERE id = $1',
+    [pid]
   );
-  return result.rows.length > 0;
+  console.log(`[verifyOwnership] found rows: ${result.rows.length}, row:`, result.rows[0]);
+  if (result.rows.length === 0) return false;
+  return parseInt(String(result.rows[0].user_id)) === uid;
 }
 
 // GET /purchases/:purchaseId/products
