@@ -6,6 +6,7 @@ package com.undef.superahorroturina.ui.screens.auth
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
@@ -25,8 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.ui.components.KlarityButton
-import com.undef.superahorroturina.ui.components.KlarityLogoIcon
+import com.undef.superahorroturina.ui.components.*
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 
 @Composable
@@ -36,11 +37,17 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark   = isSystemInDarkTheme()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .dotPatternBackground(
+                dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
+                dotRadius = 1.2f,
+                spacing   = 22f
+            )
     ) {
         Column(
             modifier = Modifier
@@ -70,11 +77,18 @@ fun LoginScreen(
             Spacer(Modifier.height(48.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .coloredShadow(
+                        color        = MaterialTheme.colorScheme.primary,
+                        borderRadius = 28.dp,
+                        blurRadius   = 20.dp,
+                        offsetY      = 6.dp
+                    )
+                    .glowBorder(cornerRadius = 28.dp, isDark = isDark),
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -129,16 +143,19 @@ fun LoginScreen(
                         shape = MaterialTheme.shapes.medium
                     )
 
-                    TextButton(
-                        onClick = { /* TODO */ },
-                        modifier = Modifier.align(Alignment.End),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.login_forgot_password),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    // "¿Olvidaste tu contraseña?" — alineado a la derecha con fillMaxWidth
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        TextButton(
+                            onClick = { /* TODO */ },
+                            modifier = Modifier.align(Alignment.CenterEnd),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.login_forgot_password),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
 
                     // Mensaje de error de la API (email/contraseña incorrectos, etc.)
@@ -163,6 +180,7 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {

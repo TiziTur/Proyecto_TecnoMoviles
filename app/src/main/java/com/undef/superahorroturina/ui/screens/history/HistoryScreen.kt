@@ -4,6 +4,8 @@
 // LifecycleResumeEffect recarga la lista al volver desde el detalle de una compra.
 package com.undef.superahorroturina.ui.screens.history
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,6 +35,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark   = isSystemInDarkTheme()
 
     // Recarga al volver desde detalle de compra (ej: producto eliminado cambia el total)
     LifecycleResumeEffect(Unit) {
@@ -39,8 +43,8 @@ fun HistoryScreen(
         onPauseOrDispose { }
     }
 
-    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val moneyFormat   = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
 
     var searchQuery    by remember { mutableStateOf("") }
@@ -59,6 +63,7 @@ fun HistoryScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.screen_history),
@@ -67,6 +72,15 @@ fun HistoryScreen(
             )
         }
     ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .dotPatternBackground(
+                    dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
+                    dotRadius = 1.2f,
+                    spacing   = 22f
+                )
+        ) {
         when {
             uiState.isLoading -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -155,5 +169,6 @@ fun HistoryScreen(
                 }
             }
         }
+        } // dotPatternBackground Box
     }
 }

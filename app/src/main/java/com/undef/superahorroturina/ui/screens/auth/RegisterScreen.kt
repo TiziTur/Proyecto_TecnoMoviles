@@ -2,6 +2,8 @@
 // Toda la lógica de validación (contraseñas coinciden) vive en el ViewModel.
 package com.undef.superahorroturina.ui.screens.auth
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -11,14 +13,14 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.ui.components.AppTopBar
-import com.undef.superahorroturina.ui.components.KlarityButton
+import com.undef.superahorroturina.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,8 +30,10 @@ fun RegisterScreen(
     viewModel: RegisterViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark   = isSystemInDarkTheme()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.register_title),
@@ -38,6 +42,16 @@ fun RegisterScreen(
             )
         }
     ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .dotPatternBackground(
+                    dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
+                    dotRadius = 1.2f,
+                    spacing   = 22f
+                )
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -160,5 +174,6 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(24.dp))
         }
+        } // dotPatternBackground Box
     }
 }

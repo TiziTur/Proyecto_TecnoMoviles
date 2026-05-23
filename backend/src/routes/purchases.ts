@@ -7,7 +7,8 @@ router.use(authMiddleware);
 
 // Convierte un row de PostgreSQL a JSON alineado con los DTOs de Android.
 // purchase_date y purchase_time llegan como objetos Date desde pg — los convertimos a string.
-function purchaseToJson(p: any, products: any[] = []) {
+// products es opcional: cuando no se pasa (listado), se usa p.product_count del SQL (COUNT agregado).
+function purchaseToJson(p: any, products?: any[]) {
   // purchase_date: pg devuelve un objeto Date → "yyyy-MM-dd"
   const dateObj = p.purchase_date instanceof Date ? p.purchase_date : new Date(p.purchase_date);
   const dateStr = dateObj.toISOString().split('T')[0];
@@ -17,6 +18,13 @@ function purchaseToJson(p: any, products: any[] = []) {
     ? p.purchase_time.substring(0, 5)   // "HH:mm"
     : '00:00';
 
+  // Si se pasaron productos explícitamente (detalle), usamos su longitud.
+  // Si no (listado), usamos el product_count que viene del COUNT() del SQL.
+  const resolvedProducts = products ?? [];
+  const resolvedCount    = products !== undefined
+    ? resolvedProducts.length
+    : (parseInt(p.product_count) || 0);
+
   return {
     id:            p.id,
     purchase_date: dateStr,
@@ -24,8 +32,8 @@ function purchaseToJson(p: any, products: any[] = []) {
     supermarket:   p.supermarket,
     total:         parseFloat(p.total) || 0,
     ticket_image_uri: p.ticket_image_uri ?? null,
-    product_count: products.length,
-    products:      products.map(pr => ({
+    product_count: resolvedCount,
+    products:      resolvedProducts.map((pr: any) => ({
       id:          pr.id,
       purchase_id: pr.purchase_id,
       code:        pr.code ?? '',

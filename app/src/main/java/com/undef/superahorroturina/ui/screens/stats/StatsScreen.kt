@@ -7,6 +7,7 @@ package com.undef.superahorroturina.ui.screens.stats
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -34,9 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.ui.components.AppTopBar
-import com.undef.superahorroturina.ui.components.StatCard
-import com.undef.superahorroturina.ui.components.SectionHeader
+import com.undef.superahorroturina.ui.components.*
 
 @Composable
 fun StatsScreen(
@@ -44,6 +43,7 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val uiState     = viewModel.uiState.collectAsStateWithLifecycle().value
+    val isDark      = isSystemInDarkTheme()
     val moneyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
 
     val chartColors = listOf(
@@ -56,6 +56,7 @@ fun StatsScreen(
     val primaryColor  = MaterialTheme.colorScheme.primary
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.screen_stats),
@@ -64,6 +65,15 @@ fun StatsScreen(
             )
         }
     ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .dotPatternBackground(
+                    dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
+                    dotRadius = 1.2f,
+                    spacing   = 22f
+                )
+        ) {
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -102,11 +112,18 @@ fun StatsScreen(
             item {
                 SectionHeader(title = stringResource(R.string.stats_monthly_evolution))
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .coloredShadow(
+                            color        = MaterialTheme.colorScheme.primary,
+                            borderRadius = 16.dp,
+                            blurRadius   = 10.dp,
+                            offsetY      = 3.dp
+                        )
+                        .glowBorder(cornerRadius = 16.dp, isDark = isDark),
                     shape    = MaterialTheme.shapes.large,
                     colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 16.dp)) {
                         val data   = uiState.monthlyStats
@@ -231,11 +248,18 @@ fun StatsScreen(
             item {
                 SectionHeader(title = stringResource(R.string.stats_by_supermarket))
                 Card(
-                    modifier  = Modifier.fillMaxWidth(),
+                    modifier  = Modifier
+                        .fillMaxWidth()
+                        .coloredShadow(
+                            color        = MaterialTheme.colorScheme.secondary,
+                            borderRadius = 16.dp,
+                            blurRadius   = 10.dp,
+                            offsetY      = 3.dp
+                        )
+                        .glowBorder(cornerRadius = 16.dp, isDark = isDark),
                     shape     = MaterialTheme.shapes.large,
                     colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         val total = uiState.supermarketStats.sumOf { it.amount }
@@ -307,11 +331,18 @@ fun StatsScreen(
             item {
                 SectionHeader(title = stringResource(R.string.stats_top_products))
                 Card(
-                    modifier  = Modifier.fillMaxWidth(),
+                    modifier  = Modifier
+                        .fillMaxWidth()
+                        .coloredShadow(
+                            color        = MaterialTheme.colorScheme.primary,
+                            borderRadius = 16.dp,
+                            blurRadius   = 10.dp,
+                            offsetY      = 3.dp
+                        )
+                        .glowBorder(cornerRadius = 16.dp, isDark = isDark),
                     shape     = MaterialTheme.shapes.large,
                     colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border    = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
                         if (uiState.topProducts.isEmpty()) {
@@ -391,5 +422,6 @@ fun StatsScreen(
 
             item { Spacer(Modifier.height(24.dp)) }
         }
+        } // dotPatternBackground Box
     }
 }

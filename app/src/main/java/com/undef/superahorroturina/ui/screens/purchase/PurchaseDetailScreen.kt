@@ -5,6 +5,8 @@
 package com.undef.superahorroturina.ui.screens.purchase
 
 import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -49,7 +52,8 @@ fun PurchaseDetailScreen(
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val context  = LocalContext.current
+    val isDark   = isSystemInDarkTheme()
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -80,6 +84,7 @@ fun PurchaseDetailScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text(uiState.purchase?.supermarket ?: "") },
@@ -144,6 +149,16 @@ fun PurchaseDetailScreen(
             }
             else -> {
                 val purchase = uiState.purchase!!
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .dotPatternBackground(
+                            dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
+                            dotRadius = 1.2f,
+                            spacing   = 22f
+                        )
+                ) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -155,7 +170,19 @@ fun PurchaseDetailScreen(
 
                     // ── Tarjeta de info general ───────────────────
                     item {
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .coloredShadow(
+                                    color        = MaterialTheme.colorScheme.primary,
+                                    borderRadius = 16.dp,
+                                    blurRadius   = 12.dp,
+                                    offsetY      = 3.dp
+                                )
+                                .glowBorder(cornerRadius = 16.dp, isDark = isDark),
+                            shape = MaterialTheme.shapes.large,
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+                        ) {
                             Column(modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically,
@@ -193,9 +220,21 @@ fun PurchaseDetailScreen(
 
                     // ── Placeholder ticket ────────────────────────
                     item {
-                        Card(modifier = Modifier.fillMaxWidth(),
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .coloredShadow(
+                                    color        = MaterialTheme.colorScheme.secondary,
+                                    borderRadius = 16.dp,
+                                    blurRadius   = 8.dp,
+                                    offsetY      = 2.dp
+                                )
+                                .glowBorder(cornerRadius = 16.dp, isDark = isDark),
+                            shape = MaterialTheme.shapes.large,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+                        ) {
                             Row(modifier = Modifier.fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -262,6 +301,7 @@ fun PurchaseDetailScreen(
 
                     item { Spacer(Modifier.height(80.dp)) }
                 }
+                } // dotPatternBackground Box
             }
         }
     }

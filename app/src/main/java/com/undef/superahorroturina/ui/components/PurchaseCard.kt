@@ -1,6 +1,7 @@
 package com.undef.superahorroturina.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,12 +25,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 // Card que representa una compra en el listado de Home e Historial.
-// v2: barra de color lateral, ícono más prominente, jerarquía visual mejorada.
+// v3: borde luminoso, colored shadow, barra lateral gradiente.
 @Composable
 fun PurchaseCard(
     supermarket: String,
@@ -40,20 +43,27 @@ fun PurchaseCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
+    val primary = MaterialTheme.colorScheme.primary
+
     Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
+        onClick   = onClick,
+        modifier  = modifier
+            .fillMaxWidth()
+            .coloredShadow(
+                color        = primary,
+                borderRadius = 20.dp,
+                blurRadius   = 12.dp,
+                offsetY      = 3.dp
+            )
+            .glowBorder(cornerRadius = 20.dp, isDark = isDark),
+        shape     = MaterialTheme.shapes.large,
+        colors    = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 0.dp,
-            pressedElevation  = 4.dp,
-            hoveredElevation  = 2.dp
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp, MaterialTheme.colorScheme.outline
+            defaultElevation  = 0.dp,
+            pressedElevation  = 0.dp
         )
     ) {
         Row(
@@ -62,13 +72,20 @@ fun PurchaseCard(
                 .height(72.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Barra lateral de acento
+            // Barra lateral con gradiente
             Box(
                 modifier = Modifier
                     .width(4.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary
+                            )
+                        )
+                    )
             )
 
             Row(
@@ -78,7 +95,6 @@ fun PurchaseCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Ícono + info
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -115,13 +131,12 @@ fun PurchaseCard(
                         Text(
                             text = "$productCount producto${if (productCount != 1) "s" else ""}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             maxLines = 1
                         )
                     }
                 }
 
-                // Total + flecha
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)

@@ -5,10 +5,14 @@
 // scope porque drawerState.open() es una suspend function.
 package com.undef.superahorroturina.ui.screens.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -18,10 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -30,6 +35,7 @@ import com.undef.superahorroturina.ui.components.*
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +50,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark  = isSystemInDarkTheme()
 
     // Recarga cada vez que el usuario vuelve a Home (tras crear compra, etc.)
     LifecycleResumeEffect(Unit) {
@@ -58,11 +65,21 @@ fun HomeScreen(
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val moneyFormat   = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
 
+    // Animación del total (cuenta desde 0)
+    var totalTarget by remember { mutableStateOf(0.0) }
+    LaunchedEffect(uiState.totalThisMonth) { totalTarget = uiState.totalThisMonth }
+    val animatedTotal by animateFloatAsState(
+        targetValue    = totalTarget.toFloat(),
+        animationSpec  = tween(durationMillis = 900),
+        label          = "totalAnim"
+    )
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             AppDrawerContent(
                 userName = uiState.userName,
+                isDark   = isDark,
                 onNavigateToProfile = {
                     scope.launch { drawerState.close() }
                     onNavigateToProfile()
@@ -76,25 +93,31 @@ fun HomeScreen(
         }
     ) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.app_name)) },
+                    title = {
+                        Text(
+                            stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(
-                                Icons.Default.Menu,
-                                contentDescription = stringResource(R.string.action_menu)
-                            )
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.action_menu))
                         }
                     },
                     actions = {
                         IconButton(onClick = onNavigateToSettings) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.screen_settings)
-                            )
+                            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.screen_settings))
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             },
             bottomBar = {
@@ -110,129 +133,190 @@ fun HomeScreen(
                 )
             },
             floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    onClick = onNavigateToNewPurchase,
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.action_new_purchase)) }
-                )
-            }
-        ) { padding ->
-            if (uiState.isLoading) {
+                // FAB con gradiente premium
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.secondary
+                                )
+                            )
+                        )
+                        .coloredShadow(
+                            color        = MaterialTheme.colorScheme.primary,
+                            borderRadius = 16.dp,
+                            blurRadius   = 18.dp,
+                            offsetY      = 4.dp
+                        )
                 ) {
-                    item { Spacer(Modifier.height(4.dp)) }
+                    ExtendedFloatingActionButton(
+                        onClick           = onNavigateToNewPurchase,
+                        icon              = { Icon(Icons.Default.Add, contentDescription = null, tint = Color.White) },
+                        text              = { Text(stringResource(R.string.action_new_purchase), color = Color.White, fontWeight = FontWeight.SemiBold) },
+                        containerColor    = Color.Transparent,
+                        contentColor      = Color.White,
+                        elevation         = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
+                    )
+                }
+            }
+        ) { padding ->
+            // Fondo con textura de puntos
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .dotPatternBackground(
+                        dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
+                        dotRadius = 1.2f,
+                        spacing   = 22f
+                    )
+            ) {
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator() }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        item { Spacer(Modifier.height(4.dp)) }
 
-                    // Welcome header
-                    item {
-                        Column {
-                            Text(
-                                text = stringResource(R.string.home_welcome, uiState.userName),
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                            Text(
-                                text = stringResource(R.string.home_subtitle),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        // Welcome header
+                        item {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text  = stringResource(R.string.home_welcome, uiState.userName),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text  = stringResource(R.string.home_subtitle),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    }
 
-                    // Summary card con gradiente
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(MaterialTheme.shapes.extraLarge)
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.secondary
+                        // Summary card — glassmorphism simulado con gradiente profundo
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .coloredShadow(
+                                        color        = MaterialTheme.colorScheme.primary,
+                                        borderRadius = 24.dp,
+                                        blurRadius   = 24.dp,
+                                        offsetY      = 8.dp
+                                    )
+                                    .background(
+                                        Brush.linearGradient(
+                                            colorStops = arrayOf(
+                                                0.0f to Color(if (isDark) 0xFF1E3A8A else 0xFF2563EB),
+                                                0.6f to Color(if (isDark) 0xFF164E63 else 0xFF0E7490),
+                                                1.0f to Color(if (isDark) 0xFF065F46 else 0xFF065F46)
+                                            )
                                         )
                                     )
-                                )
-                        ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = stringResource(R.string.home_month_total),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = "$ ${moneyFormat.format(uiState.totalThisMonth)}",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                                Spacer(Modifier.height(16.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    StatCard(
-                                        label = stringResource(R.string.stat_purchases),
-                                        value = uiState.purchaseCount.toString(),
-                                        icon = Icons.Default.ShoppingCart,
-                                        modifier = Modifier.weight(1f),
-                                        containerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                        accentColor = MaterialTheme.colorScheme.onPrimary
+                                    .glowBorder(cornerRadius = 24.dp, isDark = isDark)
+                            ) {
+                                Column(modifier = Modifier.padding(22.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text  = stringResource(R.string.home_month_total),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = Color.White.copy(alpha = 0.75f)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color.White.copy(alpha = 0.12f))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text  = "Este mes",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text  = "$ ${moneyFormat.format(animatedTotal)}",
+                                        style = MaterialTheme.typography.headlineLarge,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White
                                     )
-                                    StatCard(
-                                        label = stringResource(R.string.stat_supermarkets),
-                                        value = uiState.supermarketCount.toString(),
-                                        icon = Icons.Default.Store,
-                                        modifier = Modifier.weight(1f),
-                                        containerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
-                                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                                        accentColor = MaterialTheme.colorScheme.onPrimary
-                                    )
+                                    Spacer(Modifier.height(20.dp))
+                                    GradientDivider(color = Color.White.copy(alpha = 0.3f))
+                                    Spacer(Modifier.height(16.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        StatCard(
+                                            label          = stringResource(R.string.stat_purchases),
+                                            value          = uiState.purchaseCount.toString(),
+                                            icon           = Icons.Default.ShoppingCart,
+                                            modifier       = Modifier.weight(1f),
+                                            containerColor = Color.White.copy(alpha = 0.14f),
+                                            contentColor   = Color.White,
+                                            accentColor    = Color.White
+                                        )
+                                        StatCard(
+                                            label          = stringResource(R.string.stat_supermarkets),
+                                            value          = uiState.supermarketCount.toString(),
+                                            icon           = Icons.Default.Store,
+                                            modifier       = Modifier.weight(1f),
+                                            containerColor = Color.White.copy(alpha = 0.14f),
+                                            contentColor   = Color.White,
+                                            accentColor    = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Recent purchases section
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.home_recent),
-                            actionLabel = stringResource(R.string.action_see_all),
-                            onAction = onNavigateToHistory
-                        )
-                    }
-
-                    if (uiState.recentPurchases.isEmpty()) {
+                        // Recent purchases section
                         item {
-                            EmptyState(
-                                icon = Icons.Default.ShoppingBag,
-                                message = stringResource(R.string.home_empty),
-                                modifier = Modifier.padding(vertical = 32.dp)
+                            SectionHeader(
+                                title       = stringResource(R.string.home_recent),
+                                actionLabel = stringResource(R.string.action_see_all),
+                                onAction    = onNavigateToHistory
                             )
                         }
-                    } else {
-                        items(uiState.recentPurchases) { purchase ->
-                            PurchaseCard(
-                                supermarket  = purchase.supermarket,
-                                date         = purchase.date.format(dateFormatter),
-                                time         = purchase.time.format(timeFormatter),
-                                total        = "$ ${moneyFormat.format(purchase.total)}",
-                                productCount = purchase.displayProductCount,
-                                onClick      = { onNavigateToPurchaseDetail(purchase.id) }
-                            )
-                        }
-                    }
 
-                    item { Spacer(Modifier.height(80.dp)) }
+                        if (uiState.recentPurchases.isEmpty()) {
+                            item {
+                                EmptyState(
+                                    icon     = Icons.Default.ShoppingBag,
+                                    message  = stringResource(R.string.home_empty),
+                                    modifier = Modifier.padding(vertical = 32.dp)
+                                )
+                            }
+                        } else {
+                            items(uiState.recentPurchases) { purchase ->
+                                PurchaseCard(
+                                    supermarket  = purchase.supermarket,
+                                    date         = purchase.date.format(dateFormatter),
+                                    time         = purchase.time.format(timeFormatter),
+                                    total        = "$ ${moneyFormat.format(purchase.total)}",
+                                    productCount = purchase.displayProductCount,
+                                    onClick      = { onNavigateToPurchaseDetail(purchase.id) }
+                                )
+                            }
+                        }
+
+                        item { Spacer(Modifier.height(80.dp)) }
+                    }
                 }
             }
         }
@@ -244,48 +328,77 @@ fun HomeScreen(
 @Composable
 private fun AppDrawerContent(
     userName: String,
+    isDark: Boolean,
     onNavigateToProfile: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
-    ModalDrawerSheet {
+    ModalDrawerSheet(
+        drawerContainerColor = MaterialTheme.colorScheme.surface
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Spacer(Modifier.height(24.dp))
-            KlarityLogoIcon(size = 48)
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            // Header del drawer con gradiente
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        )
+                    )
+                    .padding(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    KlarityLogoIcon(size = 40)
+                    Column {
+                        Text(
+                            text  = stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text  = userName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(16.dp))
-            HorizontalDivider()
+            GradientDivider(color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(8.dp))
 
             NavigationDrawerItem(
-                icon  = { Icon(Icons.Default.Person, contentDescription = null) },
-                label = { Text(stringResource(R.string.screen_profile)) },
+                icon     = { Icon(Icons.Default.Person, contentDescription = null) },
+                label    = { Text(stringResource(R.string.screen_profile)) },
                 selected = false,
-                onClick = onNavigateToProfile
+                onClick  = onNavigateToProfile
             )
             NavigationDrawerItem(
-                icon  = { Icon(Icons.Default.Settings, contentDescription = null) },
-                label = { Text(stringResource(R.string.screen_settings)) },
+                icon     = { Icon(Icons.Default.Settings, contentDescription = null) },
+                label    = { Text(stringResource(R.string.screen_settings)) },
                 selected = false,
-                onClick = onNavigateToSettings
+                onClick  = onNavigateToSettings
             )
             Spacer(Modifier.height(8.dp))
-            HorizontalDivider()
+            GradientDivider(color = MaterialTheme.colorScheme.outline)
             Spacer(Modifier.height(8.dp))
             NavigationDrawerItem(
-                icon  = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },
-                label = { Text(stringResource(R.string.action_logout)) },
+                icon     = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                label    = { Text(stringResource(R.string.action_logout), color = MaterialTheme.colorScheme.error) },
                 selected = false,
-                onClick = onLogout
+                onClick  = onLogout
             )
         }
     }
