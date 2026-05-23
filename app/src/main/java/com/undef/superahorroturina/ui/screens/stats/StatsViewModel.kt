@@ -40,11 +40,16 @@ class StatsViewModel @Inject constructor(
             when (val result = purchaseRepository.getPurchases()) {
                 is ApiResult.Success -> {
                     val purchases = result.data
+                    // Cargar el detalle de cada compra para obtener los productos completos
+                    val purchasesWithProducts = purchases.map { purchase ->
+                        val detail = purchaseRepository.getPurchase(purchase.id)
+                        if (detail is ApiResult.Success) detail.data else purchase
+                    }
                     _uiState.value = StatsUiState(
                         isLoading        = false,
                         monthlyStats     = buildMonthlyStats(purchases),
                         supermarketStats = buildSupermarketStats(purchases),
-                        topProducts      = buildTopProducts(purchases),
+                        topProducts      = buildTopProducts(purchasesWithProducts),
                         totalAllTime     = purchases.sumOf { it.total }
                     )
                 }

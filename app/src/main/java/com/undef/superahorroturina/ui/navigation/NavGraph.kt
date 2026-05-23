@@ -114,9 +114,6 @@ fun NavGraph(navController: NavHostController) {
             NewPurchaseScreen(
                 purchaseId = null,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddProduct = { purchaseId ->
-                    navController.navigate(Routes.NewProduct.createRoute(purchaseId))
-                },
                 onNavigateToPurchaseDetail = { newId ->
                     // Al crear una compra nueva, ir directo al detalle para agregar productos
                     navController.navigate(Routes.PurchaseDetail.createRoute(newId)) {
@@ -133,10 +130,7 @@ fun NavGraph(navController: NavHostController) {
             val purchaseId = backStack.arguments?.getInt("purchaseId")
             NewPurchaseScreen(
                 purchaseId = purchaseId,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddProduct = { id ->
-                    navController.navigate(Routes.NewProduct.createRoute(id))
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

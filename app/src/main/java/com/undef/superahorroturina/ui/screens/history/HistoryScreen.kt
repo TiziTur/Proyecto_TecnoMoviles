@@ -137,7 +137,7 @@ fun HistoryScreen(
                                 date         = purchase.date.format(dateFormatter),
                                 time         = purchase.time.format(timeFormatter),
                                 total        = "$ ${moneyFormat.format(purchase.total)}",
-                                productCount = purchase.products.size,
+                                productCount = purchase.displayProductCount,
                                 onClick      = { onNavigateToPurchaseDetail(purchase.id) }
                             )
                         }

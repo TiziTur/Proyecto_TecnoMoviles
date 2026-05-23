@@ -26,7 +26,6 @@ import java.util.Locale
 fun NewPurchaseScreen(
     purchaseId: Int?,
     onNavigateBack: () -> Unit,
-    onNavigateToAddProduct: (Int) -> Unit,
     onNavigateToPurchaseDetail: ((Int) -> Unit)? = null,
     viewModel: NewPurchaseViewModel = hiltViewModel()
 ) {
@@ -140,23 +139,6 @@ fun NewPurchaseScreen(
                     )
                 }
             }
-
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { onNavigateToAddProduct(purchaseId ?: 0) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.action_add_product),
-                    maxLines = 1, softWrap = false
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
 
             if (uiState.saveError.isNotBlank()) {
                 Text(uiState.saveError, color = MaterialTheme.colorScheme.error,
