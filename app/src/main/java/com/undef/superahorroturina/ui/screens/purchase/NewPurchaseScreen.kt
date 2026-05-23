@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.KlarityButton
 import java.text.NumberFormat
@@ -72,7 +71,7 @@ fun NewPurchaseScreen(
                     expanded = uiState.dropdownExpanded,
                     onDismissRequest = { viewModel.onDropdownExpandedChange(false) }
                 ) {
-                    MockData.supermarkets.forEach { market ->
+                    uiState.supermarketList.forEach { market ->
                         DropdownMenuItem(
                             text = { Text(market) },
                             onClick = {

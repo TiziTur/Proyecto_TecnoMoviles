@@ -141,6 +141,16 @@ fun LoginScreen(
                         )
                     }
 
+                    // Mensaje de error de la API (email/contraseña incorrectos, etc.)
+                    if (uiState.apiError.isNotBlank()) {
+                        Text(
+                            text = uiState.apiError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     KlarityButton(
                         text = stringResource(R.string.action_login),
                         onClick = { viewModel.onLogin(onLoginSuccess) },

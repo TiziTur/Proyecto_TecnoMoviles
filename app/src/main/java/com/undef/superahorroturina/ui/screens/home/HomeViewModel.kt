@@ -1,26 +1,27 @@
-// ViewModel de la pantalla principal. Aplico el patrón MVVM que vimos en clase:
-// la UI solo observa el StateFlow, nunca toca los datos directamente.
-// @HiltViewModel + @Inject constructor() permiten que Hilt cree el ViewModel
-// sin tener que escribir una ViewModelFactory a mano.
-// El delay(300ms) simula latencia de red para que se vea el CircularProgressIndicator.
+// ViewModel de la pantalla principal conectado al backend real.
+// Carga el nombre del usuario desde DataStore (ya guardado en login)
+// y las compras recientes desde la API.
 package com.undef.superahorroturina.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.undef.superahorroturina.model.MockData
+import com.undef.superahorroturina.data.local.SessionDataStore
+import com.undef.superahorroturina.data.repository.ApiResult
+import com.undef.superahorroturina.data.repository.PurchaseRepository
 import com.undef.superahorroturina.ui.state.HomeUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// ── ViewModel ────────────────────────────────────────────────
-
 @HiltViewModel
-class HomeViewModel @Inject constructor() : ViewModel() {
+class HomeViewModel @Inject constructor(
+    private val purchaseRepository: PurchaseRepository,
+    private val sessionDataStore: SessionDataStore
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -29,19 +30,38 @@ class HomeViewModel @Inject constructor() : ViewModel() {
         loadData()
     }
 
-    private fun loadData() {
+    fun loadData() {
         viewModelScope.launch {
-            // Simula una carga asincrónica (p.ej. llamada a red o BD)
-            delay(300L)
+            _uiState.value = _uiState.value.copy(isLoading = true)
 
-            _uiState.value = HomeUiState(
-                isLoading        = false,
-                userName         = MockData.currentUser.firstName,
-                totalThisMonth   = MockData.totalThisMonth,
-                recentPurchases  = MockData.recentPurchases,
-                purchaseCount    = MockData.recentPurchases.size,
-                supermarketCount = MockData.purchases.map { it.supermarket }.distinct().size
-            )
+            // Nombre del usuario desde DataStore (sin llamada de red adicional)
+            val session = sessionDataStore.session.first()
+
+            when (val result = purchaseRepository.getPurchases()) {
+                is ApiResult.Success -> {
+                    val purchases = result.data
+                    val recent = purchases.sortedByDescending { it.date }.take(5)
+                    val thisMonth = purchases
+                        .filter { it.date.monthValue == java.time.LocalDate.now().monthValue
+                               && it.date.year == java.time.LocalDate.now().year }
+                        .sumOf { it.total }
+
+                    _uiState.value = HomeUiState(
+                        isLoading        = false,
+                        userName         = session.firstName,
+                        totalThisMonth   = thisMonth,
+                        recentPurchases  = recent,
+                        purchaseCount    = purchases.size,
+                        supermarketCount = purchases.map { it.supermarket }.distinct().size
+                    )
+                }
+                is ApiResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        userName  = session.firstName
+                    )
+                }
+            }
         }
     }
 

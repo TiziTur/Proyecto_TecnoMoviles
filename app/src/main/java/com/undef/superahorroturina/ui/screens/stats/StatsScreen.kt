@@ -1,7 +1,5 @@
-// Pantalla de estadísticas con tres secciones: resumen, evolución mensual y ranking.
-// El gráfico de barras lo dibujé con Canvas puro usando drawRoundRect — intenté
-// hacerlo con fillMaxHeight(ratio) dentro de un Row y no funcionaba en Compose
-// porque el height fill necesita un padre con height definido. Canvas resuelve todo.
+// Pantalla de estadísticas conectada al StatsViewModel (datos reales del backend).
+// El gráfico de barras lo dibujé con Canvas puro usando drawRoundRect.
 // Para el texto de las etiquetas uso nativeCanvas.drawText con android.graphics.Paint
 // porque la API de Canvas de Compose no expone drawText directamente.
 package com.undef.superahorroturina.ui.screens.stats
@@ -27,29 +25,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.StatCard
 import com.undef.superahorroturina.ui.components.SectionHeader
 
 @Composable
-fun StatsScreen(onNavigateBack: () -> Unit) {
+fun StatsScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: StatsViewModel = hiltViewModel()
+) {
+    val uiState     = viewModel.uiState.collectAsStateWithLifecycle().value
     val moneyFormat = java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR"))
-    val totalAll    = MockData.purchases.sumOf { it.total }
-    val avgPurchase = if (MockData.purchases.isNotEmpty()) totalAll / MockData.purchases.size else 0.0
+    val avgPurchase = if (uiState.monthlyStats.isNotEmpty())
+        uiState.totalAllTime / uiState.monthlyStats.size else 0.0
 
     val chartColors = listOf(
-        Color(0xFF3B82F6),
-        Color(0xFF06B6D4),
-        Color(0xFF10B981),
-        Color(0xFFF59E0B),
-        Color(0xFFEF4444),
-        Color(0xFF8B5CF6)
+        Color(0xFF3B82F6), Color(0xFF06B6D4), Color(0xFF10B981),
+        Color(0xFFF59E0B), Color(0xFFEF4444), Color(0xFF8B5CF6)
     )
-
-    val labelColor  = MaterialTheme.colorScheme.onSurfaceVariant
-    val density     = LocalDensity.current
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val density    = LocalDensity.current
 
     Scaffold(
         topBar = {
@@ -60,6 +58,13 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
             )
         }
     ) { padding ->
+        if (uiState.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -69,12 +74,12 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
         ) {
             item { Spacer(Modifier.height(4.dp)) }
 
-            // Summary cards
+            // ── Summary cards ─────────────────────────────────
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(
                         label = stringResource(R.string.stat_total_spent),
-                        value = "$ ${moneyFormat.format(totalAll)}",
+                        value = "$ ${moneyFormat.format(uiState.totalAllTime)}",
                         icon  = Icons.Default.AccountBalanceWallet,
                         modifier = Modifier.weight(1f)
                     )
@@ -87,143 +92,122 @@ fun StatsScreen(onNavigateBack: () -> Unit) {
                 }
             }
 
-            // Monthly bar chart — Canvas puro, barras ancladas al fondo
+            // ── Monthly bar chart ─────────────────────────────
             item {
                 SectionHeader(title = stringResource(R.string.stats_monthly_evolution))
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        val data    = MockData.monthlyExpenses
-                        val maxVal  = data.maxOfOrNull { it.amount } ?: 1.0
-                        val labelColorArgb  = labelColor.toArgb()
+                        val data   = uiState.monthlyStats
+                        val maxVal = data.maxOfOrNull { it.amount } ?: 1.0
+                        val labelColorArgb = labelColor.toArgb()
+                        val canvasHeight   = 200.dp
+                        val labelAreaDp    = 24.dp
 
-                        // Altura total del canvas: área de barras + espacio etiqueta
-                        val canvasHeight = 200.dp
-                        val labelAreaDp  = 24.dp   // reservado para etiquetas de mes
+                        if (data.isEmpty()) {
+                            Text("Sin datos aún", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 16.dp))
+                        } else {
+                            Canvas(modifier = Modifier.fillMaxWidth().height(canvasHeight)) {
+                                val totalW      = size.width
+                                val totalH      = size.height
+                                val labelAreaPx = with(density) { labelAreaDp.toPx() }
+                                val barAreaH    = totalH - labelAreaPx
+                                val n           = data.size
+                                val groupW      = totalW / n
+                                val barW        = groupW * 0.55f
+                                val barRadius   = with(density) { 4.dp.toPx() }
+                                val textSize    = with(density) { 10.sp.toPx() }
 
-                        Canvas(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(canvasHeight)
-                        ) {
-                            val totalW      = size.width
-                            val totalH      = size.height
-                            val labelAreaPx = with(density) { labelAreaDp.toPx() }
-                            val barAreaH    = totalH - labelAreaPx
+                                data.forEachIndexed { idx, stat ->
+                                    val ratio = (stat.amount / maxVal).toFloat().coerceIn(0f, 1f)
+                                    val barH  = barAreaH * ratio
+                                    val left  = groupW * idx + (groupW - barW) / 2f
+                                    val top   = barAreaH - barH
+                                    val color = chartColors[idx % chartColors.size]
 
-                            val n           = data.size
-                            val groupW      = totalW / n
-                            val barW        = groupW * 0.55f
-                            val barRadius   = with(density) { 4.dp.toPx() }
-                            val textSize    = with(density) { 10.sp.toPx() }
+                                    drawRoundRect(color = color, topLeft = Offset(left, top),
+                                        size = Size(barW, barH),
+                                        cornerRadius = CornerRadius(barRadius, barRadius))
 
-                            data.forEachIndexed { idx, stat ->
-                                val ratio   = (stat.amount / maxVal).toFloat().coerceIn(0f, 1f)
-                                val barH    = barAreaH * ratio
-                                val left    = groupW * idx + (groupW - barW) / 2f
-                                val top     = barAreaH - barH
-                                val color   = chartColors[idx % chartColors.size]
-
-                                // Barra con esquinas redondeadas arriba
-                                drawRoundRect(
-                                    color        = color,
-                                    topLeft      = Offset(left, top),
-                                    size         = Size(barW, barH),
-                                    cornerRadius = CornerRadius(barRadius, barRadius)
-                                )
-
-                                // Etiqueta de mes centrada debajo de la barra
-                                drawContext.canvas.nativeCanvas.drawText(
-                                    stat.label,
-                                    groupW * idx + groupW / 2f,
-                                    totalH,          // fondo del canvas
-                                    android.graphics.Paint().apply {
-                                        this.color     = labelColorArgb
-                                        this.textSize  = textSize
-                                        this.textAlign = android.graphics.Paint.Align.CENTER
-                                        isAntiAlias    = true
-                                    }
-                                )
+                                    drawContext.canvas.nativeCanvas.drawText(
+                                        stat.label, groupW * idx + groupW / 2f, totalH,
+                                        android.graphics.Paint().apply {
+                                            this.color = labelColorArgb
+                                            this.textSize = textSize
+                                            this.textAlign = android.graphics.Paint.Align.CENTER
+                                            isAntiAlias = true
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // By supermarket
+            // ── By supermarket ────────────────────────────────
             item {
                 SectionHeader(title = stringResource(R.string.stats_by_supermarket))
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        val total = MockData.expensesBySupermarket.sumOf { it.amount }
-                        MockData.expensesBySupermarket.forEachIndexed { idx, stat ->
-                            val pct = if (total > 0) (stat.amount / total).toFloat() else 0f
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = stat.label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        text = "$ ${moneyFormat.format(stat.amount)}",
-                                        style = MaterialTheme.typography.bodyMedium,
+                        val total = uiState.supermarketStats.sumOf { it.amount }
+                        if (uiState.supermarketStats.isEmpty()) {
+                            Text("Sin datos aún", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            uiState.supermarketStats.forEachIndexed { idx, stat ->
+                                val pct = if (total > 0) (stat.amount / total).toFloat() else 0f
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = stat.label, style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(text = "$ ${moneyFormat.format(stat.amount)}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = chartColors[idx % chartColors.size], maxLines = 1)
+                                    }
+                                    LinearProgressIndicator(
+                                        progress = { pct },
+                                        modifier = Modifier.fillMaxWidth().height(8.dp),
                                         color = chartColors[idx % chartColors.size],
-                                        maxLines = 1
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant
                                     )
                                 }
-                                LinearProgressIndicator(
-                                    progress = { pct },
-                                    modifier = Modifier.fillMaxWidth().height(8.dp),
-                                    color = chartColors[idx % chartColors.size],
-                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
                             }
                         }
                     }
                 }
             }
 
-            // Top products
+            // ── Top products ──────────────────────────────────
             item {
                 SectionHeader(title = stringResource(R.string.stats_top_products))
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MockData.topProducts.forEachIndexed { idx, stat ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Badge(containerColor = chartColors[idx % chartColors.size]) {
-                                        Text("${idx + 1}", color = Color.White)
+                        if (uiState.topProducts.isEmpty()) {
+                            Text("Sin datos aún", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            uiState.topProducts.forEachIndexed { idx, stat ->
+                                Row(modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)) {
+                                        Badge(containerColor = chartColors[idx % chartColors.size]) {
+                                            Text("${idx + 1}", color = Color.White)
+                                        }
+                                        Text(text = stat.label, style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
-                                    Text(
-                                        text = stat.label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                                    Text(text = "$ ${moneyFormat.format(stat.amount)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                                 }
-                                Text(
-                                    text = "${stat.amount.toInt()} veces",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
-                                )
+                                if (idx < uiState.topProducts.lastIndex) HorizontalDivider()
                             }
-                            if (idx < MockData.topProducts.lastIndex) HorizontalDivider()
                         }
                     }
                 }

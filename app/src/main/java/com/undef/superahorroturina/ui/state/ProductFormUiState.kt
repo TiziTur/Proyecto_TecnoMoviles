@@ -8,7 +8,8 @@ data class ProductFormUiState(
     val quantity: String = "1",
     val priceError: Boolean = false,
     val quantityError: Boolean = false,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val saveError: String = ""
 ) {
     // Subtotal reactivo calculado desde price y quantity
     val subtotal: Double get() = (price.toDoubleOrNull() ?: 0.0) * (quantity.toIntOrNull() ?: 1)

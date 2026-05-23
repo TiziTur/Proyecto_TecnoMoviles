@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.model.MockData
 import com.undef.superahorroturina.ui.components.*
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 import kotlinx.coroutines.launch
@@ -52,6 +51,7 @@ fun HomeScreen(
         drawerState = drawerState,
         drawerContent = {
             AppDrawerContent(
+                userName = uiState.userName,
                 onNavigateToProfile = {
                     scope.launch { drawerState.close() }
                     onNavigateToProfile()
@@ -217,6 +217,7 @@ fun HomeScreen(
 
 @Composable
 private fun AppDrawerContent(
+    userName: String,
     onNavigateToProfile: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit
@@ -231,13 +232,8 @@ private fun AppDrawerContent(
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "${MockData.currentUser.firstName} ${MockData.currentUser.lastName}",
+                text = userName,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = MockData.currentUser.email,
-                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(16.dp))
