@@ -35,4 +35,8 @@ sealed class Routes(val route: String) {
 
     // Settings
     object Settings : Routes("settings")
+
+    // AI features
+    object Chat             : Routes("chat")
+    object PriceComparison  : Routes("price_comparison")
 }

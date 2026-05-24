@@ -1,14 +1,14 @@
 // Pantalla de login conectada a LoginViewModel.
-// El estado (email, password, errores, loading) vive en el ViewModel y se observa
-// con collectAsStateWithLifecycle — patrón correcto según feedback del profesor.
-// Los composables solo manejan UI y delegan eventos al ViewModel.
+// v3: agrega autenticación biométrica con BiometricPrompt.
+// Si hay una sesión JWT guardada, muestra el botón de huella para acceso rápido.
 package com.undef.superahorroturina.ui.screens.auth
 
-import androidx.compose.foundation.BorderStroke
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -24,9 +25,12 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
+import com.undef.superahorroturina.ui.biometric.canUseBiometric
+import com.undef.superahorroturina.ui.biometric.showBiometricPrompt
 import com.undef.superahorroturina.ui.components.*
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 
@@ -36,8 +40,25 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isDark   = isSystemInDarkTheme()
+    val uiState        by viewModel.uiState.collectAsStateWithLifecycle()
+    val hasSavedSession by viewModel.hasSavedSession.collectAsStateWithLifecycle()
+    val savedUserName  by viewModel.savedUserName.collectAsStateWithLifecycle()
+    val isDark          = isSystemInDarkTheme()
+
+    // LocalActivity es la FragmentActivity host — necesaria para BiometricPrompt
+    val activity = LocalActivity.current as? FragmentActivity
+
+    // Si hay sesión guardada Y el dispositivo tiene biometría, ofrecemos huella al entrar
+    LaunchedEffect(hasSavedSession) {
+        if (hasSavedSession && activity != null && canUseBiometric(activity)) {
+            showBiometricPrompt(
+                activity  = activity,
+                title     = "Bienvenido de vuelta${if (savedUserName.isNotBlank()) ", $savedUserName" else ""}",
+                subtitle  = "Usá tu huella para acceder a Klarity",
+                onSuccess = { viewModel.onBiometricSuccess(onLoginSuccess) }
+            )
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -74,7 +95,74 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(48.dp))
+            // ── Bienvenida rápida si hay sesión ───────────────────
+            if (hasSavedSession && savedUserName.isNotBlank()) {
+                Spacer(Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors   = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Fingerprint,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text  = "Bienvenido de vuelta, $savedUserName",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text  = "Tocá para usar huella dactilar",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                        if (activity != null && canUseBiometric(activity)) {
+                            IconButton(
+                                onClick = {
+                                    showBiometricPrompt(
+                                        activity  = activity,
+                                        title     = "Bienvenido de vuelta, $savedUserName",
+                                        subtitle  = "Usá tu huella para acceder",
+                                        onSuccess = { viewModel.onBiometricSuccess(onLoginSuccess) }
+                                    )
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.Fingerprint,
+                                    contentDescription = "Autenticar con huella",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(if (hasSavedSession) 16.dp else 48.dp))
 
             Card(
                 modifier = Modifier
@@ -143,7 +231,6 @@ fun LoginScreen(
                         shape = MaterialTheme.shapes.medium
                     )
 
-                    // "¿Olvidaste tu contraseña?" — alineado a la derecha con fillMaxWidth
                     Box(modifier = Modifier.fillMaxWidth()) {
                         TextButton(
                             onClick = { /* TODO */ },
@@ -158,7 +245,6 @@ fun LoginScreen(
                         }
                     }
 
-                    // Mensaje de error de la API (email/contraseña incorrectos, etc.)
                     if (uiState.apiError.isNotBlank()) {
                         Text(
                             text = uiState.apiError,

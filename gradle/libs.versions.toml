@@ -53,6 +53,13 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+biometric = { group = "androidx.biometric", name = "biometric", version = "1.2.0-alpha05" }
+mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version = "16.0.1" }
+work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version = "2.9.1" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version = "1.2.0" }
+hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version = "1.2.0" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version = "2.7.0" }
+coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version = "1.8.1" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

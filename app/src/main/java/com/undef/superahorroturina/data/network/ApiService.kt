@@ -88,4 +88,25 @@ interface ApiService {
         @Path("purchaseId") purchaseId: Int,
         @Path("productId") productId: Int
     ): Response<Unit>
+
+    // ── Ticket OCR ────────────────────────────────────────────
+    @POST("purchases/{purchaseId}/scan-ticket")
+    suspend fun scanTicket(
+        @Header("Authorization") token: String,
+        @Path("purchaseId") purchaseId: Int,
+        @Body body: ScanTicketRequest
+    ): Response<ScanTicketResponse>
+
+    // ── Chat IA ───────────────────────────────────────────────
+    @POST("chat")
+    suspend fun chat(
+        @Header("Authorization") token: String,
+        @Body body: ChatRequest
+    ): Response<ChatResponse>
+
+    // ── Comparativa de precios ────────────────────────────────
+    @GET("prices/compare")
+    suspend fun getPriceComparisons(
+        @Header("Authorization") token: String
+    ): Response<PriceComparisonResponse>
 }

@@ -7,8 +7,10 @@ import com.undef.superahorroturina.model.Purchase
 // el ViewModel maneja lógica, el UiState solo transporta datos hacia la UI.
 data class HomeUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val userName: String = "",
     val totalThisMonth: Double = 0.0,
+    val monthlyLimit: Float = 50_000f,
     val recentPurchases: List<Purchase> = emptyList(),
     val purchaseCount: Int = 0,
     val supermarketCount: Int = 0

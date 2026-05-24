@@ -27,6 +27,8 @@ import com.undef.superahorroturina.ui.screens.purchase.PurchaseDetailScreen
 import com.undef.superahorroturina.ui.screens.settings.SettingsScreen
 import com.undef.superahorroturina.ui.screens.splash.SplashScreen
 import com.undef.superahorroturina.ui.screens.stats.StatsScreen
+import com.undef.superahorroturina.ui.screens.chat.ChatScreen
+import com.undef.superahorroturina.ui.screens.prices.PriceComparisonScreen
 
 // Duración estándar de las transiciones (ms)
 private const val NAV_ANIM_DURATION = 300
@@ -115,6 +117,8 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToStats = { navController.navigate(Routes.Stats.route) },
                 onNavigateToProfile = { navController.navigate(Routes.Profile.route) },
                 onNavigateToSettings = { navController.navigate(Routes.Settings.route) },
+                onNavigateToChat = { navController.navigate(Routes.Chat.route) },
+                onNavigateToPriceComparison = { navController.navigate(Routes.PriceComparison.route) },
                 onLogout = {
                     navController.navigate(Routes.Login.route) {
                         popUpTo(Routes.Home.route) { inclusive = true }
@@ -193,6 +197,15 @@ fun NavGraph(navController: NavHostController) {
                     navController.navigate(Routes.EditProduct.createRoute(purchId, prodId))
                 }
             )
+        }
+
+        // ── AI features ──────────────────────────────────────────
+        composable(Routes.Chat.route) {
+            ChatScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.PriceComparison.route) {
+            PriceComparisonScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // ── Product ──────────────────────────────────────────────

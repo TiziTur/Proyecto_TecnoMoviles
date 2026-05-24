@@ -22,10 +22,15 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
-        // Cargar preferencia guardada al abrir Settings
+        // Cargar ambas preferencias guardadas al abrir Settings
         viewModelScope.launch {
             themeDataStore.isDarkMode.collect { saved ->
                 _uiState.value = _uiState.value.copy(darkMode = saved)
+            }
+        }
+        viewModelScope.launch {
+            themeDataStore.monthlyLimit.collect { saved ->
+                _uiState.value = _uiState.value.copy(monthlyLimit = saved)
             }
         }
     }
@@ -57,5 +62,6 @@ class SettingsViewModel @Inject constructor(
 
     fun onMonthlyLimitChange(limit: Float) {
         _uiState.value = _uiState.value.copy(monthlyLimit = limit)
+        viewModelScope.launch { themeDataStore.setMonthlyLimit(limit) }
     }
 }

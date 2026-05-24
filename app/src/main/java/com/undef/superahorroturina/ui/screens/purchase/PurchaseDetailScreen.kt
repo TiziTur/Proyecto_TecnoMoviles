@@ -2,14 +2,19 @@
 // Incluye un Intent.ACTION_SEND para compartir el resumen de la compra
 // (requisito de la segunda entrega: "al menos un Intent").
 // El AlertDialog de confirmación de eliminación es un ejemplo de diálogos en Compose.
+// El botón "Adjuntar ticket" abre cámara/galería y lanza el flujo de OCR con Gemini + ML Kit.
 package com.undef.superahorroturina.ui.screens.purchase
 
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,14 +22,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
+import com.undef.superahorroturina.data.network.dto.ScannedProductDto
 import com.undef.superahorroturina.ui.components.*
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
@@ -51,15 +59,57 @@ fun PurchaseDetailScreen(
         onPauseOrDispose { }
     }
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context  = LocalContext.current
-    val isDark   = isSystemInDarkTheme()
+    val uiState       by viewModel.uiState.collectAsStateWithLifecycle()
+    val ticketState   by viewModel.ticketScanState.collectAsStateWithLifecycle()
+    val context        = LocalContext.current
+    val isDark         = isSystemInDarkTheme()
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val moneyFormat   = remember { NumberFormat.getNumberInstance(Locale("es", "AR")) }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showTicketChooser by remember { mutableStateOf(false) }
+
+    // Launcher para galería (pick image)
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.scanTicketFromUri(context, it, purchaseId) }
+    }
+
+    // Lanzar chooser de cámara/galería cuando se pide
+    if (showTicketChooser) {
+        showTicketChooser = false
+        galleryLauncher.launch("image/*")
+    }
+
+    // Diálogo de confirmación de productos escaneados
+    when (val state = ticketState) {
+        is TicketScanState.Confirm -> {
+            TicketScanConfirmDialog(
+                products    = state.products,
+                supermarket = state.supermarket,
+                moneyFormat = moneyFormat,
+                onConfirm   = { viewModel.confirmScannedProducts(purchaseId, state.products) },
+                onDismiss   = { viewModel.resetTicketScan() }
+            )
+        }
+        is TicketScanState.Error -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetTicketScan() },
+                title = { Text("Error al escanear") },
+                text  = { Text(state.message) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetTicketScan() }) { Text("Cerrar") }
+                }
+            )
+        }
+        is TicketScanState.Done -> {
+            LaunchedEffect(Unit) { viewModel.resetTicketScan() }
+        }
+        else -> Unit
+    }
 
     // ── Diálogo de confirmación de eliminación ────────────────
     if (showDeleteDialog) {
@@ -253,8 +303,16 @@ fun PurchaseDetailScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
+                                // Indicador de carga mientras escanea
+                                if (ticketState is TicketScanState.Scanning || ticketState is TicketScanState.Inserting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
                                 FilledTonalButton(
-                                    onClick = { /* TODO: intent cámara/galería */ },
+                                    onClick = { showTicketChooser = true },
+                                    enabled = ticketState !is TicketScanState.Scanning && ticketState !is TicketScanState.Inserting,
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                     modifier = Modifier.height(36.dp)
                                 ) {
@@ -305,4 +363,80 @@ fun PurchaseDetailScreen(
             }
         }
     }
+}
+
+// ── Diálogo de confirmación de productos escaneados ───────────
+
+@Composable
+private fun TicketScanConfirmDialog(
+    products: List<ScannedProductDto>,
+    supermarket: String?,
+    moneyFormat: NumberFormat,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Ticket escaneado", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (!supermarket.isNullOrBlank()) {
+                    Text(
+                        text  = "Supermercado: ${supermarket.replaceFirstChar { it.uppercaseChar() }}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text  = "Se detectaron ${products.size} producto(s). ¿Querés agregarlos a la compra?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(4.dp))
+                products.take(8).forEach { p ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text     = "${p.name} x${p.quantity}",
+                            style    = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text  = if (p.price > 0) "$ ${moneyFormat.format(p.price)}" else "–",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                if (products.size > 8) {
+                    Text(
+                        text  = "… y ${products.size - 8} más",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Agregar todos")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
