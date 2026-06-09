@@ -1,12 +1,7 @@
-// ViewModel para el historial de compras.
-// Carga todas las compras del usuario desde el backend.
-// v2: searchQuery y selectedFilter viven aquí con debounce(300ms) para no filtrar
-// en cada keystroke sino cuando el usuario para de escribir.
 package com.undef.superahorroturina.ui.screens.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.undef.superahorroturina.data.repository.ApiResult
 import com.undef.superahorroturina.data.repository.PurchaseRepository
 import com.undef.superahorroturina.model.Purchase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,13 +28,21 @@ class HistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
-    // Estados de búsqueda y filtro — viven en el ViewModel, no en la UI
     val searchQuery    = MutableStateFlow("")
     val selectedFilter = MutableStateFlow("Todos")
 
     init {
-        loadPurchases()
-        // Combinar los tres flows con debounce para filtrado reactivo eficiente
+        viewModelScope.launch {
+            purchaseRepository.getPurchasesFlow().collect { purchases ->
+                val sorted = purchases.sortedByDescending { it.date }
+                _uiState.value = _uiState.value.copy(
+                    isLoading    = false,
+                    isRefreshing = false,
+                    purchases    = sorted,
+                    error        = ""
+                )
+            }
+        }
         combine(
             _uiState.map { it.purchases },
             searchQuery.debounce(300),
@@ -56,40 +59,28 @@ class HistoryViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(filteredPurchases = filtered)
             }
             .launchIn(viewModelScope)
+
+        loadPurchases()
     }
 
     fun loadPurchases() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            when (val result = purchaseRepository.getPurchases()) {
-                is ApiResult.Success -> {
-                    val sorted = result.data.sortedByDescending { it.date }
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isRefreshing = false,
-                        purchases = sorted,
-                        error = ""
-                    )
-                }
-                is ApiResult.Error -> _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    error = result.message
-                )
-            }
+            purchaseRepository.refreshPurchases()
         }
     }
 
     fun refresh() {
-        _uiState.value = _uiState.value.copy(isRefreshing = true)
-        loadPurchases()
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true)
+            purchaseRepository.refreshPurchases()
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
+        }
     }
 
     fun deletePurchase(purchaseId: Int) {
         viewModelScope.launch {
             purchaseRepository.deletePurchase(purchaseId)
-            // Recargar lista tras eliminar
-            loadPurchases()
         }
     }
 }

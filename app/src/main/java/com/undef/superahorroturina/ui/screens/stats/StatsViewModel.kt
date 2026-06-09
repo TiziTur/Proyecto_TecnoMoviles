@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -39,30 +40,22 @@ class StatsViewModel @Inject constructor(
     fun loadStats() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            when (val result = purchaseRepository.getPurchases()) {
-                is ApiResult.Success -> {
-                    val purchases = result.data
-                    // Cargar el detalle de cada compra para obtener los productos completos
-                    val purchasesWithProducts = purchases.map { purchase ->
-                        val detail = purchaseRepository.getPurchase(purchase.id)
-                        if (detail is ApiResult.Success) detail.data else purchase
-                    }
-                    val totalAllTime = purchases.sumOf { it.total }
-                    val monthly      = buildMonthlyStats(purchases)
-                    _uiState.value = StatsUiState(
-                        isLoading        = false,
-                        monthlyStats     = monthly,
-                        supermarketStats = buildSupermarketStats(purchases),
-                        topProducts      = buildTopProducts(purchasesWithProducts),
-                        totalAllTime     = totalAllTime,
-                        avgPurchase      = if (purchases.isNotEmpty()) totalAllTime / purchases.size else 0.0
-                    )
-                }
-                is ApiResult.Error -> _uiState.value = StatsUiState(
-                    isLoading = false,
-                    error     = result.message
-                )
+            purchaseRepository.refreshPurchases()
+            val purchases = purchaseRepository.getPurchasesFlow().first()
+            val purchasesWithProducts = purchases.map { purchase ->
+                val detail = purchaseRepository.getPurchase(purchase.id)
+                if (detail is ApiResult.Success) detail.data else purchase
             }
+            val totalAllTime = purchases.sumOf { it.total }
+            val monthly      = buildMonthlyStats(purchases)
+            _uiState.value = StatsUiState(
+                isLoading        = false,
+                monthlyStats     = monthly,
+                supermarketStats = buildSupermarketStats(purchases),
+                topProducts      = buildTopProducts(purchasesWithProducts),
+                totalAllTime     = totalAllTime,
+                avgPurchase      = if (purchases.isNotEmpty()) totalAllTime / purchases.size else 0.0
+            )
         }
     }
 
