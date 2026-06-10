@@ -53,3 +53,11 @@ data class StatSummary(
     val label: String,
     val amount: Double
 )
+
+// Representa el cambio de precio de un producto entre su primera y última compra registrada.
+data class PriceChange(
+    val productName: String,
+    val oldPrice: Double,
+    val newPrice: Double,
+    val pctChange: Double
+)
