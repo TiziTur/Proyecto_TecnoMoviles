@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -83,8 +84,8 @@ fun ChatScreen(
                             .size(48.dp)
                             .clip(RoundedCornerShape(50))
                             .background(
-                                if (uiState.inputText.isBlank() || uiState.isSending)
-                                    MaterialTheme.colorScheme.surfaceVariant
+                                brush = if (uiState.inputText.isBlank() || uiState.isSending)
+                                    SolidColor(MaterialTheme.colorScheme.surfaceVariant)
                                 else
                                     Brush.linearGradient(
                                         listOf(

@@ -3,7 +3,7 @@
 // Si hay una sesión JWT guardada, muestra el botón de huella para acceso rápido.
 package com.undef.superahorroturina.ui.screens.auth
 
-import androidx.activity.compose.LocalActivity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -46,7 +46,7 @@ fun LoginScreen(
     val isDark          = isSystemInDarkTheme()
 
     // LocalActivity es la FragmentActivity host — necesaria para BiometricPrompt
-    val activity = LocalActivity.current as? FragmentActivity
+    val activity = LocalContext.current as? FragmentActivity
 
     // Si hay sesión guardada Y el dispositivo tiene biometría, ofrecemos huella al entrar
     LaunchedEffect(hasSavedSession) {
