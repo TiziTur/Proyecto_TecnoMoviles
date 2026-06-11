@@ -89,7 +89,14 @@ fun StatsScreen(
                         Tab(
                             selected = selectedTab == index,
                             onClick = { selectedTab = index },
-                            text = { Text(title) }
+                            text = {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
                         )
                     }
                 }

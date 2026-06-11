@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.R
@@ -211,9 +212,13 @@ fun StatsProductsTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
                             text = "${uiState.purchaseCountThisMonth}",
                             style = MaterialTheme.typography.headlineSmall,
@@ -222,10 +227,15 @@ fun StatsProductsTab(
                         Text(
                             text = stringResource(R.string.stats_purchases_this_month),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
                             text = "%.1f".format(uiState.avgItemsPerPurchase),
                             style = MaterialTheme.typography.headlineSmall,
@@ -234,7 +244,8 @@ fun StatsProductsTab(
                         Text(
                             text = stringResource(R.string.stats_avg_items),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }

@@ -22,14 +22,15 @@ fun SegmentBar(
     progress: Float,
     color: Color,
     modifier: Modifier = Modifier,
-    height: Dp = 8.dp
+    height: Dp = 8.dp,
+    trackColor: Color? = null
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
             .clip(RoundedCornerShape(height / 2))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(trackColor ?: MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Box(
             modifier = Modifier

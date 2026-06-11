@@ -303,14 +303,11 @@ fun HomeScreen(
                                         )
                                     }
                                     Spacer(Modifier.height(4.dp))
-                                    LinearProgressIndicator(
-                                        progress = { budgetProgress },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(6.dp)
-                                            .clip(RoundedCornerShape(3.dp)),
-                                        color        = budgetColor,
-                                        trackColor   = Color.White.copy(alpha = 0.2f)
+                                    com.undef.superahorroturina.ui.screens.stats.SegmentBar(
+                                        progress   = budgetProgress,
+                                        color      = budgetColor,
+                                        height     = 6.dp,
+                                        trackColor = Color.White.copy(alpha = 0.2f)
                                     )
                                     Spacer(Modifier.height(4.dp))
                                     Text(
