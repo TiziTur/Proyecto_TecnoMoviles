@@ -94,6 +94,10 @@
     <string name="history_empty">No se encontraron compras</string>
 
     <!-- Stats -->
+    <string name="stats_tab_general">General</string>
+    <string name="stats_tab_budget">Presupuesto</string>
+    <string name="stats_tab_supermarkets">Supermercados</string>
+    <string name="stats_tab_products">Productos</string>
     <string name="stats_monthly_evolution">Evolución mensual</string>
     <string name="stats_by_supermarket">Gasto por supermercado</string>
     <string name="stats_top_products">Productos más comprados</string>
@@ -102,6 +106,19 @@
     <string name="stat_total_spent">Total gastado</string>
     <string name="stat_avg_purchase">Promedio</string>
     <string name="stats_no_data">Sin datos aún</string>
+    <string name="stats_month_comparison">Comparación con el mes anterior</string>
+    <string name="stats_vs_last_month">vs. mes anterior</string>
+    <string name="stats_no_previous_month">Sin datos del mes anterior</string>
+    <string name="stats_budget_title">Presupuesto del mes</string>
+    <string name="stats_budget_no_limit">Configurá un presupuesto mensual en Ajustes para ver esta estadística</string>
+    <string name="stats_projection">Proyección fin de mes</string>
+    <string name="stats_projection_over_limit">Supera el límite mensual</string>
+    <string name="stats_weekday_spending">Gasto por día de la semana</string>
+    <string name="stats_avg_ticket">Ticket promedio por supermercado</string>
+    <string name="stats_price_increases">Productos con mayor aumento de precio</string>
+    <string name="stats_purchase_frequency">Frecuencia de compras</string>
+    <string name="stats_purchases_this_month">Compras este mes</string>
+    <string name="stats_avg_items">Items promedio por compra</string>
 
     <!-- Profile -->
     <string name="profile_change_photo">Cambiar foto</string>
