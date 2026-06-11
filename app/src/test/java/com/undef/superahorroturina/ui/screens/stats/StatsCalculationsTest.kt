@@ -76,4 +76,48 @@ class StatsCalculationsTest {
     fun `calcMonthOverMonthPct devuelve null si no hay datos del mes anterior`() {
         assertNull(calcMonthOverMonthPct(300.0, 0.0))
     }
+
+    @Test
+    fun `calcWeekdayStats devuelve 7 dias en orden Lunes a Domingo con sumas correctas`() {
+        // 2026-06-08 es lunes, 2026-06-09 es martes, 2026-06-13 es sabado
+        val purchases = listOf(
+            purchase(1, LocalDate.of(2026, 6, 8), total = 100.0),  // Lunes
+            purchase(2, LocalDate.of(2026, 6, 8), total = 50.0),   // Lunes
+            purchase(3, LocalDate.of(2026, 6, 9), total = 30.0),   // Martes
+            purchase(4, LocalDate.of(2026, 6, 13), total = 200.0)  // Sabado
+        )
+        val result = calcWeekdayStats(purchases)
+        assertEquals(7, result.size)
+        assertEquals("Lunes", result[0].label)
+        assertEquals(150.0, result[0].amount, 0.001)
+        assertEquals("Martes", result[1].label)
+        assertEquals(30.0, result[1].amount, 0.001)
+        assertEquals("Sábado", result[5].label)
+        assertEquals(200.0, result[5].amount, 0.001)
+        assertEquals("Domingo", result[6].label)
+        assertEquals(0.0, result[6].amount, 0.001)
+    }
+
+    @Test
+    fun `calcAvgTicketBySupermarket calcula promedio por visita y ordena descendente`() {
+        val purchases = listOf(
+            purchase(1, LocalDate.of(2026, 6, 1), supermarket = "Walmart", total = 100.0),
+            purchase(2, LocalDate.of(2026, 6, 2), supermarket = "Walmart", total = 300.0),
+            purchase(3, LocalDate.of(2026, 6, 3), supermarket = "Coto", total = 50.0)
+        )
+        val result = calcAvgTicketBySupermarket(purchases)
+        assertEquals(2, result.size)
+        assertEquals("Walmart", result[0].label)
+        assertEquals(200.0, result[0].amount, 0.001) // (100+300)/2
+        assertEquals("Coto", result[1].label)
+        assertEquals(50.0, result[1].amount, 0.001)
+    }
+
+    @Test
+    fun `calcAvgTicketBySupermarket limita a 5 supermercados`() {
+        val purchases = (1..6).map { i ->
+            purchase(i, LocalDate.of(2026, 6, i), supermarket = "Super$i", total = (i * 10).toDouble())
+        }
+        assertEquals(5, calcAvgTicketBySupermarket(purchases).size)
+    }
 }
