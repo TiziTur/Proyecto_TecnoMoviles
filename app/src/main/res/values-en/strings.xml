@@ -94,6 +94,10 @@
     <string name="history_empty">No purchases found</string>
 
     <!-- Stats -->
+    <string name="stats_tab_general">General</string>
+    <string name="stats_tab_budget">Budget</string>
+    <string name="stats_tab_supermarkets">Supermarkets</string>
+    <string name="stats_tab_products">Products</string>
     <string name="stats_monthly_evolution">Monthly evolution</string>
     <string name="stats_by_supermarket">Expenses by supermarket</string>
     <string name="stats_top_products">Most purchased products</string>
@@ -102,6 +106,19 @@
     <string name="stat_total_spent">Total spent</string>
     <string name="stat_avg_purchase">Average</string>
     <string name="stats_no_data">No data yet</string>
+    <string name="stats_month_comparison">Comparison with last month</string>
+    <string name="stats_vs_last_month">vs. last month</string>
+    <string name="stats_no_previous_month">No data for the previous month</string>
+    <string name="stats_budget_title">Monthly budget</string>
+    <string name="stats_budget_no_limit">Set a monthly budget in Settings to see this stat</string>
+    <string name="stats_projection">End-of-month projection</string>
+    <string name="stats_projection_over_limit">Exceeds the monthly limit</string>
+    <string name="stats_weekday_spending">Spending by day of the week</string>
+    <string name="stats_avg_ticket">Average ticket per supermarket</string>
+    <string name="stats_price_increases">Products with the biggest price increase</string>
+    <string name="stats_purchase_frequency">Purchase frequency</string>
+    <string name="stats_purchases_this_month">Purchases this month</string>
+    <string name="stats_avg_items">Average items per purchase</string>
 
     <!-- Profile -->
     <string name="profile_change_photo">Change photo</string>
