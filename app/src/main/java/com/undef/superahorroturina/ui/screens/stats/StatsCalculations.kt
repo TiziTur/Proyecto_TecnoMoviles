@@ -83,3 +83,22 @@ fun calcAvgItemsPerPurchase(purchases: List<Purchase>, today: LocalDate = LocalD
     return if (thisMonth.isEmpty()) 0.0
     else thisMonth.sumOf { it.productCount }.toDouble() / thisMonth.size
 }
+
+fun niceAxisMax(value: Double): Double {
+    if (value <= 0.0) return 1.0
+    val magnitude = 10.0.pow(floor(log10(value)))
+    val normalized = value / magnitude
+    val niceNormalized = when {
+        normalized <= 1.0 -> 1.0
+        normalized <= 2.0 -> 2.0
+        normalized <= 5.0 -> 5.0
+        else -> 10.0
+    }
+    return niceNormalized * magnitude
+}
+
+fun formatCompactCurrency(amount: Double): String = "$ " + when {
+    amount >= 1_000_000 -> "${(amount / 1_000_000).toInt()}M"
+    amount >= 1_000 -> "${(amount / 1_000).toInt()}k"
+    else -> amount.toInt().toString()
+}

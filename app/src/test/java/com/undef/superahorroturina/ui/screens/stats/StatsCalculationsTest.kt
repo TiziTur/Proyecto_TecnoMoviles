@@ -194,4 +194,26 @@ class StatsCalculationsTest {
         val purchases = listOf(purchase(1, LocalDate.of(2026, 5, 31), productCount = 10))
         assertEquals(0.0, calcAvgItemsPerPurchase(purchases, today), 0.001)
     }
+
+    @Test
+    fun `niceAxisMax redondea hacia arriba a un valor lindo`() {
+        assertEquals(100.0, niceAxisMax(85.0), 0.001)
+        assertEquals(200.0, niceAxisMax(110.0), 0.001)
+        assertEquals(500.0, niceAxisMax(450.0), 0.001)
+        assertEquals(1000.0, niceAxisMax(900.0), 0.001)
+        assertEquals(100000.0, niceAxisMax(90000.0), 0.001)
+    }
+
+    @Test
+    fun `niceAxisMax con cero o negativo devuelve 1`() {
+        assertEquals(1.0, niceAxisMax(0.0), 0.001)
+        assertEquals(1.0, niceAxisMax(-50.0), 0.001)
+    }
+
+    @Test
+    fun `formatCompactCurrency formatea miles y millones`() {
+        assertEquals("$ 500", formatCompactCurrency(500.0))
+        assertEquals("$ 12k", formatCompactCurrency(12345.0))
+        assertEquals("$ 3M", formatCompactCurrency(3_200_000.0))
+    }
 }
