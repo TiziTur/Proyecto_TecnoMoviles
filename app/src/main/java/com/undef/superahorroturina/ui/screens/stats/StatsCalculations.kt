@@ -45,3 +45,41 @@ fun calcAvgTicketBySupermarket(purchases: List<Purchase>): List<StatSummary> =
         .map { (name, ps) -> StatSummary(name, ps.sumOf { it.total } / ps.size) }
         .sortedByDescending { it.amount }
         .take(5)
+
+fun calcPriceIncreases(purchases: List<Purchase>): List<PriceChange> {
+    data class PriceEntry(val date: LocalDate, val price: Double, val displayName: String)
+
+    return purchases
+        .flatMap { purchase ->
+            purchase.products.map { product ->
+                product.name.trim().lowercase() to PriceEntry(purchase.date, product.price, product.name)
+            }
+        }
+        .groupBy({ it.first }, { it.second })
+        .mapNotNull { (_, entries) ->
+            if (entries.size < 2) return@mapNotNull null
+            val sorted = entries.sortedBy { it.date }
+            val oldest = sorted.first()
+            val newest = sorted.last()
+            if (oldest.price <= 0.0) return@mapNotNull null
+            val pctChange = (newest.price - oldest.price) / oldest.price * 100
+            if (pctChange <= 0.0) return@mapNotNull null
+            PriceChange(
+                productName = newest.displayName,
+                oldPrice = oldest.price,
+                newPrice = newest.price,
+                pctChange = pctChange
+            )
+        }
+        .sortedByDescending { it.pctChange }
+        .take(3)
+}
+
+fun calcPurchaseCountThisMonth(purchases: List<Purchase>, today: LocalDate = LocalDate.now()): Int =
+    purchases.count { YearMonth.from(it.date) == YearMonth.from(today) }
+
+fun calcAvgItemsPerPurchase(purchases: List<Purchase>, today: LocalDate = LocalDate.now()): Double {
+    val thisMonth = purchases.filter { YearMonth.from(it.date) == YearMonth.from(today) }
+    return if (thisMonth.isEmpty()) 0.0
+    else thisMonth.sumOf { it.productCount }.toDouble() / thisMonth.size
+}

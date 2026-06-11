@@ -120,4 +120,78 @@ class StatsCalculationsTest {
         }
         assertEquals(5, calcAvgTicketBySupermarket(purchases).size)
     }
+
+    @Test
+    fun `calcPriceIncreases detecta suba de precio entre primera y ultima compra del mismo producto`() {
+        val purchases = listOf(
+            purchase(1, LocalDate.of(2026, 4, 1), products = listOf(product("Aceite", 100.0))),
+            purchase(2, LocalDate.of(2026, 6, 1), products = listOf(product("Aceite", 150.0)))
+        )
+        val result = calcPriceIncreases(purchases)
+        assertEquals(1, result.size)
+        assertEquals("Aceite", result[0].productName)
+        assertEquals(100.0, result[0].oldPrice, 0.001)
+        assertEquals(150.0, result[0].newPrice, 0.001)
+        assertEquals(50.0, result[0].pctChange, 0.001)
+    }
+
+    @Test
+    fun `calcPriceIncreases ignora productos sin repeticion y sin aumento`() {
+        val purchases = listOf(
+            purchase(1, LocalDate.of(2026, 4, 1), products = listOf(
+                product("Unico", 100.0),
+                product("Bajo", 200.0)
+            )),
+            purchase(2, LocalDate.of(2026, 6, 1), products = listOf(
+                product("Bajo", 150.0) // bajó de precio, no cuenta
+            ))
+        )
+        assertEquals(0, calcPriceIncreases(purchases).size)
+    }
+
+    @Test
+    fun `calcPriceIncreases devuelve maximo 3 ordenados por mayor aumento`() {
+        val purchases = listOf(
+            purchase(1, LocalDate.of(2026, 1, 1), products = listOf(
+                product("A", 100.0), product("B", 100.0), product("C", 100.0), product("D", 100.0)
+            )),
+            purchase(2, LocalDate.of(2026, 6, 1), products = listOf(
+                product("A", 110.0), // +10%
+                product("B", 200.0), // +100%
+                product("C", 150.0), // +50%
+                product("D", 130.0)  // +30%
+            ))
+        )
+        val result = calcPriceIncreases(purchases)
+        assertEquals(3, result.size)
+        assertEquals("B", result[0].productName)
+        assertEquals("C", result[1].productName)
+        assertEquals("D", result[2].productName)
+    }
+
+    @Test
+    fun `calcPurchaseCountThisMonth cuenta solo compras del mes actual`() {
+        val purchases = listOf(
+            purchase(1, LocalDate.of(2026, 6, 1)),
+            purchase(2, LocalDate.of(2026, 6, 9)),
+            purchase(3, LocalDate.of(2026, 5, 31))
+        )
+        assertEquals(2, calcPurchaseCountThisMonth(purchases, today))
+    }
+
+    @Test
+    fun `calcAvgItemsPerPurchase promedia productCount del mes actual`() {
+        val purchases = listOf(
+            purchase(1, LocalDate.of(2026, 6, 1), productCount = 10),
+            purchase(2, LocalDate.of(2026, 6, 9), productCount = 4),
+            purchase(3, LocalDate.of(2026, 5, 31), productCount = 999)
+        )
+        assertEquals(7.0, calcAvgItemsPerPurchase(purchases, today), 0.001)
+    }
+
+    @Test
+    fun `calcAvgItemsPerPurchase devuelve cero si no hay compras este mes`() {
+        val purchases = listOf(purchase(1, LocalDate.of(2026, 5, 31), productCount = 10))
+        assertEquals(0.0, calcAvgItemsPerPurchase(purchases, today), 0.001)
+    }
 }
