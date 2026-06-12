@@ -57,6 +57,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             purchaseRepository.refreshPurchases()
+            _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
 
