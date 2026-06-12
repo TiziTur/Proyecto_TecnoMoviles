@@ -4,12 +4,15 @@
 package com.undef.superahorroturina.data.repository
 
 import com.undef.superahorroturina.data.local.SessionDataStore
+import com.undef.superahorroturina.data.local.db.AppDatabase
 import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.network.dto.LoginRequest
 import com.undef.superahorroturina.data.network.dto.RegisterRequest
 import com.undef.superahorroturina.data.network.dto.UpdateUserRequest
 import com.undef.superahorroturina.model.User
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,12 +24,20 @@ sealed class ApiResult<out T> {
 @Singleton
 class AuthRepository @Inject constructor(
     private val api: ApiService,
-    private val session: SessionDataStore
+    private val session: SessionDataStore,
+    private val database: AppDatabase
 ) {
+    // Borra la caché local (Room) de la cuenta anterior para que un nuevo
+    // login/registro no muestre compras de otro usuario que quedaron cacheadas.
+    private suspend fun clearLocalCache() = withContext(Dispatchers.IO) {
+        database.clearAllTables()
+    }
+
     suspend fun login(email: String, password: String): ApiResult<User> = runCatching {
         val response = api.login(LoginRequest(email, password))
         if (response.isSuccessful) {
             val body = response.body()!!
+            clearLocalCache()
             session.saveSession(
                 token     = body.token,
                 userId    = body.user.id,
@@ -55,6 +66,7 @@ class AuthRepository @Inject constructor(
         val response = api.register(RegisterRequest(firstName, lastName, email, password, phone))
         if (response.isSuccessful) {
             val body = response.body()!!
+            clearLocalCache()
             session.saveSession(
                 token     = body.token,
                 userId    = body.user.id,
@@ -93,7 +105,10 @@ class AuthRepository @Inject constructor(
         }
     }.getOrElse { ApiResult.Error(it.message ?: "Error de conexión") }
 
-    suspend fun logout() = session.clearSession()
+    suspend fun logout() {
+        session.clearSession()
+        clearLocalCache()
+    }
 
     fun getSessionFlow() = session.session
 }
