@@ -43,18 +43,26 @@ function detectColumns(headers: string[]): {
   };
 }
 
-function download(url: string, dest: string): Promise<void> {
+// C2: redirects parameter added to guard against infinite redirect recursion
+function download(url: string, dest: string, redirects = 0): Promise<void> {
+  if (redirects > 5) return Promise.reject(new Error('Too many redirects'));
   return new Promise((resolve, reject) => {
     const proto = url.startsWith('https') ? https : http;
     const file = fs.createWriteStream(dest);
+    // m2: WriteStream error handler
+    file.on('error', err => { fs.unlink(dest, () => {}); reject(err); });
     proto.get(url, { headers: { 'User-Agent': 'SuperAhorro/1.0' } }, res => {
       if (res.statusCode === 301 || res.statusCode === 302) {
         file.close();
         fs.unlink(dest, () => {});
-        download(res.headers.location!, dest).then(resolve).catch(reject);
+        // C2: guard against missing Location header; pass redirects counter
+        if (!res.headers.location) { reject(new Error('Redirect without Location header')); return; }
+        download(res.headers.location, dest, redirects + 1).then(resolve).catch(reject);
         return;
       }
       if (res.statusCode !== 200) {
+        // m3: drain the response body before rejecting
+        res.resume();
         reject(new Error(`HTTP ${res.statusCode} al descargar ${url}`));
         return;
       }
@@ -66,16 +74,23 @@ function download(url: string, dest: string): Promise<void> {
 
 async function getLatestZipUrl(): Promise<string> {
   const data = await new Promise<string>((resolve, reject) => {
-    https.get(
+    // C3: add req.on('error') and status code check
+    const req = https.get(
       'https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios',
       { headers: { 'User-Agent': 'SuperAhorro/1.0' } },
       res => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          reject(new Error(`CKAN API returned HTTP ${res.statusCode}`));
+          return;
+        }
         let body = '';
         res.on('data', c => body += c);
         res.on('end', () => resolve(body));
         res.on('error', reject);
       }
     );
+    req.on('error', reject);
   });
   const pkg = JSON.parse(data);
   const resources: any[] = pkg?.result?.resources ?? [];
@@ -102,6 +117,8 @@ function parseCsvStream(stream: NodeJS.ReadableStream): Promise<SepaRow[]> {
           cols = detectColumns(Object.keys(record));
           if (!cols.nameCol || !cols.marketCol || !cols.priceCol) {
             parser.destroy();
+            // C1: drain the entry so unzipper can advance
+            stream.resume();
             resolve([]);
             return;
           }
@@ -112,7 +129,8 @@ function parseCsvStream(stream: NodeJS.ReadableStream): Promise<SepaRow[]> {
         const price    = parseFloat(priceStr);
         const brand    = cols.brandCol    ? (record[cols.brandCol]    ?? '').trim() : '';
         const province = cols.provinceCol ? (record[cols.provinceCol] ?? '').trim() : '';
-        if (name && market && !isNaN(price) && price > 0 && rows.length < 10000) {
+        // I1: removed hard cap of 10000 rows
+        if (name && market && !isNaN(price) && price > 0) {
           rows.push({ product_name: name, brand, supermarket: market, price, province });
         }
       }
@@ -123,26 +141,37 @@ function parseCsvStream(stream: NodeJS.ReadableStream): Promise<SepaRow[]> {
   });
 }
 
+// I3: DELETE + INSERT wrapped in a transaction
 async function insertRows(rows: SepaRow[]): Promise<void> {
   if (rows.length === 0) { console.log('Sin filas para insertar.'); return; }
-  await pool.query('DELETE FROM reference_prices');
-  const BATCH = 500;
-  let inserted = 0;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH);
-    const values = batch.map((_, j) => {
-      const b = j * 5;
-      return `($${b+1}, $${b+2}, $${b+3}, $${b+4}, $${b+5})`;
-    }).join(', ');
-    const params = batch.flatMap(r => [r.product_name, r.brand, r.supermarket, r.price, r.province]);
-    await pool.query(
-      `INSERT INTO reference_prices (product_name, brand, supermarket, price, province) VALUES ${values}`,
-      params
-    );
-    inserted += batch.length;
-    process.stdout.write(`\r  Insertados: ${inserted}/${rows.length}`);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM reference_prices');
+    const BATCH = 500;
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH);
+      const values = batch.map((_, j) => {
+        const b = j * 5;
+        return `($${b+1}, $${b+2}, $${b+3}, $${b+4}, $${b+5})`;
+      }).join(', ');
+      const params = batch.flatMap(r => [r.product_name, r.brand, r.supermarket, r.price, r.province]);
+      await client.query(
+        `INSERT INTO reference_prices (product_name, brand, supermarket, price, province) VALUES ${values}`,
+        params
+      );
+      inserted += batch.length;
+      process.stdout.write(`\r  Insertados: ${inserted}/${rows.length}`);
+    }
+    await client.query('COMMIT');
+    console.log(`\n✓ ${inserted} registros importados.`);
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
   }
-  console.log(`\n✓ ${inserted} registros importados.`);
 }
 
 async function main() {
@@ -184,18 +213,18 @@ async function main() {
 
     if (allRows.length === 0) throw new Error('No se encontraron filas válidas. Verificar formato SEPA.');
 
-    // Deduplicar: promedio por (nombre, supermercado)
-    const map = new Map<string, { sum: number; count: number; brand: string; province: string }>();
+    // I2: Deduplicar: promedio por (nombre, supermercado)
+    // Uses null-byte separator to avoid key collisions; stores originals to avoid lowercase reconstruction
+    const map = new Map<string, { sum: number; count: number; brand: string; province: string; origName: string; origMarket: string }>();
     for (const r of allRows) {
-      const key = `${r.product_name.toLowerCase()}|${r.supermarket.toLowerCase()}`;
+      const key = `${r.product_name.toLowerCase()}\x00${r.supermarket.toLowerCase()}`;
       const existing = map.get(key);
       if (existing) { existing.sum += r.price; existing.count++; }
-      else map.set(key, { sum: r.price, count: 1, brand: r.brand, province: r.province });
+      else map.set(key, { sum: r.price, count: 1, brand: r.brand, province: r.province, origName: r.product_name, origMarket: r.supermarket });
     }
     const deduped: SepaRow[] = [];
-    for (const [key, val] of map.entries()) {
-      const [name, market] = key.split('|');
-      deduped.push({ product_name: name, brand: val.brand, supermarket: market,
+    for (const val of map.values()) {
+      deduped.push({ product_name: val.origName, brand: val.brand, supermarket: val.origMarket,
         price: Math.round((val.sum / val.count) * 100) / 100, province: val.province });
     }
     console.log(`   Registros únicos: ${deduped.length}`);
