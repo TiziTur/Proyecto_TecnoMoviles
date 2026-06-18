@@ -18,12 +18,27 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
+data class PurchaseFilters(
+    val supermarket: String = "",
+    val dateFrom: java.time.LocalDate? = null,
+    val dateTo: java.time.LocalDate? = null,
+    val minAmount: Double? = null,
+    val maxAmount: Double? = null
+) {
+    val activeCount: Int get() = listOf(
+        supermarket.isNotBlank(), dateFrom != null, dateTo != null,
+        minAmount != null, maxAmount != null
+    ).count { it }
+}
+
 data class HistoryUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val purchases: List<Purchase> = emptyList(),
     val filteredPurchases: List<Purchase> = emptyList(),
-    val error: String = ""
+    val error: String = "",
+    val filters: PurchaseFilters = PurchaseFilters(),
+    val showFilters: Boolean = false
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -38,6 +53,8 @@ class HistoryViewModel @Inject constructor(
 
     val searchQuery    = MutableStateFlow("")
     val selectedFilter = MutableStateFlow("Todos")
+
+    private val _filters = MutableStateFlow(PurchaseFilters())
 
     init {
         viewModelScope.launch {
@@ -54,19 +71,22 @@ class HistoryViewModel @Inject constructor(
         combine(
             _uiState.map { it.purchases },
             searchQuery.debounce(300),
-            selectedFilter
-        ) { purchases, query, filter ->
-            purchases.filter { purchase ->
-                val matchesSearch = query.isBlank() ||
-                    purchase.supermarket.contains(query, ignoreCase = true)
-                val matchesFilter = filter == "Todos" || purchase.supermarket == filter
-                matchesSearch && matchesFilter
+            selectedFilter,
+            _filters
+        ) { purchases, query, chip, adv ->
+            purchases.filter { p ->
+                val matchSearch  = query.isBlank() || p.supermarket.contains(query, ignoreCase = true)
+                val matchChip    = chip == "Todos" || p.supermarket == chip
+                val matchSuper   = adv.supermarket.isBlank() || p.supermarket.contains(adv.supermarket, ignoreCase = true)
+                val matchFrom    = adv.dateFrom == null || !p.date.isBefore(adv.dateFrom)
+                val matchTo      = adv.dateTo   == null || !p.date.isAfter(adv.dateTo)
+                val matchMin     = adv.minAmount == null || p.total >= adv.minAmount
+                val matchMax     = adv.maxAmount == null || p.total <= adv.maxAmount
+                matchSearch && matchChip && matchSuper && matchFrom && matchTo && matchMin && matchMax
             }
-        }
-            .onEach { filtered ->
-                _uiState.value = _uiState.value.copy(filteredPurchases = filtered)
-            }
-            .launchIn(viewModelScope)
+        }.onEach { filtered ->
+            _uiState.value = _uiState.value.copy(filteredPurchases = filtered, filters = _filters.value)
+        }.launchIn(viewModelScope)
 
         loadPurchases()
     }
@@ -125,5 +145,11 @@ class HistoryViewModel @Inject constructor(
                 withContext(Dispatchers.Main) { onError(e.message ?: "Error al exportar") }
             }
         }
+    }
+
+    fun updateFilters(f: PurchaseFilters) { _filters.value = f }
+    fun clearFilters() { _filters.value = PurchaseFilters() }
+    fun toggleShowFilters() {
+        _uiState.value = _uiState.value.copy(showFilters = !_uiState.value.showFilters)
     }
 }

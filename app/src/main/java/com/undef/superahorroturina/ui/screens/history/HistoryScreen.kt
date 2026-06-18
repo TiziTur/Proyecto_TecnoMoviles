@@ -1,17 +1,23 @@
 // Pantalla de historial de compras.
 // v3: searchQuery y selectedFilter viven en el ViewModel con debounce(300ms).
 // Agregado pull-to-refresh (PullToRefreshBox) y swipe-to-delete (SwipeToDismissBox).
+// v4: Filtros avanzados (rango de fechas, monto, supermercado) con FilterPanel expandible.
 package com.undef.superahorroturina.ui.screens.history
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,16 +27,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import android.content.Intent
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.*
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -169,6 +179,48 @@ fun HistoryScreen(
                                 }
                             }
 
+                            // Botón toggle filtros avanzados
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    TextButton(onClick = { viewModel.toggleShowFilters() }) {
+                                        Icon(
+                                            Icons.Default.FilterList,
+                                            null, modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            if (uiState.filters.activeCount > 0)
+                                                "Filtros (${uiState.filters.activeCount})"
+                                            else "Filtros avanzados"
+                                        )
+                                    }
+                                    if (uiState.filters.activeCount > 0) {
+                                        TextButton(onClick = { viewModel.clearFilters() }) {
+                                            Text("Limpiar", color = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Panel expandible
+                            item {
+                                AnimatedVisibility(
+                                    visible = uiState.showFilters,
+                                    enter   = expandVertically(),
+                                    exit    = shrinkVertically()
+                                ) {
+                                    FilterPanel(
+                                        filters         = uiState.filters,
+                                        onFiltersChange = { viewModel.updateFilters(it) },
+                                        onClear         = { viewModel.clearFilters() }
+                                    )
+                                }
+                            }
+
                             item {
                                 Text(
                                     text = stringResource(R.string.history_result_count, uiState.filteredPurchases.size),
@@ -247,5 +299,118 @@ fun HistoryScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterPanel(
+    filters: PurchaseFilters,
+    onFiltersChange: (PurchaseFilters) -> Unit,
+    onClear: () -> Unit
+) {
+    var showFromPicker by remember { mutableStateOf(false) }
+    var showToPicker   by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape    = MaterialTheme.shapes.large,
+        colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Filtros avanzados", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                if (filters.activeCount > 0)
+                    TextButton(onClick = onClear) { Text("Limpiar") }
+            }
+
+            OutlinedTextField(
+                value         = filters.supermarket,
+                onValueChange = { onFiltersChange(filters.copy(supermarket = it)) },
+                label         = { Text("Supermercado") },
+                leadingIcon   = { Icon(Icons.Default.Store, null) },
+                modifier      = Modifier.fillMaxWidth(),
+                singleLine    = true,
+                shape         = MaterialTheme.shapes.medium
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val disabledColors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor        = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor      = MaterialTheme.colorScheme.outline,
+                    disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledLabelColor       = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = filters.dateFrom?.toString() ?: "", onValueChange = {},
+                    label = { Text("Desde") }, leadingIcon = { Icon(Icons.Default.CalendarToday, null) },
+                    readOnly = true, enabled = false, colors = disabledColors,
+                    modifier = Modifier.weight(1f).clickable { showFromPicker = true },
+                    shape = MaterialTheme.shapes.medium
+                )
+                OutlinedTextField(
+                    value = filters.dateTo?.toString() ?: "", onValueChange = {},
+                    label = { Text("Hasta") }, leadingIcon = { Icon(Icons.Default.CalendarToday, null) },
+                    readOnly = true, enabled = false, colors = disabledColors,
+                    modifier = Modifier.weight(1f).clickable { showToPicker = true },
+                    shape = MaterialTheme.shapes.medium
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = filters.minAmount?.toInt()?.toString() ?: "",
+                    onValueChange = { onFiltersChange(filters.copy(minAmount = it.toDoubleOrNull())) },
+                    label = { Text("Monto mín.") }, leadingIcon = { Icon(Icons.Default.MonetizationOn, null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f), singleLine = true, shape = MaterialTheme.shapes.medium
+                )
+                OutlinedTextField(
+                    value = filters.maxAmount?.toInt()?.toString() ?: "",
+                    onValueChange = { onFiltersChange(filters.copy(maxAmount = it.toDoubleOrNull())) },
+                    label = { Text("Monto máx.") }, leadingIcon = { Icon(Icons.Default.MonetizationOn, null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f), singleLine = true, shape = MaterialTheme.shapes.medium
+                )
+            }
+        }
+    }
+
+    if (showFromPicker) {
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = filters.dateFrom?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showFromPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let {
+                        onFiltersChange(filters.copy(dateFrom = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()))
+                    }
+                    showFromPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showFromPicker = false }) { Text("Cancelar") } }
+        ) { DatePicker(state = state) }
+    }
+
+    if (showToPicker) {
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = filters.dateTo?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showToPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let {
+                        onFiltersChange(filters.copy(dateTo = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()))
+                    }
+                    showToPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showToPicker = false }) { Text("Cancelar") } }
+        ) { DatePicker(state = state) }
     }
 }
