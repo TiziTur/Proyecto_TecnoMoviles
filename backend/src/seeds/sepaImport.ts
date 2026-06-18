@@ -201,7 +201,8 @@ async function main() {
                 const rows = await processInnerZip(buf, fileName);
                 if (rows.length > 0) {
                   process.stdout.write(`\r   ${rows.length} productos de ${path.basename(fileName).substring(0, 40)}...`);
-                  allRows.push(...rows);
+                  // Evitar stack overflow: no usar spread con arrays de cientos de miles de elementos
+                  for (const r of rows) allRows.push(r);
                 }
               } catch (e) {
                 console.warn(`\n   ⚠ Error en ${path.basename(fileName)}:`, e);
