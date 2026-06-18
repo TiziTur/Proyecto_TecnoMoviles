@@ -78,11 +78,11 @@ router.get('/compare', async (req: AuthRequest, res: Response): Promise<void> =>
         .map(([supermarket, d]) => ({ supermarket, price: d.price, isUserData: d.isUserData }))
         .sort((a, b) => a.price - b.price);
 
-      if (priceList.length < 2) return null;
+      if (priceList.length === 0) return null;
 
       const cheapest = priceList[0];
       const priciest = priceList[priceList.length - 1];
-      const savings  = priciest.price - cheapest.price;
+      const savings  = priceList.length > 1 ? priciest.price - cheapest.price : 0;
 
       return {
         productName,
@@ -90,7 +90,7 @@ router.get('/compare', async (req: AuthRequest, res: Response): Promise<void> =>
         cheapestAt:    cheapest.supermarket,
         cheapestPrice: cheapest.price,
         maxSavings:    savings,
-        savingsPct:    Math.round((savings / priciest.price) * 100),
+        savingsPct:    priceList.length > 1 ? Math.round((savings / priciest.price) * 100) : 0,
       };
     }).filter(Boolean);
 

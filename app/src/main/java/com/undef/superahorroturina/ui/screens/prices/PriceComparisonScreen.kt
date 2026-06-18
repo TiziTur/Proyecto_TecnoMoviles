@@ -33,7 +33,7 @@ fun PriceComparisonScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val isDark   = isSystemInDarkTheme()
+    val isDark      = isSystemInDarkTheme()
     val moneyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
 
     Scaffold(
@@ -55,111 +55,113 @@ fun PriceComparisonScreen(
                     spacing   = 22f
                 )
         ) {
-            when {
-                uiState.isLoading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                uiState.isEmpty || (uiState.comparisons.isEmpty() && !uiState.isLoading) -> {
-                    EmptyState(
-                        icon    = Icons.Default.CompareArrows,
-                        message = if (uiState.source.isEmpty())
-                            "Registrá compras en varios supermercados para ver comparativas"
-                        else
-                            "No se encontraron productos con ese nombre",
-                        modifier = Modifier.fillMaxSize().padding(padding).padding(32.dp)
-                    )
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                    ) {
-                        item {
-                            OutlinedTextField(
-                                value         = searchQuery,
-                                onValueChange = { viewModel.searchQuery.value = it },
-                                label         = { Text("Buscar producto") },
-                                leadingIcon   = { Icon(Icons.Default.Search, null) },
-                                trailingIcon  = {
-                                    if (searchQuery.isNotBlank())
-                                        IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                            Icon(Icons.Default.Clear, null)
-                                        }
-                                },
-                                modifier   = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape      = MaterialTheme.shapes.large
-                            )
-                            Spacer(Modifier.height(8.dp))
-                        }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value         = searchQuery,
+                    onValueChange = { viewModel.searchQuery.value = it },
+                    label         = { Text("Buscar producto") },
+                    leadingIcon   = { Icon(Icons.Default.Search, null) },
+                    trailingIcon  = {
+                        if (searchQuery.isNotBlank())
+                            IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                Icon(Icons.Default.Clear, null)
+                            }
+                    },
+                    modifier   = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape      = MaterialTheme.shapes.large
+                )
+                Spacer(Modifier.height(8.dp))
 
-                        // Header con ahorro total potencial
-                        item {
-                            val totalSavings = uiState.comparisons.sumOf { it.maxSavings }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(
-                                                Color(if (isDark) 0xFF065F46 else 0xFF059669),
-                                                Color(if (isDark) 0xFF164E63 else 0xFF0E7490)
+                when {
+                    uiState.isLoading -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    uiState.isEmpty || (uiState.comparisons.isEmpty() && !uiState.isLoading) -> {
+                        EmptyState(
+                            icon    = Icons.Default.CompareArrows,
+                            message = if (searchQuery.isNotBlank())
+                                "No se encontraron productos con \"$searchQuery\""
+                            else
+                                "Registrá compras en varios supermercados para ver comparativas",
+                            modifier = Modifier.fillMaxSize().padding(32.dp)
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(vertical = 4.dp)
+                        ) {
+                            item {
+                                val totalSavings = uiState.comparisons.sumOf { it.maxSavings }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    Color(if (isDark) 0xFF065F46 else 0xFF059669),
+                                                    Color(if (isDark) 0xFF164E63 else 0xFF0E7490)
+                                                )
                                             )
                                         )
-                                    )
-                                    .padding(20.dp)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        .padding(20.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            text  = "Ahorro potencial",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = Color.White.copy(alpha = 0.8f)
+                                        )
+                                        Text(
+                                            text  = "$ ${moneyFormat.format(totalSavings.toLong())}",
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text  = "si comprás cada producto en el super más barato",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.White.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
+
+                            items(uiState.comparisons) { item ->
+                                PriceComparisonCard(
+                                    item        = item,
+                                    isDark      = isDark,
+                                    moneyFormat = moneyFormat
+                                )
+                            }
+
+                            if (uiState.source.isNotBlank()) {
+                                item {
                                     Text(
-                                        text  = "Ahorro potencial",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = Color.White.copy(alpha = 0.8f)
-                                    )
-                                    Text(
-                                        text  = "$ ${moneyFormat.format(totalSavings.toLong())}",
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text  = "si comprás cada producto en el super más barato",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        text  = "Fuente: ${uiState.source}" +
+                                                if (uiState.lastUpdated != null)
+                                                    " · Act: ${uiState.lastUpdated!!.take(10)}"
+                                                else "",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                        modifier = Modifier.padding(top = 4.dp)
                                     )
                                 }
                             }
-                        }
 
-                        items(uiState.comparisons) { item ->
-                            PriceComparisonCard(
-                                item        = item,
-                                isDark      = isDark,
-                                moneyFormat = moneyFormat
-                            )
+                            item { Spacer(Modifier.height(24.dp)) }
                         }
-
-                        if (uiState.source.isNotBlank()) {
-                            item {
-                                Text(
-                                    text  = "Fuente: ${uiState.source}" +
-                                            if (uiState.lastUpdated != null)
-                                                " · Act: ${uiState.lastUpdated!!.take(10)}"
-                                            else "",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                        }
-
-                        item { Spacer(Modifier.height(24.dp)) }
                     }
                 }
             }
