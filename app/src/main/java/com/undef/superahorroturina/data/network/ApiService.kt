@@ -107,6 +107,7 @@ interface ApiService {
     // ── Comparativa de precios ────────────────────────────────
     @GET("prices/compare")
     suspend fun getPriceComparisons(
-        @Header("Authorization") token: String
+        @Header("Authorization") token: String,
+        @Query("query") query: String? = null
     ): Response<PriceComparisonResponse>
 }

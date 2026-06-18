@@ -58,5 +58,8 @@ data class PriceComparisonItemDto(
 )
 
 data class PriceComparisonResponse(
-    @SerializedName("comparisons") val comparisons: List<PriceComparisonItemDto>
+    @SerializedName("comparisons")  val comparisons: List<PriceComparisonItemDto>,
+    @SerializedName("source")       val source: String = "",
+    @SerializedName("lastUpdated")  val lastUpdated: String? = null,
+    @SerializedName("isEmpty")      val isEmpty: Boolean = false
 )
