@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -42,6 +44,7 @@ fun HistoryScreen(
     val searchQuery    by viewModel.searchQuery.collectAsStateWithLifecycle()
     val selectedFilter by viewModel.selectedFilter.collectAsStateWithLifecycle()
     val isDark          = isSystemInDarkTheme()
+    val context         = LocalContext.current
 
     LifecycleResumeEffect(Unit) {
         viewModel.loadPurchases()
@@ -60,10 +63,35 @@ fun HistoryScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AppTopBar(
-                title = stringResource(R.string.screen_history),
-                showBack = true,
-                onBack = onNavigateBack
+            TopAppBar(
+                title = { Text(stringResource(R.string.screen_history)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = null)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.exportToCsv(
+                            context = context,
+                            onReady = { uri ->
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/csv"
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    putExtra(Intent.EXTRA_SUBJECT, "Historial de compras — Super Ahorro")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Exportar compras"))
+                            },
+                            onError = { /* no-op en demo */ }
+                        )
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Exportar CSV")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { padding ->

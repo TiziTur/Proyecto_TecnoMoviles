@@ -1,14 +1,21 @@
 package com.undef.superahorroturina.ui.screens.history
 
+import android.content.Context
+import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.undef.superahorroturina.data.repository.ProductRepository
 import com.undef.superahorroturina.data.repository.PurchaseRepository
 import com.undef.superahorroturina.model.Purchase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 data class HistoryUiState(
@@ -22,7 +29,8 @@ data class HistoryUiState(
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val purchaseRepository: PurchaseRepository
+    private val purchaseRepository: PurchaseRepository,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -81,6 +89,41 @@ class HistoryViewModel @Inject constructor(
     fun deletePurchase(purchaseId: Int) {
         viewModelScope.launch {
             purchaseRepository.deletePurchase(purchaseId)
+        }
+    }
+
+    fun exportToCsv(context: Context, onReady: (Uri) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val purchases = _uiState.value.purchases
+                val sb = StringBuilder()
+                sb.appendLine("\"Fecha\",\"Hora\",\"Supermercado\",\"Total\"," +
+                              "\"Cod Producto\",\"Nombre\",\"Descripcion\",\"Precio\",\"Cantidad\"")
+
+                for (purchase in purchases) {
+                    val products = productRepository.getLocalProductsForPurchase(purchase.id)
+                    if (products.isEmpty()) {
+                        sb.appendLine("\"${purchase.date}\",\"${purchase.time}\"," +
+                                      "\"${purchase.supermarket}\",\"${purchase.total}\"," +
+                                      "\"\",\"\",\"\",\"\",\"\"")
+                    } else {
+                        for (p in products) {
+                            sb.appendLine("\"${purchase.date}\",\"${purchase.time}\"," +
+                                          "\"${purchase.supermarket}\",\"${purchase.total}\"," +
+                                          "\"${p.code}\",\"${p.name.replace("\"","\"\"")}\",\"${p.description.replace("\"","\"\"")}\",\"${p.price}\",\"${p.quantity}\"")
+                        }
+                    }
+                }
+
+                val dir  = File(context.filesDir, "exports").also { it.mkdirs() }
+                val file = File(dir, "compras_${System.currentTimeMillis()}.csv")
+                file.writeText(sb.toString(), Charsets.UTF_8)
+
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                withContext(Dispatchers.Main) { onReady(uri) }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onError(e.message ?: "Error al exportar") }
+            }
         }
     }
 }

@@ -81,4 +81,9 @@ class ProductRepository @Inject constructor(
             ApiResult.Error("Error al eliminar producto: ${response.code()}")
         }
     }.getOrElse { ApiResult.Error(it.message ?: "Error de conexión") }
+
+    suspend fun getLocalProductsForPurchase(purchaseId: Int): List<Product> =
+        productDao.getByPurchaseId(purchaseId).first().map { e ->
+            Product(e.id, e.code, e.name, e.description, e.price, e.quantity)
+        }
 }
