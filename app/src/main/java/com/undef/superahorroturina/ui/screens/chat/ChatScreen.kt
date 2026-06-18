@@ -54,9 +54,33 @@ fun ChatScreen(
                 showBack = true,
                 onBack   = onNavigateBack
             )
-        },
-        bottomBar = {
-            // Input de mensaje
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding()  // sube toda la columna cuando aparece el teclado
+                .dotPatternBackground(
+                    dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
+                    dotRadius = 1.2f,
+                    spacing   = 22f
+                )
+        ) {
+            LazyColumn(
+                state   = listState,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 12.dp)
+            ) {
+                items(uiState.messages) { msg ->
+                    ChatBubble(msg = msg, isDark = isDark)
+                }
+            }
+
+            // Input de mensaje — siempre visible sobre el teclado
             Surface(
                 tonalElevation = 3.dp,
                 color = MaterialTheme.colorScheme.surface
@@ -70,12 +94,12 @@ fun ChatScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
-                        value = uiState.inputText,
+                        value         = uiState.inputText,
                         onValueChange = { viewModel.onInputChange(it) },
-                        placeholder = { Text("Preguntame sobre tus compras...") },
-                        modifier = Modifier.weight(1f),
-                        maxLines = 4,
-                        shape = RoundedCornerShape(24.dp),
+                        placeholder   = { Text("Preguntame sobre tus compras...") },
+                        modifier      = Modifier.weight(1f),
+                        maxLines      = 4,
+                        shape         = RoundedCornerShape(24.dp),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { viewModel.sendMessage() })
                     )
@@ -103,9 +127,9 @@ fun ChatScreen(
                         ) {
                             if (uiState.isSending) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
+                                    modifier    = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color       = MaterialTheme.colorScheme.primary
                                 )
                             } else {
                                 Icon(
@@ -119,30 +143,6 @@ fun ChatScreen(
                             }
                         }
                     }
-                }
-            }
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dotPatternBackground(
-                    dotColor  = if (isDark) Color.White.copy(alpha = 0.025f) else Color.Black.copy(alpha = 0.018f),
-                    dotRadius = 1.2f,
-                    spacing   = 22f
-                )
-        ) {
-            LazyColumn(
-                state   = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
-            ) {
-                items(uiState.messages) { msg ->
-                    ChatBubble(msg = msg, isDark = isDark)
                 }
             }
         }
