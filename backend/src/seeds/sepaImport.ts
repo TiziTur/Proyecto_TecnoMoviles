@@ -21,6 +21,9 @@ interface SepaRow {
   province: string;
 }
 
+const MAX_ROWS_PER_ZIP = 5_000;  // productos por cadena (suficiente para demo)
+const MAX_TOTAL_ROWS   = 60_000; // tope global para no saturar memoria
+
 function download(url: string, dest: string, redirects = 0): Promise<void> {
   if (redirects > 5) return Promise.reject(new Error('Too many redirects'));
   return new Promise((resolve, reject) => {
@@ -129,6 +132,7 @@ async function processInnerZip(innerBuf: Buffer, zipName: string): Promise<SepaR
   }
 
   for (let i = 1; i < lines.length; i++) {
+    if (rows.length >= MAX_ROWS_PER_ZIP) break;
     const line = lines[i].trim();
     if (!line) continue;
     const cols   = line.split('|');
@@ -195,14 +199,17 @@ async function main() {
         .pipe(unzipper.Parse())
         .on('entry', (entry: any) => {
           const fileName: string = entry.path;
-          if (fileName.toLowerCase().endsWith('.zip')) {
+          if (fileName.toLowerCase().endsWith('.zip') && allRows.length < MAX_TOTAL_ROWS) {
             const p = bufferStream(entry).then(async buf => {
+              if (allRows.length >= MAX_TOTAL_ROWS) return;
               try {
                 const rows = await processInnerZip(buf, fileName);
                 if (rows.length > 0) {
                   process.stdout.write(`\r   ${rows.length} productos de ${path.basename(fileName).substring(0, 40)}...`);
-                  // Evitar stack overflow: no usar spread con arrays de cientos de miles de elementos
-                  for (const r of rows) allRows.push(r);
+                  for (const r of rows) {
+                    if (allRows.length >= MAX_TOTAL_ROWS) break;
+                    allRows.push(r);
+                  }
                 }
               } catch (e) {
                 console.warn(`\n   ⚠ Error en ${path.basename(fileName)}:`, e);
@@ -210,7 +217,7 @@ async function main() {
             });
             promises.push(p);
           } else {
-            entry.autodrain();
+            entry.autodrain(); // no es ZIP, o ya alcanzamos MAX_TOTAL_ROWS
           }
         })
         .on('close', () => Promise.all(promises).then(() => resolve()))
