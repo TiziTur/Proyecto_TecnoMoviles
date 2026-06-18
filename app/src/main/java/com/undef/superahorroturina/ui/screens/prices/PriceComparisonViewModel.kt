@@ -35,7 +35,7 @@ class PriceComparisonViewModel @Inject constructor(
     init {
         loadComparisons()
         viewModelScope.launch {
-            searchQuery.debounce(500).distinctUntilChanged()
+            searchQuery.debounce(500).drop(1).distinctUntilChanged()
                 .collect { query -> loadComparisons(query) }
         }
     }

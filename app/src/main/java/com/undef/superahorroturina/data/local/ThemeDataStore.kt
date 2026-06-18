@@ -41,7 +41,7 @@ class ThemeDataStore @Inject constructor(
     }
 
     val priceAlertsEnabled: Flow<Boolean> = context.themeDataStore.data
-        .map { prefs -> prefs[PRICE_ALERTS] ?: true }
+        .map { prefs -> prefs[PRICE_ALERTS] ?: false }
 
     suspend fun setPriceAlertsEnabled(enabled: Boolean) {
         context.themeDataStore.edit { it[PRICE_ALERTS] = enabled }
