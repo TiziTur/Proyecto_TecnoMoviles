@@ -40,3 +40,15 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE INDEX IF NOT EXISTS idx_purchases_user_id ON purchases(user_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_date    ON purchases(purchase_date DESC);
 CREATE INDEX IF NOT EXISTS idx_products_purchase ON products(purchase_id);
+
+-- Precios de referencia cargados desde SEPA (datos.produccion.gob.ar)
+CREATE TABLE IF NOT EXISTS reference_prices (
+  id           SERIAL PRIMARY KEY,
+  product_name TEXT NOT NULL,
+  brand        TEXT DEFAULT '',
+  supermarket  TEXT NOT NULL,
+  price        NUMERIC(10,2) NOT NULL,
+  province     TEXT DEFAULT '',
+  updated_at   TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ref_prices_name ON reference_prices (LOWER(product_name));
