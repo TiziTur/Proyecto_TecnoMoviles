@@ -116,27 +116,13 @@ fun SettingsScreen(
                         onCheckedChange = { viewModel.onNotificationsChange(it) }
                     )
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment     = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Checkbox(
-                            checked        = uiState.priceAlerts,
-                            onCheckedChange = { viewModel.onPriceAlertsChange(it) }
-                        )
-                        Column {
-                            Text(stringResource(R.string.settings_price_alerts),
-                                style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                stringResource(R.string.settings_price_alerts_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    SettingsToggleItem(
+                        icon            = Icons.Default.NotificationsActive,
+                        title           = stringResource(R.string.settings_price_alerts),
+                        subtitle        = stringResource(R.string.settings_price_alerts_desc),
+                        checked         = uiState.priceAlerts,
+                        onCheckedChange = { viewModel.onPriceAlertsChange(it) }
+                    )
                 }
 
                 SettingsCard(isDark = isDark) {

@@ -23,6 +23,7 @@ class ThemeDataStore @Inject constructor(
 ) {
     private val DARK_MODE     = booleanPreferencesKey("dark_mode")
     private val MONTHLY_LIMIT = floatPreferencesKey("monthly_limit")
+    private val PRICE_ALERTS  = booleanPreferencesKey("price_alerts_enabled")
 
     val isDarkMode: Flow<Boolean> = context.themeDataStore.data
         .map { prefs -> prefs[DARK_MODE] ?: false }
@@ -37,5 +38,12 @@ class ThemeDataStore @Inject constructor(
 
     suspend fun setMonthlyLimit(limit: Float) {
         context.themeDataStore.edit { it[MONTHLY_LIMIT] = limit }
+    }
+
+    val priceAlertsEnabled: Flow<Boolean> = context.themeDataStore.data
+        .map { prefs -> prefs[PRICE_ALERTS] ?: true }
+
+    suspend fun setPriceAlertsEnabled(enabled: Boolean) {
+        context.themeDataStore.edit { it[PRICE_ALERTS] = enabled }
     }
 }
