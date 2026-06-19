@@ -51,6 +51,7 @@ data class PriceEntryDto(
 
 data class PriceComparisonItemDto(
     @SerializedName("productName")    val productName: String,
+    @SerializedName("category")       val category: String = "",
     @SerializedName("prices")         val prices: List<PriceEntryDto>,
     @SerializedName("cheapestAt")     val cheapestAt: String,
     @SerializedName("cheapestPrice")  val cheapestPrice: Double,
@@ -59,10 +60,11 @@ data class PriceComparisonItemDto(
 )
 
 data class PriceComparisonResponse(
-    @SerializedName("comparisons")  val comparisons: List<PriceComparisonItemDto>,
-    @SerializedName("source")       val source: String = "",
-    @SerializedName("lastUpdated")  val lastUpdated: String? = null,
-    @SerializedName("isEmpty")      val isEmpty: Boolean = false
+    @SerializedName("comparisons")      val comparisons: List<PriceComparisonItemDto>,
+    @SerializedName("source")           val source: String = "",
+    @SerializedName("lastUpdated")      val lastUpdated: String? = null,
+    @SerializedName("isEmpty")          val isEmpty: Boolean = false,
+    @SerializedName("categoryCounts")   val categoryCounts: Map<String, Int> = emptyMap()
 )
 
 // ── Comparativa de compra completa contra SEPA ──────────────────

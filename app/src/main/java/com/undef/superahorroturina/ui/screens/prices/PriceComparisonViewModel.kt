@@ -13,7 +13,8 @@ import javax.inject.Inject
 
 data class PriceComparisonUiState(
     val isLoading: Boolean = true,
-    val comparisons: List<PriceComparisonItemDto> = emptyList(),
+    val allComparisons: List<PriceComparisonItemDto> = emptyList(),
+    val categoryCounts: Map<String, Int> = emptyMap(),
     val source: String = "",
     val lastUpdated: String? = null,
     val isEmpty: Boolean = false,
@@ -30,7 +31,16 @@ class PriceComparisonViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PriceComparisonUiState())
     val uiState: StateFlow<PriceComparisonUiState> = _uiState.asStateFlow()
 
-    val searchQuery = MutableStateFlow("")
+    val searchQuery      = MutableStateFlow("")
+    val selectedCategory = MutableStateFlow("")
+
+    // Client-side category filter — no extra network call needed
+    val filteredComparisons: StateFlow<List<PriceComparisonItemDto>> = combine(
+        _uiState, selectedCategory
+    ) { state, cat ->
+        if (cat.isBlank()) state.allComparisons
+        else state.allComparisons.filter { it.category == cat }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
         loadComparisons()
@@ -47,13 +57,17 @@ class PriceComparisonViewModel @Inject constructor(
                 val token    = session.bearerToken.first()
                 val response = api.getPriceComparisons(token, query.ifBlank { null })
                 if (response.isSuccessful) {
-                    val body = response.body()!!
+                    val body   = response.body()!!
+                    val counts = body.categoryCounts.ifEmpty {
+                        body.comparisons.groupingBy { it.category }.eachCount()
+                    }
                     _uiState.value = PriceComparisonUiState(
-                        isLoading   = false,
-                        comparisons = body.comparisons,
-                        source      = body.source,
-                        lastUpdated = body.lastUpdated,
-                        isEmpty     = body.isEmpty
+                        isLoading      = false,
+                        allComparisons = body.comparisons,
+                        categoryCounts = counts,
+                        source         = body.source,
+                        lastUpdated    = body.lastUpdated,
+                        isEmpty        = body.isEmpty
                     )
                 } else {
                     _uiState.value = PriceComparisonUiState(
