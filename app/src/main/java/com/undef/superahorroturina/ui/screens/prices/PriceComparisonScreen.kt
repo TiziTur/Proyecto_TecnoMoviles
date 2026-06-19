@@ -29,24 +29,32 @@ import com.undef.superahorroturina.data.network.dto.PriceEntryDto
 import com.undef.superahorroturina.ui.components.*
 
 private val CATEGORY_ORDER = listOf(
-    "Bebida", "Lácteo", "Limpieza", "Perfumería", "Snack",
-    "Panadería", "Carne", "Congelado", "Condimento", "Enlatado", "Almacén", "Alimento"
+    "Bebida", "Lácteo", "Carne y Fiambre", "Panadería", "Almacén",
+    "Cereales", "Aceite", "Condimento", "Enlatado", "Congelado",
+    "Golosinas", "Snack", "Limpieza", "Papel", "Perfumería",
+    "Bebé", "Mascotas", "Alimento"
 )
 
 @Composable
 private fun categoryColor(category: String): Color = when (category) {
-    "Bebida"     -> Color(0xFF0EA5E9)
-    "Lácteo"     -> Color(0xFFF59E0B)
-    "Limpieza"   -> Color(0xFF6366F1)
-    "Perfumería" -> Color(0xFFEC4899)
-    "Snack"      -> Color(0xFFF97316)
-    "Panadería"  -> Color(0xFF92400E)
-    "Carne"      -> Color(0xFFEF4444)
-    "Congelado"  -> Color(0xFF38BDF8)
-    "Condimento" -> Color(0xFFEAB308)
-    "Enlatado"   -> Color(0xFF78716C)
-    "Almacén"    -> Color(0xFF84CC16)
-    else         -> Color(0xFF64748B)
+    "Bebida"          -> Color(0xFF0EA5E9)
+    "Lácteo"          -> Color(0xFFF59E0B)
+    "Carne y Fiambre" -> Color(0xFFEF4444)
+    "Panadería"       -> Color(0xFF92400E)
+    "Almacén"         -> Color(0xFF84CC16)
+    "Cereales"        -> Color(0xFFF97316)
+    "Aceite"          -> Color(0xFFD97706)
+    "Condimento"      -> Color(0xFFEAB308)
+    "Enlatado"        -> Color(0xFF78716C)
+    "Congelado"       -> Color(0xFF38BDF8)
+    "Golosinas"       -> Color(0xFFEC4899)
+    "Snack"           -> Color(0xFFFF6B35)
+    "Limpieza"        -> Color(0xFF6366F1)
+    "Papel"           -> Color(0xFF8B5CF6)
+    "Perfumería"      -> Color(0xFFDB2777)
+    "Bebé"            -> Color(0xFF06B6D4)
+    "Mascotas"        -> Color(0xFF10B981)
+    else              -> Color(0xFF64748B)
 }
 
 @Composable

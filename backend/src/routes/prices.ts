@@ -15,32 +15,79 @@ function normalize(name: string): string {
 
 function detectCategory(name: string): string {
   const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  if (/gaseosa|jugo|agua min|agua soda|vino|cerveza|sidra|bebida|sprite|fanta|cola|pepsi|manaos|soda|isoton|tonica|energiz|limon|naranja.*bebida/.test(n)) return 'Bebida';
-  if (/leche|yogur|queso|manteca|crema de leche|ricota|dulce.*leche|mozzarella|cheddar|untable|infantil.*leche/.test(n)) return 'Lácteo';
-  if (/detergente|lavandina|limpiador|desengrasante|suavizante|desinfectante|ariel|skip|cif|ala |lysoform|pinesol|bolsa.*basura|papel higien|servilleta|papel.*cocina|esponja|cloro/.test(n)) return 'Limpieza';
-  if (/shampoo|acondicionador|jabon.*tocador|desodorante|crema facial|gel.*ducha|pasta.*dental|dentifric|cepillo.*dental|toalla.*femen|afeitad|perfume|colonia|protector solar/.test(n)) return 'Perfumería';
-  if (/galletita|papa.*frita|chizito|doritos|pringles|oreo|alfajor|caramelo|chicle|mani |pochoclo|tortita|golosina|oblea|wafer|chocolate/.test(n)) return 'Snack';
-  if (/\bpan\b|facturas|medialuna|bizcocho|budin|tostada|pan rallado|lactal|mignon/.test(n)) return 'Panadería';
-  if (/pollo|carne.*vacuna|carne.*cerdo|peceto|milanesa|chorizo|salchicha|jamon|fiambre|mortadela|paleta|nalga|cuadril/.test(n)) return 'Carne';
-  if (/helado|pizza.*congel|empanada.*congel|nugget|bastones.*papa/.test(n)) return 'Congelado';
-  if (/aceite.*girasol|aceite.*oliva|aceite.*maiz|sal fina|sal entrefina|azucar|pimienta|vinagre|mayonesa|ketchup|mostaza|salsa.*tomate|aderezo/.test(n)) return 'Condimento';
-  if (/atun|sardina|tomate.*triturado|pure.*tomate|conserva|choclo.*lata|arveja|lenteja|poroto/.test(n)) return 'Enlatado';
-  if (/arroz|fideos|tallarines|ñoquis|polenta|harina|copos|avena|legumbre/.test(n)) return 'Almacén';
+
+  // Bebidas (antes que Lácteo para evitar conflictos con leche chocolatada en bebida)
+  if (/gaseosa|jugo|agua min|agua soda|vino|cerveza|sidra|bebida|sprite|fanta|cola|pepsi|manaos|soda|isoton|tonica|energiz|te helado|agua saboriz|jugo.*polvo|tang |clight /.test(n)) return 'Bebida';
+
+  // Lácteos
+  if (/leche|yogur|queso|manteca|crema de leche|ricota|dulce.*leche|mozzarella|cheddar|untable|infantil.*leche|postre.*leche|flan|brie|gouda/.test(n)) return 'Lácteo';
+
+  // Mascotas
+  if (/pedigree|purina|whiskas|wiskas|gatarina|canigou|royal canin|dog chow|cat chow|croqueta.*perro|croqueta.*gato|alimento.*perro|alimento.*gato|snack.*perro|snack.*gato|arena.*gato|hueso.*perro|premio.*mascota/.test(n)) return 'Mascotas';
+
+  // Bebé
+  if (/pampers|huggies|pañal|maternizada|leche.*formula|formula.*lacte|papilla|comida.*bebe|crema.*bebe|talco.*bebe|johnsons.*bebe|toallita.*bebe|toalla.*humeda|bebe.*higien/.test(n)) return 'Bebé';
+
+  // Papel e Higiene (antes que Limpieza ya que servilleta/papel cocina no es limpieza)
+  if (/papel.*higien|papel.*toilet|rollo.*papel|servilleta|papel.*cocina|toalla.*papel|tissue|pañuelo.*descart|higiene.*intim|protector.*diario|cotton.*hidrof/.test(n)) return 'Papel';
+
+  // Limpieza del hogar
+  if (/detergente|lavandina|limpiador|desengrasante|suavizante|desinfectante|ariel|skip|cif|\bala\b|lysoform|pinesol|bolsa.*basura|cloro|esponja|trapo.*cocina|quitamanchas|limpiapisos|ajax|vim |lustramuebles|limpiavidrios/.test(n)) return 'Limpieza';
+
+  // Perfumería e Higiene Personal
+  if (/shampoo|acondicionador|jabon.*tocador|desodorante|crema facial|gel.*ducha|pasta.*dental|dentifric|cepillo.*dental|toalla.*femen|afeitad|perfume|colonia|protector solar|enjuague.*bucal|hilo.*dental|gel.*cabello|tinte.*cabello|crema.*depil/.test(n)) return 'Perfumería';
+
+  // Carne y Fiambres
+  if (/pollo|carne.*vacuna|carne.*cerdo|peceto|milanesa|chorizo|salchicha|jamon|fiambre|mortadela|paleta|nalga|cuadril|costilla|bife|lomo vac|asado vac|hamburguesa|picada|cerdo|pescado.*fresc|salmon|merluza|atun.*fresc/.test(n)) return 'Carne y Fiambre';
+
+  // Panadería y Repostería
+  if (/\bpan\b|facturas|medialuna|bizcocho|budin|tostada|pan rallado|lactal|mignon|galletita.*salada|pan.*integr|pan.*molde|preparado.*torta|mezcla.*bizcocho/.test(n)) return 'Panadería';
+
+  // Golosinas (dulces, chocolates — antes que Snack)
+  if (/chocolate|alfajor|caramelo|chicle|golosina|oblea|wafer|turron|tableta.*choco|nutella|dulce.*choco|chupete|bombon|mashmellow|marshmellow|gomita|jellybeans/.test(n)) return 'Golosinas';
+
+  // Snack (salados y galletitas)
+  if (/papa.*frita|chizito|doritos|pringles|oreo|galletita|mani |pochoclo|tortita|palito|cheetos|ruffles|\blays\b|crackers|palitos.*salad|bizcocho.*salad/.test(n)) return 'Snack';
+
+  // Aceites (separado de condimentos)
+  if (/aceite.*girasol|aceite.*oliva|aceite.*maiz|aceite.*canola|aceite.*soja|aceite.*mezcla|\baceite\b/.test(n)) return 'Aceite';
+
+  // Condimentos y Salsas
+  if (/sal fina|sal entrefina|azucar|pimienta|vinagre|mayonesa|ketchup|mostaza|salsa.*tomate|aderezo|oregano|curry|especias|caldo.*cubo|caldito|sopa.*sobre|sazonador|sopas/.test(n)) return 'Condimento';
+
+  // Enlatados y Conservas
+  if (/atun|sardina|tomate.*triturado|pure.*tomate|conserva|choclo.*lata|arveja|lenteja.*lata|poroto.*lata|champiñon.*lata|palmito|aceitunas|alcaparra/.test(n)) return 'Enlatado';
+
+  // Congelados
+  if (/helado|pizza.*congel|empanada.*congel|nugget|bastones.*papa|vegetal.*congel|espinaca.*congel|papa.*pre.*frita|croqueta.*congel/.test(n)) return 'Congelado';
+
+  // Cereales y Desayuno
+  if (/granola|muesli|corn flakes|zucaritas|froot loop|coco pop|kellogg|nesquik|trix |copos.*maiz|copos.*trigo|copos.*arroz|cereal|avena|copos.*avena|arroz.*inflado|musli/.test(n)) return 'Cereales';
+
+  // Almacén (secos básicos — después de cereales)
+  if (/arroz|fideos|tallarines|ñoquis|polenta|harina|legumbre|lenteja|garbanzo|poroto|soja.*grano|maiz.*seco|fecula|almidón|yerba|te |mate/.test(n)) return 'Almacén';
+
   return 'Alimento';
 }
 
 const CATEGORY_KEYWORDS: Record<string, string> = {
-  'Bebida':      'gaseosa|jugo|agua min|agua soda|vino|cerveza|sidra|bebida|sprite|fanta|cola|pepsi|manaos|soda|isoton|tonica',
-  'Lácteo':      'leche|yogur|queso|manteca|crema de leche|ricota|dulce.*leche|mozzarella|cheddar|untable',
-  'Limpieza':    'detergente|lavandina|limpiador|desengrasante|suavizante|desinfectante|ariel|skip|cif|ala |lysoform|bolsa.*basura|papel higien|servilleta|papel.*cocina|esponja',
-  'Perfumería':  'shampoo|acondicionador|jabon.*tocador|desodorante|crema facial|gel.*ducha|pasta.*dental|dentifric|cepillo.*dental|toalla.*femen|afeitad',
-  'Snack':       'galletita|papa.*frita|chizito|doritos|pringles|oreo|alfajor|caramelo|chicle|mani |pochoclo|chocolate|golosina',
-  'Panadería':   '\\bpan\\b|facturas|medialuna|bizcocho|budin|tostada|pan rallado|lactal',
-  'Carne':       'pollo|carne.*vacuna|carne.*cerdo|peceto|milanesa|chorizo|salchicha|jamon|fiambre',
-  'Congelado':   'helado|pizza.*congel|empanada.*congel|nugget',
-  'Condimento':  'aceite.*girasol|aceite.*oliva|sal fina|sal entrefina|azucar|pimienta|vinagre|mayonesa|ketchup|mostaza|salsa.*tomate',
-  'Enlatado':    'atun|sardina|tomate.*triturado|pure.*tomate|choclo.*lata|arveja|lenteja|poroto',
-  'Almacén':     'arroz|fideos|tallarines|ñoquis|polenta|harina|copos|avena',
+  'Bebida':          'gaseosa|jugo|agua min|agua soda|vino|cerveza|sidra|bebida|sprite|fanta|cola|pepsi|manaos|soda|isoton|tonica|energiz',
+  'Lácteo':          'leche|yogur|queso|manteca|crema de leche|ricota|dulce.*leche|mozzarella|cheddar|untable',
+  'Mascotas':        'pedigree|purina|whiskas|gatarina|canigou|royal canin|dog chow|cat chow|alimento.*perro|alimento.*gato',
+  'Bebé':            'pampers|huggies|pañal|maternizada|papilla|comida.*bebe|toallita.*bebe',
+  'Papel':           'papel.*higien|papel.*toilet|rollo.*papel|servilleta|papel.*cocina|toalla.*papel|tissue',
+  'Limpieza':        'detergente|lavandina|limpiador|desengrasante|suavizante|desinfectante|ariel|skip|cif|lysoform|bolsa.*basura|cloro|esponja',
+  'Perfumería':      'shampoo|acondicionador|jabon.*tocador|desodorante|crema facial|gel.*ducha|pasta.*dental|dentifric|cepillo.*dental|afeitad|enjuague.*bucal',
+  'Carne y Fiambre': 'pollo|carne.*vacuna|carne.*cerdo|peceto|milanesa|chorizo|salchicha|jamon|fiambre|mortadela|hamburguesa',
+  'Panadería':       'pan rallado|lactal|medialuna|facturas|bizcocho|budin|tostada|mignon',
+  'Golosinas':       'chocolate|alfajor|caramelo|chicle|golosina|oblea|wafer|turron|nutella|bombon|gomita',
+  'Snack':           'papa.*frita|chizito|doritos|pringles|oreo|galletita|mani |pochoclo|cheetos|ruffles|crackers',
+  'Aceite':          'aceite.*girasol|aceite.*oliva|aceite.*maiz|aceite.*canola|aceite.*soja|aceite.*mezcla',
+  'Condimento':      'sal fina|sal entrefina|azucar|pimienta|vinagre|mayonesa|ketchup|mostaza|salsa.*tomate|aderezo|caldo.*cubo|sopas',
+  'Enlatado':        'atun|sardina|tomate.*triturado|pure.*tomate|choclo.*lata|arveja|lenteja.*lata|poroto.*lata|aceitunas',
+  'Congelado':       'helado|pizza.*congel|empanada.*congel|nugget|bastones.*papa|croqueta.*congel',
+  'Cereales':        'granola|muesli|corn flakes|zucaritas|kellogg|nesquik|copos.*maiz|copos.*trigo|cereal|avena',
+  'Almacén':         'arroz|fideos|tallarines|ñoquis|polenta|harina|lenteja|garbanzo|poroto|soja|yerba|mate',
 };
 
 router.get('/compare', async (req: AuthRequest, res: Response): Promise<void> => {
