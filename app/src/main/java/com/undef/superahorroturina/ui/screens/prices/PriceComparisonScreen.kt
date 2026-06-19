@@ -72,14 +72,16 @@ fun PriceComparisonScreen(
     val selectedBrand    by viewModel.selectedBrand.collectAsStateWithLifecycle()
     val minPriceInput    by viewModel.minPriceInput.collectAsStateWithLifecycle()
     val maxPriceInput    by viewModel.maxPriceInput.collectAsStateWithLifecycle()
+    val sortOrder        by viewModel.sortOrder.collectAsStateWithLifecycle()
     val isDark           = isSystemInDarkTheme()
     val moneyFormat      = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
     val listState        = rememberLazyListState()
     var showFilterSheet  by remember { mutableStateOf(false) }
 
     // Cantidad de filtros extra activos (excluyendo búsqueda y categoría)
-    val activeFilterCount = remember(selectedBrand, minPriceInput, maxPriceInput) {
-        listOf(selectedBrand, minPriceInput, maxPriceInput).count { it.isNotBlank() }
+    val activeFilterCount = remember(selectedBrand, minPriceInput, maxPriceInput, sortOrder) {
+        listOf(selectedBrand, minPriceInput, maxPriceInput).count { it.isNotBlank() } +
+            if (sortOrder != "name") 1 else 0
     }
 
     // Infinite scroll: pedir más cuando quedan ≤ 5 ítems al fondo
@@ -157,6 +159,34 @@ fun PriceComparisonScreen(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
+
+                // ── Chips de ordenamiento ────────────────────────────────────
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = sortOrder == "price_asc",
+                        onClick  = {
+                            viewModel.sortOrder.value =
+                                if (sortOrder == "price_asc") "name" else "price_asc"
+                        },
+                        label        = { Text("Precio ↑") },
+                        leadingIcon  = { Icon(Icons.Default.ArrowUpward, null, Modifier.size(14.dp)) }
+                    )
+                    FilterChip(
+                        selected = sortOrder == "price_desc",
+                        onClick  = {
+                            viewModel.sortOrder.value =
+                                if (sortOrder == "price_desc") "name" else "price_desc"
+                        },
+                        label        = { Text("Precio ↓") },
+                        leadingIcon  = { Icon(Icons.Default.ArrowDownward, null, Modifier.size(14.dp)) }
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
 
                 // ── Chips de categoría ────────────────────────────────────────
                 val visibleCats = CATEGORY_ORDER.filter { (uiState.categoryCounts[it] ?: 0) > 0 }
@@ -279,7 +309,7 @@ fun PriceComparisonScreen(
                 onBrandChange = { viewModel.selectedBrand.value = it },
                 onMinChange   = { viewModel.minPriceInput.value = it },
                 onMaxChange   = { viewModel.maxPriceInput.value = it },
-                onClear       = { viewModel.clearFilters() },
+                onClear       = { viewModel.clearFilters(); showFilterSheet = false },
                 onDone        = { showFilterSheet = false }
             )
         }

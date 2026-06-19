@@ -42,15 +42,23 @@ class PriceComparisonViewModel @Inject constructor(
     val selectedBrand    = MutableStateFlow("")
     val minPriceInput    = MutableStateFlow("")
     val maxPriceInput    = MutableStateFlow("")
+    // "name" | "price_asc" | "price_desc"
+    val sortOrder        = MutableStateFlow("name")
 
     private var currentOffset = 0
 
     init {
         reload()
         viewModelScope.launch {
-            combine(searchQuery.debounce(500), selectedCategory, selectedBrand.debounce(400)) { q, c, b ->
-                Triple(q, c, b)
-            }.distinctUntilChanged().drop(1).collect { reload() }
+            combine(
+                searchQuery.debounce(500),
+                selectedCategory,
+                selectedBrand.debounce(400),
+                sortOrder
+            ) { q, c, b, s -> listOf(q, c, b, s) }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { reload() }
         }
         viewModelScope.launch {
             combine(minPriceInput.debounce(700), maxPriceInput.debounce(700)) { a, b -> a to b }
@@ -77,16 +85,19 @@ class PriceComparisonViewModel @Inject constructor(
         selectedBrand.value = ""
         minPriceInput.value = ""
         maxPriceInput.value = ""
+        sortOrder.value     = "name"
     }
 
     val hasActiveFilters: Boolean
         get() = selectedBrand.value.isNotBlank() ||
                 minPriceInput.value.isNotBlank() ||
-                maxPriceInput.value.isNotBlank()
+                maxPriceInput.value.isNotBlank() ||
+                sortOrder.value != "name"
 
     private suspend fun fetchPage(offset: Int, append: Boolean) {
         try {
             val token = session.bearerToken.first()
+            val sort  = sortOrder.value.takeIf { it != "name" }
             val response = api.getPriceComparisons(
                 token    = token,
                 query    = searchQuery.value.ifBlank { null },
@@ -94,6 +105,7 @@ class PriceComparisonViewModel @Inject constructor(
                 brand    = selectedBrand.value.ifBlank { null },
                 minPrice = minPriceInput.value.toIntOrNull(),
                 maxPrice = maxPriceInput.value.toIntOrNull(),
+                sort     = sort,
                 offset   = offset
             )
             if (response.isSuccessful) {

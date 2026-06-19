@@ -113,6 +113,7 @@ interface ApiService {
         @Query("brand")    brand: String? = null,
         @Query("minPrice") minPrice: Int? = null,
         @Query("maxPrice") maxPrice: Int? = null,
+        @Query("sort")     sort: String? = null,
         @Query("offset")   offset: Int? = null
     ): Response<PriceComparisonResponse>
 

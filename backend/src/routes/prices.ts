@@ -81,6 +81,11 @@ router.get('/compare', async (req: AuthRequest, res: Response): Promise<void> =>
     const minPrice = parseFloat((req.query.minPrice as string) ?? '0') || 0;
     const maxPrice = parseFloat((req.query.maxPrice as string) ?? '0') || 0;
     const offset   = Math.max(0, parseInt((req.query.offset as string) ?? '0') || 0);
+    const sortRaw  = ((req.query.sort as string) ?? '').trim().toLowerCase();
+    // Safe: orderBy never interpolates user input directly
+    const orderBy  = sortRaw === 'price_asc'  ? 'min_price ASC'
+                   : sortRaw === 'price_desc' ? 'min_price DESC'
+                   : 'product_name ASC';
 
     const qNorm = normQuery(query); // "coca-cola" → "cocacola"
 
@@ -127,14 +132,14 @@ router.get('/compare', async (req: AuthRequest, res: Response): Promise<void> =>
         // SEPA paginado: agrupamos por producto, filtramos por precio en HAVING
         pool.query(
           `WITH filtered AS (
-             SELECT product_name FROM reference_prices
+             SELECT product_name, MIN(price) AS min_price FROM reference_prices
              WHERE ${searchWhere}
              GROUP BY product_name
              HAVING ${priceHaving}
            ),
            paged AS (
              SELECT product_name FROM filtered
-             ORDER BY product_name
+             ORDER BY ${orderBy}
              LIMIT ${PAGE_SIZE} OFFSET ${offset}
            )
            SELECT rp.product_name, rp.supermarket, rp.price, rp.brand
@@ -251,10 +256,16 @@ router.get('/compare', async (req: AuthRequest, res: Response): Promise<void> =>
       };
     }).filter(Boolean);
 
-    comparisons.sort((a: any, b: any) => {
-      const diff = (b.prices.length > 1 ? 1 : 0) - (a.prices.length > 1 ? 1 : 0);
-      return diff !== 0 ? diff : b.maxSavings - a.maxSavings;
-    });
+    if (sortRaw === 'price_asc') {
+      comparisons.sort((a: any, b: any) => a.cheapestPrice - b.cheapestPrice);
+    } else if (sortRaw === 'price_desc') {
+      comparisons.sort((a: any, b: any) => b.cheapestPrice - a.cheapestPrice);
+    } else {
+      comparisons.sort((a: any, b: any) => {
+        const diff = (b.prices.length > 1 ? 1 : 0) - (a.prices.length > 1 ? 1 : 0);
+        return diff !== 0 ? diff : b.maxSavings - a.maxSavings;
+      });
+    }
 
     // 4. Conteos por categoría (desde muestra)
     let categoryCounts: Record<string, number> = {};

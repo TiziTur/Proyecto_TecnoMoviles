@@ -1,11 +1,11 @@
 package com.undef.superahorroturina.ui.screens.purchase
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,17 +18,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.AppTopBar
+import com.undef.superahorroturina.ui.components.DrumTimePickerDialog
 import com.undef.superahorroturina.ui.components.KlarityButton
 import com.undef.superahorroturina.ui.components.coloredShadow
 import com.undef.superahorroturina.ui.components.dotPatternBackground
 import com.undef.superahorroturina.ui.components.glowBorder
 import java.text.NumberFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,12 +44,36 @@ fun NewPurchaseScreen(
 ) {
     LaunchedEffect(purchaseId) { viewModel.loadPurchase(purchaseId) }
 
-    val uiState    by viewModel.uiState.collectAsStateWithLifecycle()
-    val isEditing   = purchaseId != null
-    val isDark      = isSystemInDarkTheme()
-    val moneyFormat = NumberFormat.getNumberInstance(Locale("es", "AR"))
-    val title       = if (isEditing) stringResource(R.string.purchase_edit_title)
-                      else           stringResource(R.string.purchase_new_title)
+    val uiState     by viewModel.uiState.collectAsStateWithLifecycle()
+    val isEditing    = purchaseId != null
+    val isDark       = isSystemInDarkTheme()
+    val moneyFormat  = NumberFormat.getNumberInstance(Locale("es", "AR"))
+    val title        = if (isEditing) stringResource(R.string.purchase_edit_title)
+                       else           stringResource(R.string.purchase_new_title)
+    val dateFmt      = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    // Parse fecha actual para DatePickerState
+    val initialDateMillis = remember(uiState.date) {
+        runCatching {
+            java.time.LocalDate.parse(uiState.date, dateFmt)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        }.getOrNull()
+    }
+
+    // Parse hora actual para DrumTimePicker
+    val initHour   = remember(uiState.time) { uiState.time.split(":").getOrNull(0)?.toIntOrNull() ?: 0 }
+    val initMinute = remember(uiState.time) { uiState.time.split(":").getOrNull(1)?.toIntOrNull() ?: 0 }
+
+    val disabledFieldColors = OutlinedTextFieldDefaults.colors(
+        disabledTextColor        = MaterialTheme.colorScheme.onSurface,
+        disabledBorderColor      = MaterialTheme.colorScheme.outline,
+        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        disabledLabelColor       = MaterialTheme.colorScheme.onSurfaceVariant,
+        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -87,6 +114,7 @@ fun NewPurchaseScreen(
                         modifier = Modifier.padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Supermercado
                         ExposedDropdownMenuBox(
                             expanded        = uiState.dropdownExpanded,
                             onExpandedChange = { viewModel.onDropdownExpandedChange(!uiState.dropdownExpanded) }
@@ -119,33 +147,43 @@ fun NewPurchaseScreen(
                             }
                         }
 
+                        // Fecha + Hora (campo clicable — abre calendario y cilindros)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(
-                                value          = uiState.date,
-                                onValueChange  = { viewModel.onDateChange(it) },
-                                label          = { Text(stringResource(R.string.field_date)) },
-                                leadingIcon    = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
-                                placeholder    = { Text("dd/MM/yyyy") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier       = Modifier.weight(1f),
-                                singleLine     = true,
-                                shape          = MaterialTheme.shapes.medium
+                                value         = uiState.date,
+                                onValueChange = {},
+                                readOnly      = true,
+                                enabled       = false,
+                                label         = { Text(stringResource(R.string.field_date)) },
+                                leadingIcon   = { Icon(Icons.Default.CalendarToday, null) },
+                                trailingIcon  = { Icon(Icons.Default.ArrowDropDown, null) },
+                                colors        = disabledFieldColors,
+                                modifier      = Modifier
+                                    .weight(1f)
+                                    .clickable { showDatePicker = true },
+                                singleLine    = true,
+                                shape         = MaterialTheme.shapes.medium
                             )
                             OutlinedTextField(
-                                value          = uiState.time,
-                                onValueChange  = { viewModel.onTimeChange(it) },
-                                label          = { Text(stringResource(R.string.field_time)) },
-                                leadingIcon    = { Icon(Icons.Default.AccessTime, contentDescription = null) },
-                                placeholder    = { Text("HH:mm") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier       = Modifier.weight(1f),
-                                singleLine     = true,
-                                shape          = MaterialTheme.shapes.medium
+                                value         = uiState.time,
+                                onValueChange = {},
+                                readOnly      = true,
+                                enabled       = false,
+                                label         = { Text(stringResource(R.string.field_time)) },
+                                leadingIcon   = { Icon(Icons.Default.AccessTime, null) },
+                                trailingIcon  = { Icon(Icons.Default.ArrowDropDown, null) },
+                                colors        = disabledFieldColors,
+                                modifier      = Modifier
+                                    .weight(1f)
+                                    .clickable { showTimePicker = true },
+                                singleLine    = true,
+                                shape         = MaterialTheme.shapes.medium
                             )
                         }
                     }
                 }
 
+                // Banner total
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -216,5 +254,42 @@ fun NewPurchaseScreen(
                 )
             }
         }
+    }
+
+    // ── Calendario de fecha ────────────────────────────────────────────────────
+    if (showDatePicker) {
+        val dateState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    dateState.selectedDateMillis?.let { millis ->
+                        val formatted = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneId.systemDefault()).toLocalDate()
+                            .format(dateFmt)
+                        viewModel.onDateChange(formatted)
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = dateState)
+        }
+    }
+
+    // ── Cilindros de hora ──────────────────────────────────────────────────────
+    if (showTimePicker) {
+        DrumTimePickerDialog(
+            initialHour   = initHour,
+            initialMinute = initMinute,
+            onConfirm     = { h, m ->
+                viewModel.onTimeChange("%02d:%02d".format(h, m))
+                showTimePicker = false
+            },
+            onDismiss = { showTimePicker = false }
+        )
     }
 }
