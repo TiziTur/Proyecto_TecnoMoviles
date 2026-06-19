@@ -110,6 +110,9 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Query("query")    query: String? = null,
         @Query("category") category: String? = null,
+        @Query("brand")    brand: String? = null,
+        @Query("minPrice") minPrice: Int? = null,
+        @Query("maxPrice") maxPrice: Int? = null,
         @Query("offset")   offset: Int? = null
     ): Response<PriceComparisonResponse>
 

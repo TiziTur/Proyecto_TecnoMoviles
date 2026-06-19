@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,6 +60,7 @@ private fun categoryColor(category: String): Color = when (category) {
     else              -> Color(0xFF64748B)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PriceComparisonScreen(
     onNavigateBack: () -> Unit,
@@ -66,11 +69,20 @@ fun PriceComparisonScreen(
     val uiState          by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery      by viewModel.searchQuery.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
+    val selectedBrand    by viewModel.selectedBrand.collectAsStateWithLifecycle()
+    val minPriceInput    by viewModel.minPriceInput.collectAsStateWithLifecycle()
+    val maxPriceInput    by viewModel.maxPriceInput.collectAsStateWithLifecycle()
     val isDark           = isSystemInDarkTheme()
     val moneyFormat      = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
     val listState        = rememberLazyListState()
+    var showFilterSheet  by remember { mutableStateOf(false) }
 
-    // Infinite scroll: trigger loadMore cuando quedan ≤ 5 ítems visibles
+    // Cantidad de filtros extra activos (excluyendo búsqueda y categoría)
+    val activeFilterCount = remember(selectedBrand, minPriceInput, maxPriceInput) {
+        listOf(selectedBrand, minPriceInput, maxPriceInput).count { it.isNotBlank() }
+    }
+
+    // Infinite scroll: pedir más cuando quedan ≤ 5 ítems al fondo
     val nearEnd by remember {
         derivedStateOf {
             val info = listState.layoutInfo
@@ -78,9 +90,7 @@ fun PriceComparisonScreen(
             last >= info.totalItemsCount - 5
         }
     }
-    LaunchedEffect(nearEnd) {
-        if (nearEnd) viewModel.loadMore()
-    }
+    LaunchedEffect(nearEnd) { if (nearEnd) viewModel.loadMore() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -106,25 +116,46 @@ fun PriceComparisonScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // ── Barra de búsqueda ─────────────────────────────────────────
-                OutlinedTextField(
-                    value         = searchQuery,
-                    onValueChange = { viewModel.searchQuery.value = it },
-                    label         = { Text("Buscar producto") },
-                    leadingIcon   = { Icon(Icons.Default.Search, null) },
-                    trailingIcon  = {
-                        if (searchQuery.isNotBlank())
-                            IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                Icon(Icons.Default.Clear, null)
-                            }
-                    },
-                    modifier   = Modifier
+                // ── Búsqueda + botón de filtros ───────────────────────────────
+                Row(
+                    modifier              = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .padding(top = 12.dp),
-                    singleLine = true,
-                    shape      = MaterialTheme.shapes.large
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value         = searchQuery,
+                        onValueChange = { viewModel.searchQuery.value = it },
+                        label         = { Text("Buscar producto…") },
+                        leadingIcon   = { Icon(Icons.Default.Search, null) },
+                        trailingIcon  = {
+                            if (searchQuery.isNotBlank())
+                                IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                    Icon(Icons.Default.Clear, null)
+                                }
+                        },
+                        modifier   = Modifier.weight(1f),
+                        singleLine = true,
+                        shape      = MaterialTheme.shapes.large
+                    )
+                    BadgedBox(
+                        badge = {
+                            if (activeFilterCount > 0)
+                                Badge { Text("$activeFilterCount") }
+                        }
+                    ) {
+                        IconButton(onClick = { showFilterSheet = true }) {
+                            Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = "Filtros",
+                                tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
 
                 // ── Chips de categoría ────────────────────────────────────────
@@ -169,12 +200,12 @@ fun PriceComparisonScreen(
                     }
                     uiState.allComparisons.isEmpty() -> {
                         EmptyState(
-                            icon    = Icons.Default.CompareArrows,
+                            icon    = Icons.Default.SearchOff,
                             message = when {
                                 searchQuery.isNotBlank() ->
-                                    "No se encontraron productos con \"$searchQuery\""
-                                selectedCategory.isNotBlank() ->
-                                    "No hay productos en \"$selectedCategory\""
+                                    "Sin resultados para \"$searchQuery\"\nProbá sin tilde o con otra ortografía"
+                                selectedCategory.isNotBlank() || activeFilterCount > 0 ->
+                                    "Sin productos con los filtros aplicados"
                                 else ->
                                     "Registrá compras en varios supermercados para ver comparativas"
                             },
@@ -188,7 +219,6 @@ fun PriceComparisonScreen(
                             contentPadding      = PaddingValues(vertical = 4.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Banner de ahorro
                             item {
                                 SavingsBanner(
                                     totalSavings = uiState.allComparisons.sumOf { it.maxSavings },
@@ -200,7 +230,6 @@ fun PriceComparisonScreen(
                                 )
                             }
 
-                            // Lista de productos
                             items(uiState.allComparisons, key = { it.productName + it.category }) { item ->
                                 CompactPriceCard(
                                     item        = item,
@@ -210,15 +239,12 @@ fun PriceComparisonScreen(
                                 )
                             }
 
-                            // Indicador de carga al final
                             if (uiState.isLoadingMore) {
                                 item {
                                     Box(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        modifier         = Modifier.fillMaxWidth().padding(16.dp),
                                         contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                                    }
+                                    ) { CircularProgressIndicator(modifier = Modifier.size(28.dp)) }
                                 }
                             }
 
@@ -227,15 +253,13 @@ fun PriceComparisonScreen(
                                     Text(
                                         text  = "Fuente: ${uiState.source}" +
                                                 if (uiState.lastUpdated != null)
-                                                    " · Act: ${uiState.lastUpdated!!.take(10)}"
-                                                else "",
+                                                    " · Act: ${uiState.lastUpdated!!.take(10)}" else "",
                                         style    = MaterialTheme.typography.labelSmall,
                                         color    = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                                     )
                                 }
                             }
-
                             item { Spacer(Modifier.height(24.dp)) }
                         }
                     }
@@ -243,9 +267,121 @@ fun PriceComparisonScreen(
             }
         }
     }
+
+    // ── Bottom sheet de filtros ───────────────────────────────────────────────
+    if (showFilterSheet) {
+        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
+            FilterSheetContent(
+                brands        = uiState.availableBrands,
+                selectedBrand = selectedBrand,
+                minPrice      = minPriceInput,
+                maxPrice      = maxPriceInput,
+                onBrandChange = { viewModel.selectedBrand.value = it },
+                onMinChange   = { viewModel.minPriceInput.value = it },
+                onMaxChange   = { viewModel.maxPriceInput.value = it },
+                onClear       = { viewModel.clearFilters() },
+                onDone        = { showFilterSheet = false }
+            )
+        }
+    }
 }
 
-// ── Banner de ahorro ───────────────────────────────────────────────────────────
+// ── Filter bottom sheet content ───────────────────────────────────────────────
+
+@Composable
+private fun FilterSheetContent(
+    brands: List<String>,
+    selectedBrand: String,
+    minPrice: String,
+    maxPrice: String,
+    onBrandChange: (String) -> Unit,
+    onMinChange: (String) -> Unit,
+    onMaxChange: (String) -> Unit,
+    onClear: () -> Unit,
+    onDone: () -> Unit
+) {
+    Column(
+        modifier              = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp),
+        verticalArrangement   = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Filtros", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+        // Marca
+        OutlinedTextField(
+            value         = selectedBrand,
+            onValueChange = onBrandChange,
+            label         = { Text("Marca") },
+            leadingIcon   = { Icon(Icons.Default.Store, null) },
+            trailingIcon  = {
+                if (selectedBrand.isNotBlank())
+                    IconButton(onClick = { onBrandChange("") }) { Icon(Icons.Default.Clear, null) }
+            },
+            modifier   = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape      = MaterialTheme.shapes.large
+        )
+
+        // Sugerencias de marcas
+        if (brands.isNotEmpty() && selectedBrand.isBlank()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(brands.take(12)) { brand ->
+                    SuggestionChip(
+                        onClick = { onBrandChange(brand) },
+                        label   = { Text(brand, style = MaterialTheme.typography.labelSmall) }
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider()
+
+        // Rango de precios
+        Text("Rango de precio ($)", style = MaterialTheme.typography.labelLarge)
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
+                value         = minPrice,
+                onValueChange = onMinChange,
+                label         = { Text("Mínimo") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier      = Modifier.weight(1f),
+                singleLine    = true,
+                shape         = MaterialTheme.shapes.large
+            )
+            OutlinedTextField(
+                value         = maxPrice,
+                onValueChange = onMaxChange,
+                label         = { Text("Máximo") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier      = Modifier.weight(1f),
+                singleLine    = true,
+                shape         = MaterialTheme.shapes.large
+            )
+        }
+
+        // Botones
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick  = onClear,
+                modifier = Modifier.weight(1f)
+            ) { Text("Limpiar") }
+            Button(
+                onClick  = onDone,
+                modifier = Modifier.weight(1f)
+            ) { Text("Listo") }
+        }
+    }
+}
+
+// ── Savings banner ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun SavingsBanner(
@@ -271,11 +407,8 @@ private fun SavingsBanner(
             .padding(20.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text  = "Ahorro potencial",
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.White.copy(alpha = 0.8f)
-            )
+            Text("Ahorro potencial", style = MaterialTheme.typography.labelLarge,
+                color = Color.White.copy(alpha = 0.8f))
             Text(
                 text       = "$ ${moneyFormat.format(totalSavings.toLong())}",
                 style      = MaterialTheme.typography.headlineMedium,
@@ -307,19 +440,14 @@ private fun CompactPriceCard(
         onClick   = { expanded = !expanded },
         modifier  = modifier
             .fillMaxWidth()
-            .coloredShadow(
-                color        = MaterialTheme.colorScheme.primary,
-                borderRadius = 16.dp,
-                blurRadius   = 6.dp,
-                offsetY      = 2.dp
-            )
+            .coloredShadow(color = MaterialTheme.colorScheme.primary, borderRadius = 16.dp, blurRadius = 6.dp, offsetY = 2.dp)
             .glowBorder(cornerRadius = 16.dp, isDark = isDark),
         shape     = MaterialTheme.shapes.large,
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Cabecera colapsada
+            // Cabecera
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -353,16 +481,24 @@ private fun CompactPriceCard(
                                 )
                             }
                         }
-                        if (item.prices.isNotEmpty()) {
+                        if (item.brand.isNotBlank()) {
                             Text(
-                                text       = "${item.cheapestAt.replaceFirstChar { it.uppercaseChar() }} · $ ${moneyFormat.format(item.cheapestPrice.toLong())}",
-                                style      = MaterialTheme.typography.labelSmall,
-                                color      = Color(0xFF059669),
-                                fontWeight = FontWeight.Medium,
-                                maxLines   = 1,
-                                overflow   = TextOverflow.Ellipsis
+                                text  = item.brand,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
+                    }
+                    if (item.prices.isNotEmpty()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text       = "${supermarketLabel(item.cheapestAt)} · $ ${moneyFormat.format(item.cheapestPrice.toLong())}",
+                            style      = MaterialTheme.typography.labelSmall,
+                            color      = Color(0xFF059669),
+                            fontWeight = FontWeight.Medium,
+                            maxLines   = 1,
+                            overflow   = TextOverflow.Ellipsis
+                        )
                     }
                 }
                 Row(
@@ -394,11 +530,7 @@ private fun CompactPriceCard(
             }
 
             // Detalle expandido
-            AnimatedVisibility(
-                visible = expanded,
-                enter   = expandVertically(),
-                exit    = shrinkVertically()
-            ) {
+            AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column {
                     Spacer(Modifier.height(10.dp))
                     GradientDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -406,8 +538,8 @@ private fun CompactPriceCard(
 
                     item.prices.forEach { entry ->
                         PriceRow(
-                            entry       = entry,
-                            isCheapest  = entry.supermarket == item.cheapestAt,
+                            entry      = entry,
+                            isCheapest = entry.supermarket == item.cheapestAt,
                             moneyFormat = moneyFormat
                         )
                     }
@@ -423,14 +555,10 @@ private fun CompactPriceCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                Icons.Default.TipsAndUpdates,
-                                contentDescription = null,
-                                tint     = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
-                            )
+                            Icon(Icons.Default.TipsAndUpdates, null,
+                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                             Text(
-                                text       = "Compralo en ${item.cheapestAt.replaceFirstChar { it.uppercaseChar() }} y ahorrás $ ${moneyFormat.format(item.maxSavings.toLong())}",
+                                text       = "Compralo en ${supermarketLabel(item.cheapestAt)} y ahorrás $ ${moneyFormat.format(item.maxSavings.toLong())}",
                                 style      = MaterialTheme.typography.labelSmall,
                                 color      = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
@@ -442,6 +570,9 @@ private fun CompactPriceCard(
         }
     }
 }
+
+private fun supermarketLabel(raw: String): String =
+    raw.split(" ").joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.uppercaseChar() } }
 
 @Composable
 private fun PriceRow(
@@ -466,19 +597,13 @@ private fun PriceRow(
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text       = entry.supermarket.replaceFirstChar { it.uppercaseChar() },
+                text       = supermarketLabel(entry.supermarket),
                 style      = MaterialTheme.typography.bodySmall,
                 color      = if (isCheapest) MaterialTheme.colorScheme.onSurface
                              else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (isCheapest) FontWeight.SemiBold else FontWeight.Normal
             )
-            if (!entry.isUserData) {
-                Text(
-                    text  = "ref.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-            }
+            // "ref." eliminado — el ícono ya diferencia entre precio propio y de referencia
         }
         Text(
             text       = "$ ${moneyFormat.format(entry.price.toLong())}",

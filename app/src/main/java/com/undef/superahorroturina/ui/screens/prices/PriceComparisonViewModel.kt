@@ -16,6 +16,7 @@ data class PriceComparisonUiState(
     val isLoadingMore: Boolean = false,
     val allComparisons: List<PriceComparisonItemDto> = emptyList(),
     val categoryCounts: Map<String, Int> = emptyMap(),
+    val availableBrands: List<String> = emptyList(),
     val total: Int = 0,
     val hasMore: Boolean = false,
     val source: String = "",
@@ -38,16 +39,22 @@ class PriceComparisonViewModel @Inject constructor(
 
     val searchQuery      = MutableStateFlow("")
     val selectedCategory = MutableStateFlow("")
+    val selectedBrand    = MutableStateFlow("")
+    val minPriceInput    = MutableStateFlow("")
+    val maxPriceInput    = MutableStateFlow("")
 
     private var currentOffset = 0
 
     init {
         reload()
         viewModelScope.launch {
-            combine(searchQuery.debounce(500), selectedCategory) { q, c -> q to c }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect { reload() }
+            combine(searchQuery.debounce(500), selectedCategory, selectedBrand.debounce(400)) { q, c, b ->
+                Triple(q, c, b)
+            }.distinctUntilChanged().drop(1).collect { reload() }
+        }
+        viewModelScope.launch {
+            combine(minPriceInput.debounce(700), maxPriceInput.debounce(700)) { a, b -> a to b }
+                .distinctUntilChanged().drop(1).collect { reload() }
         }
     }
 
@@ -66,6 +73,17 @@ class PriceComparisonViewModel @Inject constructor(
         viewModelScope.launch { fetchPage(currentOffset + PAGE_SIZE, append = true) }
     }
 
+    fun clearFilters() {
+        selectedBrand.value = ""
+        minPriceInput.value = ""
+        maxPriceInput.value = ""
+    }
+
+    val hasActiveFilters: Boolean
+        get() = selectedBrand.value.isNotBlank() ||
+                minPriceInput.value.isNotBlank() ||
+                maxPriceInput.value.isNotBlank()
+
     private suspend fun fetchPage(offset: Int, append: Boolean) {
         try {
             val token = session.bearerToken.first()
@@ -73,6 +91,9 @@ class PriceComparisonViewModel @Inject constructor(
                 token    = token,
                 query    = searchQuery.value.ifBlank { null },
                 category = selectedCategory.value.ifBlank { null },
+                brand    = selectedBrand.value.ifBlank { null },
+                minPrice = minPriceInput.value.toIntOrNull(),
+                maxPrice = maxPriceInput.value.toIntOrNull(),
                 offset   = offset
             )
             if (response.isSuccessful) {
@@ -80,19 +101,20 @@ class PriceComparisonViewModel @Inject constructor(
                 currentOffset = offset
                 val prev = _uiState.value
                 _uiState.value = prev.copy(
-                    isLoading      = false,
-                    isLoadingMore  = false,
-                    allComparisons = if (append) prev.allComparisons + body.comparisons
-                                     else body.comparisons,
-                    // Preserve category counts: backend only sends them on first page (no category filter)
-                    categoryCounts = if (body.categoryCounts.isNotEmpty()) body.categoryCounts
-                                     else prev.categoryCounts,
-                    total          = body.total,
-                    hasMore        = body.hasMore,
-                    source         = body.source,
-                    lastUpdated    = body.lastUpdated,
-                    isEmpty        = body.isEmpty,
-                    error          = ""
+                    isLoading       = false,
+                    isLoadingMore   = false,
+                    allComparisons  = if (append) prev.allComparisons + body.comparisons
+                                      else body.comparisons,
+                    categoryCounts  = if (body.categoryCounts.isNotEmpty()) body.categoryCounts
+                                      else prev.categoryCounts,
+                    availableBrands = if (body.brands.isNotEmpty()) body.brands
+                                      else prev.availableBrands,
+                    total           = body.total,
+                    hasMore         = body.hasMore,
+                    source          = body.source,
+                    lastUpdated     = body.lastUpdated,
+                    isEmpty         = body.isEmpty,
+                    error           = ""
                 )
             } else {
                 _uiState.value = _uiState.value.copy(
