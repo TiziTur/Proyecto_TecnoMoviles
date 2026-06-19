@@ -46,6 +46,7 @@ fun PurchaseDetailScreen(
     onNavigateToEdit: (Int) -> Unit,
     onNavigateToAddProduct: (Int) -> Unit,
     onNavigateToEditProduct: (Int, Int) -> Unit,
+    onNavigateToPurchaseComparison: (Int) -> Unit = {},
     viewModel: PurchaseDetailViewModel = hiltViewModel()
 ) {
     // Carga inicial
@@ -168,6 +169,9 @@ fun PurchaseDetailScreen(
                         }
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Compartir compra")
+                    }
+                    IconButton(onClick = { uiState.purchase?.let { onNavigateToPurchaseComparison(it.id) } }) {
+                        Icon(Icons.Default.CompareArrows, contentDescription = "Comparar precios")
                     }
                     IconButton(onClick = { uiState.purchase?.let { onNavigateToEdit(it.id) } }) {
                         Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.action_edit))

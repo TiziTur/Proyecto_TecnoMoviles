@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS products (
     description TEXT          DEFAULT '',
     price       NUMERIC(10,2) NOT NULL,
     quantity    INTEGER       NOT NULL DEFAULT 1,
+    category    TEXT          DEFAULT '',
     created_at  TIMESTAMP     DEFAULT NOW()
 );
 

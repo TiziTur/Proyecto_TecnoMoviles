@@ -14,6 +14,7 @@ interface ParsedProduct {
   quantity: number;
   code?: string;
   description?: string;
+  category?: string;
 }
 
 // POST /purchases/:purchaseId/scan-ticket
@@ -39,17 +40,20 @@ Devolvé ÚNICAMENTE un JSON válido con este formato exacto, sin texto adiciona
   "date": "fecha en formato YYYY-MM-DD si es visible, sino null",
   "products": [
     {
-      "name": "nombre del producto",
+      "name": "descripción EXACTA del producto tal como aparece en el ticket (ej: Coca-Cola 500ml, Leche La Serenísima Entera 1L)",
       "price": precio_unitario_como_numero,
       "quantity": cantidad_como_entero,
       "code": "codigo_de_barras_si_visible_sino_string_vacio",
-      "description": "descripcion_adicional_sino_string_vacio"
+      "description": "descripcion_adicional_sino_string_vacio",
+      "category": "una de: Alimento, Bebida, Lácteo, Carne, Limpieza, Perfumería, Snack, Congelado, Panadería, Otro"
     }
   ]
 }
 Reglas:
+- name debe ser la descripción EXACTA del producto como figura en el ticket, incluyendo marca, tamaño y variedad
 - price debe ser el precio UNITARIO (no total de linea)
 - Si el ticket muestra "2x $500" el price es 500 y quantity es 2
+- category: Bebida para gaseosas/jugos/aguas/cervezas; Lácteo para leche/yogur/queso; Limpieza para detergentes/lavandina; Perfumería para higiene personal; Snack para golosinas/papas fritas; Alimento para el resto de comestibles
 - Si no podés leer bien un producto, omitilo
 - Solo incluí items que son productos comprados, no descuentos ni subtotales`;
 

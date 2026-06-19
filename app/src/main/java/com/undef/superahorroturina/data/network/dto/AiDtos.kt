@@ -15,7 +15,8 @@ data class ScannedProductDto(
     @SerializedName("price")       val price: Double,
     @SerializedName("quantity")    val quantity: Int = 1,
     @SerializedName("code")        val code: String = "",
-    @SerializedName("description") val description: String = ""
+    @SerializedName("description") val description: String = "",
+    @SerializedName("category")    val category: String = ""
 )
 
 data class ScanTicketResponse(
@@ -62,4 +63,31 @@ data class PriceComparisonResponse(
     @SerializedName("source")       val source: String = "",
     @SerializedName("lastUpdated")  val lastUpdated: String? = null,
     @SerializedName("isEmpty")      val isEmpty: Boolean = false
+)
+
+// ── Comparativa de compra completa contra SEPA ──────────────────
+
+data class PurchaseProductMatchDto(
+    @SerializedName("ticketName")   val ticketName: String,
+    @SerializedName("matchedName")  val matchedName: String,
+    @SerializedName("sepaPrice")    val sepaPrice: Double,
+    @SerializedName("ticketPrice")  val ticketPrice: Double,
+    @SerializedName("category")     val category: String = ""
+)
+
+data class PurchaseSupermarketComparisonDto(
+    @SerializedName("supermarket")   val supermarket: String,
+    @SerializedName("total")         val total: Double,
+    @SerializedName("matchedCount")  val matchedCount: Int,
+    @SerializedName("savings")       val savings: Double,
+    @SerializedName("savingsPct")    val savingsPct: Int,
+    @SerializedName("products")      val products: List<PurchaseProductMatchDto>
+)
+
+data class PurchaseComparisonResponse(
+    @SerializedName("purchaseId")          val purchaseId: Int,
+    @SerializedName("userTotal")           val userTotal: Double,
+    @SerializedName("supermarket")         val supermarket: String,
+    @SerializedName("comparisons")         val comparisons: List<PurchaseSupermarketComparisonDto>,
+    @SerializedName("unmatchedProducts")   val unmatchedProducts: List<String> = emptyList()
 )

@@ -22,5 +22,6 @@ data class ProductEntity(
     val name: String,
     val description: String,
     val price: Double,
-    val quantity: Int
+    val quantity: Int,
+    val category: String = ""
 )

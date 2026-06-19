@@ -181,7 +181,8 @@ class PurchaseDetailViewModel @Inject constructor(
                         name        = p.name,
                         description = p.description,
                         price       = p.price,
-                        quantity    = p.quantity
+                        quantity    = p.quantity,
+                        category    = p.category
                     )
                 }
                 _ticketScanState.value = TicketScanState.Done

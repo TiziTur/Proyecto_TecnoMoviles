@@ -29,6 +29,7 @@ import com.undef.superahorroturina.ui.screens.splash.SplashScreen
 import com.undef.superahorroturina.ui.screens.stats.StatsScreen
 import com.undef.superahorroturina.ui.screens.chat.ChatScreen
 import com.undef.superahorroturina.ui.screens.prices.PriceComparisonScreen
+import com.undef.superahorroturina.ui.screens.purchase.PurchaseComparisonScreen
 
 // Duración estándar de las transiciones (ms)
 private const val NAV_ANIM_DURATION = 300
@@ -195,6 +196,9 @@ fun NavGraph(navController: NavHostController) {
                 },
                 onNavigateToEditProduct = { purchId, prodId ->
                     navController.navigate(Routes.EditProduct.createRoute(purchId, prodId))
+                },
+                onNavigateToPurchaseComparison = { id ->
+                    navController.navigate(Routes.PurchaseComparison.createRoute(id))
                 }
             )
         }
@@ -206,6 +210,13 @@ fun NavGraph(navController: NavHostController) {
 
         composable(Routes.PriceComparison.route) {
             PriceComparisonScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Routes.PurchaseComparison.route,
+            arguments = listOf(navArgument("purchaseId") { type = NavType.IntType })
+        ) {
+            PurchaseComparisonScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // ── Product ──────────────────────────────────────────────

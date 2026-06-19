@@ -35,17 +35,17 @@ class ProductRepository @Inject constructor(
 
     suspend fun createProduct(
         purchaseId: Int, code: String, name: String,
-        description: String, price: Double, quantity: Int
+        description: String, price: Double, quantity: Int, category: String = ""
     ): ApiResult<Product> = runCatching {
         val token = session.bearerToken.first()
         val response = api.createProduct(
             token, purchaseId,
-            CreateProductRequest(code, name, description, price, quantity)
+            CreateProductRequest(code, name, description, price, quantity, category)
         )
         if (response.isSuccessful) {
             val p = response.body()!!
             val product = Product(p.id, p.code, p.name, p.description, p.price, p.quantity)
-            productDao.upsert(ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity))
+            productDao.upsert(ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity, p.category))
             ApiResult.Success(product)
         } else {
             ApiResult.Error("Error al crear producto: ${response.code()}")

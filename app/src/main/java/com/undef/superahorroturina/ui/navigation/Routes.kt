@@ -39,4 +39,9 @@ sealed class Routes(val route: String) {
     // AI features
     object Chat             : Routes("chat")
     object PriceComparison  : Routes("price_comparison")
+
+    // Comparativa de compra contra SEPA
+    object PurchaseComparison : Routes("purchase_comparison/{purchaseId}") {
+        fun createRoute(purchaseId: Int) = "purchase_comparison/$purchaseId"
+    }
 }

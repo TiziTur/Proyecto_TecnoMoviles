@@ -37,7 +37,8 @@ data class ProductDto(
     val name: String,
     val description: String = "",
     val price: Double,
-    val quantity: Int = 1
+    val quantity: Int = 1,
+    val category: String = ""
 )
 
 data class CreateProductRequest(
@@ -45,7 +46,8 @@ data class CreateProductRequest(
     val name: String,
     val description: String = "",
     val price: Double,
-    val quantity: Int = 1
+    val quantity: Int = 1,
+    val category: String = ""
 )
 
 data class UpdateProductRequest(
@@ -53,7 +55,8 @@ data class UpdateProductRequest(
     val name: String,
     val description: String = "",
     val price: Double,
-    val quantity: Int = 1
+    val quantity: Int = 1,
+    val category: String = ""
 )
 
 // ── Supermarket ───────────────────────────────────────────────

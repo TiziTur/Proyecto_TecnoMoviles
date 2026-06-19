@@ -38,7 +38,8 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
       name: pr.name,
       description: pr.description ?? '',
       price: parseFloat(pr.price),
-      quantity: pr.quantity
+      quantity: pr.quantity,
+      category: pr.category ?? ''
     })));
   } catch (err) {
     console.error(err);
@@ -49,7 +50,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 // POST /purchases/:purchaseId/products
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
   const purchaseId = parseInt(req.params.purchaseId);
-  const { code, name, description, price, quantity } = req.body;
+  const { code, name, description, price, quantity, category } = req.body;
   console.log(`[POST product] purchaseId=${purchaseId} userId=${req.userId} name=${name} price=${price}`);
   if (!name || price === undefined) {
     res.status(400).json({ error: 'Nombre y precio son obligatorios' });
@@ -63,10 +64,10 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
     const result = await pool.query(
-      `INSERT INTO products (purchase_id, code, name, description, price, quantity)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO products (purchase_id, code, name, description, price, quantity, category)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [purchaseId, code ?? '', name, description ?? '', price, quantity ?? 1]
+      [purchaseId, code ?? '', name, description ?? '', price, quantity ?? 1, category ?? '']
     );
     const pr = result.rows[0];
 
@@ -85,7 +86,8 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
       name: pr.name,
       description: pr.description ?? '',
       price: parseFloat(pr.price),
-      quantity: pr.quantity
+      quantity: pr.quantity,
+      category: pr.category ?? ''
     });
   } catch (err) {
     console.error(err);
@@ -97,7 +99,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
 router.put('/:productId', async (req: AuthRequest, res: Response): Promise<void> => {
   const purchaseId = parseInt(req.params.purchaseId);
   const productId = parseInt(req.params.productId);
-  const { code, name, description, price, quantity } = req.body;
+  const { code, name, description, price, quantity, category } = req.body;
   try {
     if (!(await verifyOwnership(purchaseId, req.userId!))) {
       res.status(404).json({ error: 'Compra no encontrada' });
@@ -109,10 +111,11 @@ router.put('/:productId', async (req: AuthRequest, res: Response): Promise<void>
            name        = COALESCE($2, name),
            description = COALESCE($3, description),
            price       = COALESCE($4, price),
-           quantity    = COALESCE($5, quantity)
-       WHERE id = $6 AND purchase_id = $7
+           quantity    = COALESCE($5, quantity),
+           category    = COALESCE($6, category)
+       WHERE id = $7 AND purchase_id = $8
        RETURNING *`,
-      [code, name, description, price, quantity, productId, purchaseId]
+      [code, name, description, price, quantity, category, productId, purchaseId]
     );
     if (result.rows.length === 0) {
       res.status(404).json({ error: 'Producto no encontrado' });
@@ -135,7 +138,8 @@ router.put('/:productId', async (req: AuthRequest, res: Response): Promise<void>
       name: pr.name,
       description: pr.description ?? '',
       price: parseFloat(pr.price),
-      quantity: pr.quantity
+      quantity: pr.quantity,
+      category: pr.category ?? ''
     });
   } catch (err) {
     console.error(err);

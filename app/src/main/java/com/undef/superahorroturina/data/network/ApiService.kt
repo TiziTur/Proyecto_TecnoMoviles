@@ -110,4 +110,11 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Query("query") query: String? = null
     ): Response<PriceComparisonResponse>
+
+    // ── Comparativa de compra completa contra SEPA ────────────
+    @GET("purchases/{purchaseId}/compare")
+    suspend fun comparePurchase(
+        @Header("Authorization") token: String,
+        @Path("purchaseId") purchaseId: Int
+    ): Response<PurchaseComparisonResponse>
 }
