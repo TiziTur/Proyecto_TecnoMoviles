@@ -108,7 +108,9 @@ interface ApiService {
     @GET("prices/compare")
     suspend fun getPriceComparisons(
         @Header("Authorization") token: String,
-        @Query("query") query: String? = null
+        @Query("query")    query: String? = null,
+        @Query("category") category: String? = null,
+        @Query("offset")   offset: Int? = null
     ): Response<PriceComparisonResponse>
 
     // ── Comparativa de compra completa contra SEPA ────────────

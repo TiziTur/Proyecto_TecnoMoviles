@@ -64,7 +64,10 @@ data class PriceComparisonResponse(
     @SerializedName("source")           val source: String = "",
     @SerializedName("lastUpdated")      val lastUpdated: String? = null,
     @SerializedName("isEmpty")          val isEmpty: Boolean = false,
-    @SerializedName("categoryCounts")   val categoryCounts: Map<String, Int> = emptyMap()
+    @SerializedName("categoryCounts")   val categoryCounts: Map<String, Int> = emptyMap(),
+    @SerializedName("total")            val total: Int = 0,
+    @SerializedName("hasMore")          val hasMore: Boolean = false,
+    @SerializedName("offset")           val offset: Int = 0
 )
 
 // ── Comparativa de compra completa contra SEPA ──────────────────

@@ -1,0 +1,171 @@
+<h2>Mejoras Visuales — Klarity App</h2>
+<p class="subtitle">Comparativa: estado actual vs mejoras propuestas para las pantallas con diseño inconsistente</p>
+
+<div class="section">
+  <h3>Pantallas con diseño premium actual ✅</h3>
+  <p>Login, Home, Historial, Stats, PurchaseDetail ya tienen: fondo con puntos, tarjetas glassmorphism, glowBorder, coloredShadow.</p>
+</div>
+
+<div class="section">
+  <h3>Pantallas que necesitan mejora visual — elige la dirección:</h3>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Estado ACTUAL — NewPurchaseScreen / ProductFormScreen / ProfileScreen</div>
+    <div class="mockup-body" style="padding:16px;background:#f9fafb;font-family:sans-serif;min-height:380px">
+      <div style="background:#1976d2;padding:12px 16px;border-radius:0;color:white;display:flex;align-items:center;gap:8px;margin:-16px -16px 16px -16px">
+        <span style="font-size:18px">←</span>
+        <span style="font-weight:600">Nueva Compra</span>
+      </div>
+      <!-- plain white background, flat layout -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="border:1px solid #ccc;border-radius:8px;padding:14px;background:white">
+          <div style="font-size:11px;color:#777;margin-bottom:4px">SUPERMERCADO</div>
+          <div style="color:#333">Seleccionar ▼</div>
+        </div>
+        <div style="border:1px solid #ccc;border-radius:8px;padding:14px;background:white">
+          <div style="font-size:11px;color:#777;margin-bottom:4px">FECHA</div>
+          <div style="color:#999">dd/MM/yyyy</div>
+        </div>
+        <div style="border:1px solid #ccc;border-radius:8px;padding:14px;background:white">
+          <div style="font-size:11px;color:#777;margin-bottom:4px">HORA</div>
+          <div style="color:#999">HH:mm</div>
+        </div>
+        <div style="background:#e3f2fd;border-radius:8px;padding:14px;display:flex;justify-content:space-between">
+          <span style="color:#555">Total</span>
+          <span style="color:#1976d2;font-weight:600">$ 0</span>
+        </div>
+        <div style="background:#1976d2;color:white;border-radius:10px;padding:14px;text-align:center;font-weight:600">Guardar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Propuesta MEJORADA — mismo estilo que Login/Home</div>
+    <div class="mockup-body" style="padding:0;font-family:sans-serif;min-height:380px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);position:relative;overflow:hidden">
+      <!-- dot pattern simulado -->
+      <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px);background-size:22px 22px;pointer-events:none"></div>
+      <div style="position:relative;z-index:1">
+        <div style="background:transparent;padding:12px 16px;color:white;display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">←</span>
+          <span style="font-weight:600;font-size:16px">Nueva Compra</span>
+        </div>
+        <div style="padding:0 16px 16px">
+          <!-- glassmorphism card -->
+          <div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:20px;box-shadow:0 8px 32px rgba(37,99,235,0.3)">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px;display:flex;align-items:center;gap:10px">
+                <span style="color:#60a5fa;font-size:18px">🏪</span>
+                <div>
+                  <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:2px">SUPERMERCADO</div>
+                  <div style="color:rgba(255,255,255,0.7);font-size:13px">Seleccionar ▼</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px">
+                  <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:2px">📅 FECHA</div>
+                  <div style="color:rgba(255,255,255,0.5);font-size:13px">dd/MM/yyyy</div>
+                </div>
+                <div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:14px">
+                  <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:2px">🕐 HORA</div>
+                  <div style="color:rgba(255,255,255,0.5);font-size:13px">HH:mm</div>
+                </div>
+              </div>
+              <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,0.15)">
+                <span style="color:rgba(255,255,255,0.8);font-size:13px">💰 Total calculado</span>
+                <span style="color:white;font-weight:700;font-size:18px">$ 0</span>
+              </div>
+              <div style="background:linear-gradient(135deg,#2563eb,#0891b2);color:white;border-radius:14px;padding:15px;text-align:center;font-weight:700;font-size:15px;box-shadow:0 6px 20px rgba(37,99,235,0.5)">Guardar Compra</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="split" style="margin-top:24px">
+  <div class="mockup">
+    <div class="mockup-header">Profile Screen ACTUAL</div>
+    <div class="mockup-body" style="padding:16px;background:#f9fafb;font-family:sans-serif;min-height:300px">
+      <div style="background:#1976d2;padding:12px;color:white;margin:-16px -16px 16px">Mi Perfil  ✏️</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1976d2,#0e7490);display:flex;align-items:center;justify-content:center;color:white;font-size:22px;font-weight:700">TT</div>
+        <div style="font-weight:600;font-size:16px">Tiziano Turina</div>
+        <div style="color:#888;font-size:13px">tturina@email.com</div>
+        <hr style="width:100%;border:1px solid #eee"/>
+        <div style="width:100%;border:1px solid #ccc;border-radius:8px;padding:12px;background:white">
+          <div style="font-size:11px;color:#777">NOMBRE</div>
+          <div>Tiziano</div>
+        </div>
+        <div style="width:100%;border:1px solid #ccc;border-radius:8px;padding:12px;background:white">
+          <div style="font-size:11px;color:#777">APELLIDO</div>
+          <div>Turina</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Profile Screen MEJORADO</div>
+    <div class="mockup-body" style="padding:0;font-family:sans-serif;min-height:300px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px);background-size:22px 22px;pointer-events:none"></div>
+      <div style="position:relative;z-index:1;padding:16px">
+        <div style="color:white;font-weight:600;font-size:16px;padding:8px 0 16px">Mi Perfil  ✏️</div>
+        <!-- Hero card with avatar -->
+        <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:20px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 8px 32px rgba(37,99,235,0.4);margin-bottom:14px">
+          <div style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:700;border:2px solid rgba(255,255,255,0.3)">TT</div>
+          <div style="color:white;font-weight:700;font-size:17px">Tiziano Turina</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:13px">tturina@email.com</div>
+        </div>
+        <!-- Fields card -->
+        <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px;display:flex;gap:8px;align-items:center">
+            <span style="color:#60a5fa">👤</span>
+            <div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.5)">NOMBRE</div>
+              <div style="color:rgba(255,255,255,0.85);font-size:14px">Tiziano</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:12px;display:flex;gap:8px;align-items:center">
+            <span style="color:#60a5fa">👤</span>
+            <div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.5)">APELLIDO</div>
+              <div style="color:rgba(255,255,255,0.85);font-size:14px">Turina</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>¿Aprobás estas mejoras visuales?</h3>
+  <p>Además de lo visual, necesito implementar <strong>Room DB</strong> (base de datos local) que es un requisito faltante de la segunda entrega. ¿Procedemos con ambos?</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="both" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Mejoras visuales + Room DB</h3>
+      <p>Aplicar el estilo glassmorphism/dark a NewPurchase, ProductForm, Profile y Settings, y también implementar Room DB para cumplir todos los requisitos</p>
+    </div>
+  </div>
+  <div class="option" data-choice="visual-only" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Solo mejoras visuales</h3>
+      <p>Solo aplicar las mejoras de UI en las pantallas inconsistentes, sin tocar la base de datos</p>
+    </div>
+  </div>
+  <div class="option" data-choice="room-only" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Solo Room DB</h3>
+      <p>Priorizar el requisito funcional (Room) y dejar el visual para después</p>
+    </div>
+  </div>
+</div>

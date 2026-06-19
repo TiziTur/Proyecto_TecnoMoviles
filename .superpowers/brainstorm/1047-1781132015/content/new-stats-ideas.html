@@ -1,0 +1,117 @@
+<h2>Nuevas estadísticas para control de finanzas del hogar</h2>
+<p class="subtitle">Pensadas para alguien a cargo de las compras de una familia. Elegí las que te sirvan (podés elegir varias) — después definimos detalles de cada una.</p>
+
+<div class="cards" data-multiselect>
+
+  <div class="card" data-choice="budget" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px; background:#1a1a2e; height:100%;">
+        <div style="color:#ddd; font-size:12px; margin-bottom:8px;">Presupuesto de Junio</div>
+        <div style="position:relative; width:100%; height:10px; border-radius:5px; background:#3a3a4a; overflow:hidden;">
+          <div style="position:absolute; left:0; top:0; width:72%; height:100%; background:linear-gradient(90deg,#10B981,#F59E0B);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; color:#999; font-size:11px; margin-top:6px;">
+          <span>$ 72.000 / $ 100.000</span><span>72%</span>
+        </div>
+        <div style="color:#F59E0B; font-size:11px; margin-top:10px;">📈 Proyección fin de mes: $ 108.000 (supera el límite)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>1. Presupuesto vs. gasto real</h3>
+      <p>Barra de progreso del mes contra el límite mensual configurado, + proyección de cuánto se va a gastar a fin de mes según el ritmo actual.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="comparison" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px; background:#1a1a2e; height:100%; display:flex; flex-direction:column; justify-content:center; gap:10px;">
+        <div style="color:#ddd; font-size:13px;">Este mes vs. mes anterior</div>
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <span style="color:#fff; font-size:22px; font-weight:bold;">$ 72.000</span>
+          <span style="color:#EF4444; font-size:13px;">▲ 14% más que Mayo</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>2. Comparación con el mes anterior</h3>
+      <p>Variación porcentual del gasto total respecto al mes pasado, con indicador de suba/baja (rojo/verde) — para detectar rápido si el mes viene más caro.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="weekday" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px; background:#1a1a2e; height:100%;">
+        <div style="color:#ddd; font-size:12px; margin-bottom:10px;">Gasto por día de la semana</div>
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; height:70px; gap:4px;">
+          <div style="width:100%; height:30%; background:#3B82F6; border-radius:4px;"></div>
+          <div style="width:100%; height:50%; background:#3B82F6; border-radius:4px;"></div>
+          <div style="width:100%; height:25%; background:#3B82F6; border-radius:4px;"></div>
+          <div style="width:100%; height:40%; background:#3B82F6; border-radius:4px;"></div>
+          <div style="width:100%; height:60%; background:#3B82F6; border-radius:4px;"></div>
+          <div style="width:100%; height:100%; background:#06B6D4; border-radius:4px;"></div>
+          <div style="width:100%; height:80%; background:#06B6D4; border-radius:4px;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; color:#999; font-size:10px; margin-top:4px;">
+          <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>3. Gasto por día de la semana</h3>
+      <p>¿Qué días se gasta más? Útil para ver si las compras de fin de semana inflan el presupuesto y planificar mejor.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="ticket" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px; background:#1a1a2e; height:100%; display:flex; flex-direction:column; gap:10px; justify-content:center;">
+        <div style="display:flex; justify-content:space-between; color:#ddd; font-size:12px;"><span>🔵 Walmart</span><span>$ 8.200 / visita</span></div>
+        <div style="display:flex; justify-content:space-between; color:#ddd; font-size:12px;"><span>🟢 Coto</span><span>$ 5.400 / visita</span></div>
+        <div style="display:flex; justify-content:space-between; color:#ddd; font-size:12px;"><span>🟠 Día</span><span>$ 3.100 / visita</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>4. Ticket promedio por supermercado</h3>
+      <p>Cuánto se gasta en promedio por visita a cada súper (no solo el total acumulado). Ayuda a ver dónde "se va" más plata por compra.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="inflation" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px; background:#1a1a2e; height:100%; display:flex; flex-direction:column; justify-content:center; gap:8px;">
+        <div style="color:#ddd; font-size:12px;">Productos que más subieron de precio</div>
+        <div style="display:flex; justify-content:space-between; color:#fff; font-size:12px;">
+          <span>Aceite girasol 1.5L</span><span style="color:#EF4444;">+38%</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; color:#fff; font-size:12px;">
+          <span>Leche entera 1L</span><span style="color:#EF4444;">+22%</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; color:#fff; font-size:12px;">
+          <span>Pan lactal</span><span style="color:#F59E0B;">+15%</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>5. Productos con mayor aumento de precio</h3>
+      <p>Compara el último precio cargado de cada producto contra el anterior (mismo nombre/código) y muestra los que más subieron — seguimiento de inflación en la canasta familiar.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="frequency" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px; background:#1a1a2e; height:100%; display:flex; flex-direction:column; justify-content:center; gap:10px;">
+        <div style="display:flex; justify-content:space-between; color:#ddd; font-size:13px;"><span>Compras este mes</span><span style="color:#fff; font-weight:bold;">9</span></div>
+        <div style="display:flex; justify-content:space-between; color:#ddd; font-size:13px;"><span>Items promedio por compra</span><span style="color:#fff; font-weight:bold;">12.4</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>6. Frecuencia y tamaño de canasta</h3>
+      <p>Cantidad de compras en el mes y promedio de productos por compra. Ayuda a notar si se está yendo más seguido pero comprando menos (o al revés).</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <p class="subtitle">Tip: si no estás seguro, elegí 2 o 3 — podemos agregar el resto después.</p>
+</div>

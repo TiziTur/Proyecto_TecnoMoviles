@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -62,13 +63,23 @@ fun PriceComparisonScreen(
     onNavigateBack: () -> Unit,
     viewModel: PriceComparisonViewModel = hiltViewModel()
 ) {
-    val uiState             by viewModel.uiState.collectAsStateWithLifecycle()
-    val searchQuery         by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val selectedCategory    by viewModel.selectedCategory.collectAsStateWithLifecycle()
-    val filteredComparisons by viewModel.filteredComparisons.collectAsStateWithLifecycle()
-    val isDark              = isSystemInDarkTheme()
-    val moneyFormat = remember {
-        java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR"))
+    val uiState          by viewModel.uiState.collectAsStateWithLifecycle()
+    val searchQuery      by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
+    val isDark           = isSystemInDarkTheme()
+    val moneyFormat      = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("es", "AR")) }
+    val listState        = rememberLazyListState()
+
+    // Infinite scroll: trigger loadMore cuando quedan ≤ 5 ítems visibles
+    val nearEnd by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+            last >= info.totalItemsCount - 5
+        }
+    }
+    LaunchedEffect(nearEnd) {
+        if (nearEnd) viewModel.loadMore()
     }
 
     Scaffold(
@@ -95,7 +106,7 @@ fun PriceComparisonScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // ── Search bar ────────────────────────────────────────────────
+                // ── Barra de búsqueda ─────────────────────────────────────────
                 OutlinedTextField(
                     value         = searchQuery,
                     onValueChange = { viewModel.searchQuery.value = it },
@@ -116,7 +127,7 @@ fun PriceComparisonScreen(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                // ── Category chips ────────────────────────────────────────────
+                // ── Chips de categoría ────────────────────────────────────────
                 val visibleCats = CATEGORY_ORDER.filter { (uiState.categoryCounts[it] ?: 0) > 0 }
                 if (visibleCats.isNotEmpty()) {
                     LazyRow(
@@ -127,7 +138,7 @@ fun PriceComparisonScreen(
                             FilterChip(
                                 selected = selectedCategory.isBlank(),
                                 onClick  = { viewModel.selectedCategory.value = "" },
-                                label    = { Text("Todos (${uiState.allComparisons.size})") }
+                                label    = { Text("Todos (${uiState.total})") }
                             )
                         }
                         items(visibleCats) { cat ->
@@ -144,7 +155,7 @@ fun PriceComparisonScreen(
                     Spacer(Modifier.height(8.dp))
                 }
 
-                // ── Content ───────────────────────────────────────────────────
+                // ── Contenido ─────────────────────────────────────────────────
                 when {
                     uiState.isLoading -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -156,14 +167,14 @@ fun PriceComparisonScreen(
                             Text(uiState.error, color = MaterialTheme.colorScheme.error)
                         }
                     }
-                    filteredComparisons.isEmpty() -> {
+                    uiState.allComparisons.isEmpty() -> {
                         EmptyState(
                             icon    = Icons.Default.CompareArrows,
                             message = when {
                                 searchQuery.isNotBlank() ->
                                     "No se encontraron productos con \"$searchQuery\""
                                 selectedCategory.isNotBlank() ->
-                                    "No hay productos en la categoría \"$selectedCategory\""
+                                    "No hay productos en \"$selectedCategory\""
                                 else ->
                                     "Registrá compras en varios supermercados para ver comparativas"
                             },
@@ -172,27 +183,43 @@ fun PriceComparisonScreen(
                     }
                     else -> {
                         LazyColumn(
+                            state               = listState,
                             modifier            = Modifier.fillMaxSize(),
                             contentPadding      = PaddingValues(vertical = 4.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // Banner de ahorro
                             item {
-                                val totalSavings = filteredComparisons.sumOf { it.maxSavings }
                                 SavingsBanner(
-                                    totalSavings = totalSavings,
+                                    totalSavings = uiState.allComparisons.sumOf { it.maxSavings },
+                                    shown        = uiState.allComparisons.size,
+                                    total        = uiState.total,
                                     isDark       = isDark,
                                     moneyFormat  = moneyFormat,
                                     modifier     = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
 
-                            items(filteredComparisons, key = { it.productName + it.category }) { item ->
+                            // Lista de productos
+                            items(uiState.allComparisons, key = { it.productName + it.category }) { item ->
                                 CompactPriceCard(
                                     item        = item,
                                     isDark      = isDark,
                                     moneyFormat = moneyFormat,
                                     modifier    = Modifier.padding(horizontal = 16.dp)
                                 )
+                            }
+
+                            // Indicador de carga al final
+                            if (uiState.isLoadingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                                    }
+                                }
                             }
 
                             if (uiState.source.isNotBlank()) {
@@ -218,11 +245,13 @@ fun PriceComparisonScreen(
     }
 }
 
-// ── Savings banner ─────────────────────────────────────────────────────────────
+// ── Banner de ahorro ───────────────────────────────────────────────────────────
 
 @Composable
 private fun SavingsBanner(
     totalSavings: Double,
+    shown: Int,
+    total: Int,
     isDark: Boolean,
     moneyFormat: java.text.NumberFormat,
     modifier: Modifier = Modifier
@@ -254,7 +283,7 @@ private fun SavingsBanner(
                 color      = Color.White
             )
             Text(
-                text  = "si comprás cada producto en el super más barato",
+                text  = "Mostrando $shown de $total productos · deslizá para ver más",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.7f)
             )
@@ -262,7 +291,7 @@ private fun SavingsBanner(
     }
 }
 
-// ── Compact expandable card ────────────────────────────────────────────────────
+// ── Tarjeta compacta expandible ───────────────────────────────────────────────
 
 @Composable
 private fun CompactPriceCard(
@@ -290,7 +319,7 @@ private fun CompactPriceCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // ── Header row ────────────────────────────────────────────────
+            // Cabecera colapsada
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -364,7 +393,7 @@ private fun CompactPriceCard(
                 }
             }
 
-            // ── Expanded detail ───────────────────────────────────────────
+            // Detalle expandido
             AnimatedVisibility(
                 visible = expanded,
                 enter   = expandVertically(),
@@ -377,8 +406,8 @@ private fun CompactPriceCard(
 
                     item.prices.forEach { entry ->
                         PriceRow(
-                            entry      = entry,
-                            isCheapest = entry.supermarket == item.cheapestAt,
+                            entry       = entry,
+                            isCheapest  = entry.supermarket == item.cheapestAt,
                             moneyFormat = moneyFormat
                         )
                     }

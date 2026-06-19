@@ -1,0 +1,222 @@
+==================================================================
+GUÍA PARA LA DEMO DE LA SEGUNDA ENTREGA
+==================================================================
+
+Lo que pidió el profesor (textual):
+"La idea para esta segunda instancia, es que me presenten al menos
+una parte de la app, una funcionalidad, un caso de uso funcionando
+con DataStore, una con Base de datos local y una con networking,
+consumiendo una API. Si es más de una parte, mejor. No hace falta
+que hagan una presentación, solo presentar demo de la app y código
+demostrando la implementación."
+
+Conclusión: necesitamos UN caso de uso end-to-end (idealmente el
+mismo, para que se vea integrado) que toque las 3 patas:
+  1) DataStore (persistencia de sesión/preferencias)
+  2) Room (base de datos local)
+  3) Networking (Retrofit consumiendo la API en Railway)
+
+El caso de uso recomendado es LOGIN -> HOME -> LISTA DE COMPRAS,
+porque atraviesa las 3 capas de punta a punta y es fácil de mostrar
+en 3-4 minutos. Como "extra" se puede mostrar también Nueva Compra
+(escritura) para reforzar networking + Room.
+
+------------------------------------------------------------------
+ORDEN SUGERIDO DE LA DEMO (en vivo, en el celular/emulador)
+------------------------------------------------------------------
+
+1. Abrir la app, mostrar el Login.
+   - Iniciar sesión con un usuario real.
+   - Decir: "Al loguearse, la app llama a la API en Railway, recibe
+     un JWT y lo guarda en DataStore. Ese token se va a usar en
+     todas las llamadas siguientes."
+
+2. Mostrar la pantalla Home.
+   - Decir: "Estos datos NO vienen directo de internet en este
+     momento: la app primero pide las compras al backend, las
+     guarda en una base de datos Room local, y la pantalla
+     muestra lo que hay en Room. Por eso, si corto internet,
+     los datos siguen apareciendo."
+   - (Opcional, fuerte impacto): activar modo avión, cerrar y
+     volver a abrir la app -> Home sigue mostrando las compras
+     (vienen de Room).
+
+3. Ir a Historial o Nueva Compra y crear/editar una compra.
+   - Decir: "Esto hace un POST a la API en Railway. Si la
+     respuesta es exitosa, además de quedar guardado en el
+     servidor (Postgres en Railway), se actualiza Room. Por eso
+     la pantalla se refresca solita, sin recargar manualmente."
+
+4. Ir a Ajustes y cambiar el modo oscuro / idioma.
+   - Decir: "Esta preferencia se guarda con DataStore. Si cierro
+     la app y la vuelvo a abrir, se mantiene."
+
+Con esto ya mostraste DataStore, Room y Networking funcionando
+juntos. Ahora pasamos al código.
+
+------------------------------------------------------------------
+CÓDIGO A MOSTRAR (con archivo y líneas exactas)
+------------------------------------------------------------------
+
+### A) DATASTORE — Persistencia de sesión
+
+Archivo: app/src/main/java/com/undef/superahorroturina/data/local/SessionDataStore.kt
+
+- Líneas 20: la instancia del DataStore.
+    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "session")
+
+- Líneas 35-42: las claves que se guardan (token, datos del usuario).
+
+- Líneas 45-54: el Flow reactivo "session" — cada vez que cambia
+  algo en DataStore, emite un nuevo SessionData automáticamente.
+
+- Líneas 56-66: saveSession() — se llama al hacer login/registro,
+  escribe el token y los datos del usuario con "edit { }".
+
+- Línea 73: bearerToken — un Flow derivado que arma el header
+  "Bearer <token>" listo para usar en Retrofit.
+
+QUÉ DECIR:
+"DataStore es el reemplazo moderno de SharedPreferences. Es
+asincrónico (usa corrutinas), expone los datos como Flow, y es
+type-safe. Acá lo usamos para guardar el JWT que devuelve el
+backend al loguearse, y también para la preferencia de modo
+oscuro (ThemeDataStore, mismo patrón)."
+
+PUNTO DE CONEXIÓN (para que se vea el caso de uso completo):
+Archivo: app/src/main/java/com/undef/superahorroturina/data/repository/AuthRepository.kt
+- Líneas 26-49 (función login): se llama a la API (networking),
+  y si responde OK, en la línea 30 se llama a
+  "session.saveSession(...)" -> ahí es donde se escribe en
+  DataStore. Esto conecta networking + DataStore en una sola
+  función.
+
+
+### B) BASE DE DATOS LOCAL (ROOM)
+
+Archivo: app/src/main/java/com/undef/superahorroturina/data/local/db/AppDatabase.kt
+- Mostrar completo (es corto, 15 líneas): la anotación @Database,
+  las entidades PurchaseEntity y ProductEntity, y los DAOs.
+
+QUÉ DECIR:
+"Room es la base de datos local SQLite con una capa de
+abstracción de Android. Tenemos dos entidades: compras y
+productos."
+
+Archivo: app/src/main/java/com/undef/superahorroturina/data/local/db/PurchaseDao.kt
+- Línea 14-15: getAll() devuelve un Flow<List<PurchaseEntity>>.
+    @Query("SELECT * FROM purchases ORDER BY purchaseDate DESC, purchaseTime DESC")
+    fun getAll(): Flow<List<PurchaseEntity>>
+
+- Líneas 8-12: upsert / upsertAll (inserción con reemplazo, se
+  usa para sincronizar lo que viene del backend).
+
+- Línea 20-21: delete(id).
+
+QUÉ DECIR:
+"El DAO expone un Flow. Esto es clave: significa que cualquier
+pantalla que observe este Flow se va a actualizar sola apenas
+cambien los datos en la tabla, sin tener que pedirle nada de
+nuevo a la base de datos."
+
+
+### C) NETWORKING (RETROFIT CONSUMIENDO LA API EN RAILWAY)
+
+Archivo: app/src/main/java/com/undef/superahorroturina/di/NetworkModule.kt
+- Línea 22: la URL base del backend desplegado en Railway.
+    private const val BASE_URL = "https://proyectotecnomoviles-production.up.railway.app/"
+
+- Líneas 37-44: cómo se construye el Retrofit (Gson + OkHttp).
+
+QUÉ DECIR:
+"Todas las llamadas van a este backend Node/Express que nosotros
+desarrollamos, con su base de datos Postgres en Railway. Retrofit
+genera automáticamente la implementación de esta interfaz."
+
+Archivo: app/src/main/java/com/undef/superahorroturina/data/network/ApiService.kt
+- Líneas 33-36 (getPurchases) y 44-48 (createPurchase): mostrar
+  2-3 endpoints como ejemplo, remarcando que son funciones
+  "suspend" (corrutinas) y que reciben el token JWT por header.
+
+
+### D) EL CASO DE USO COMPLETO — DONDE SE UNEN LAS 3 PATAS
+
+Este es el archivo MÁS IMPORTANTE para mostrar, porque conecta todo:
+
+Archivo: app/src/main/java/com/undef/superahorroturina/data/repository/PurchaseRepository.kt
+
+- Línea 29-30: getPurchasesFlow() — expone el Flow de Room hacia
+  el ViewModel/UI.
+    fun getPurchasesFlow(): Flow<List<Purchase>> =
+        purchaseDao.getAll().map { entities -> entities.map { it.toDomain() } }
+
+- Líneas 32-49 (refreshPurchases): el flujo completo:
+    1. línea 33: pide el token desde DataStore
+       (session.bearerToken.first())
+    2. línea 34: llama a la API (Retrofit / networking)
+    3. línea 37: si la respuesta es exitosa, guarda los datos en
+       Room (purchaseDao.upsertAll(...))
+
+QUÉ DECIR (esta es la frase clave de toda la demo):
+"Esta función resume las 3 patas pedidas: usa DataStore para
+obtener el token de sesión, usa Retrofit para pedir las compras
+a la API en Railway, y guarda el resultado en Room. La UI nunca
+habla directo con la red: solo observa el Flow de Room, que se
+actualiza automáticamente cuando esta función trae datos nuevos."
+
+
+### E) CÓMO LO CONSUME LA UI (ViewModel reactivo)
+
+Archivo: app/src/main/java/com/undef/superahorroturina/ui/screens/home/HomeViewModel.kt
+
+- Líneas 28-46: en el init, se suscribe a
+  purchaseRepository.getPurchasesFlow() (Room) y construye el
+  estado de la pantalla (HomeUiState) con esos datos.
+
+- Líneas 56-61 (loadData): llama a refreshPurchases() — esto
+  dispara la llamada de red; cuando termina, Room se actualiza
+  y, como el Flow ya está siendo observado, la pantalla se
+  refresca solita.
+
+QUÉ DECIR:
+"El ViewModel no maneja directamente Retrofit ni DataStore: solo
+conoce al repositorio. Esto es la separación de capas (MVVM): la
+UI observa un StateFlow, el ViewModel combina los datos de Room
+con el estado de carga, y el repositorio es el único que sabe de
+networking, Room y DataStore."
+
+------------------------------------------------------------------
+RESUMEN PARA EL CIERRE (1 frase por tecnología)
+------------------------------------------------------------------
+
+- DataStore: guarda el token de sesión (login) y preferencias
+  (modo oscuro, límite mensual) de forma reactiva y asincrónica.
+
+- Room: es la base de datos local (SQLite) que persiste compras y
+  productos, y es la fuente de datos que observa la UI (offline-
+  first).
+
+- Networking: Retrofit + OkHttp + Gson consumen un backend propio
+  (Node/Express + Postgres) desplegado en Railway, autenticado
+  con JWT guardado en DataStore.
+
+- Todo se conecta en PurchaseRepository.refreshPurchases(): toma
+  el token de DataStore, llama a la API, y persiste el resultado
+  en Room, que la UI observa reactivamente vía Flow.
+
+------------------------------------------------------------------
+TIPS EXTRA
+------------------------------------------------------------------
+
+- Si preguntan por corrutinas: todas las funciones de los
+  repositorios y DAOs son "suspend" o devuelven "Flow" — se
+  ejecutan en viewModelScope.launch desde el ViewModel.
+
+- Si preguntan por manejo de errores: PurchaseRepository envuelve
+  las llamadas en runCatching {} y devuelve un ApiResult.Success
+  o ApiResult.Error, que el ViewModel traduce en mensajes visibles
+  en la UI.
+
+- Si preguntan por Intents (otro requisito): mostrar
+  PurchaseDetailScreen.kt, donde se usa Intent(ACTION_SEND) para
+  compartir el detalle de una compra.

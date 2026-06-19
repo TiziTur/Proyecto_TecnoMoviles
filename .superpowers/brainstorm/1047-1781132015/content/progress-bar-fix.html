@@ -1,0 +1,57 @@
+<h2>Barra de progreso por supermercado</h2>
+<p class="subtitle">Material3 1.3+ agrega un "stop indicator" con hueco entre el tramo coloreado y el track — eso causa el corte que ves en Walmart</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Actual: LinearProgressIndicator (M3 expressive)</div>
+    <div class="mockup-body" style="background:#1a1a2e; padding:24px;">
+      <div style="margin-bottom:6px; color:#ddd; font-size:13px; display:flex; justify-content:space-between;">
+        <span>🔵 Walmart</span><span>$ 45.000 · 62%</span>
+      </div>
+      <!-- Simula el gap + stop indicator de M3 1.3 -->
+      <div style="display:flex; align-items:center; gap:6px; height:6px;">
+        <div style="width:58%; height:6px; border-radius:3px; background:#3B82F6;"></div>
+        <div style="width:4px; height:4px; border-radius:50%; background:#3B82F6;"></div>
+        <div style="flex:1; height:6px; border-radius:3px; background:#3a3a4a;"></div>
+      </div>
+      <p style="color:#999; font-size:12px; margin-top:14px;">
+        ⚠️ Se ve como: barra azul → <b>corte/hueco</b> → punto → barra vacía gris. Dos figuras separadas en vez de una.
+      </p>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">Propuesto: barra custom de una sola pieza</div>
+    <div class="mockup-body" style="background:#1a1a2e; padding:24px;">
+      <div style="margin-bottom:6px; color:#ddd; font-size:13px; display:flex; justify-content:space-between;">
+        <span>🔵 Walmart</span><span>$ 45.000 · 62%</span>
+      </div>
+      <div style="position:relative; width:100%; height:8px; border-radius:4px; background:#3a3a4a; overflow:hidden;">
+        <div style="position:absolute; left:0; top:0; width:62%; height:100%; border-radius:4px; background:linear-gradient(90deg,#3B82F6,#60A5FA);"></div>
+      </div>
+      <p style="color:#999; font-size:12px; margin-top:14px;">
+        ✅ Una sola forma (Box redondeado) con relleno superpuesto del mismo alto, sin huecos ni puntos. Track y relleno son "un mismo objeto".
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>¿Aplicamos este reemplazo en "Gasto por supermercado"?</h3>
+  <div class="options">
+    <div class="option" data-choice="yes" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Sí, reemplazar por barra custom</h3>
+        <p>Track + relleno como un solo Box con esquinas redondeadas, sin gap ni stop indicator. Más prolijo y consistente con el resto del diseño glassmorphism.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="other" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Otra idea</h3>
+        <p>Lo charlamos en el chat.</p>
+      </div>
+    </div>
+  </div>
+</div>

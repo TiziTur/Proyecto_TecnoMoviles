@@ -1,0 +1,197 @@
+Trabajo Práctico Integrador -
+Tecnologías Móviles - 2026
+
+Link para armar los grupos: https://forms.gle/Y8LFbNKDcbVtGwZ38
+Nombre del Proyecto: “SUPER AHORRO”
+Descripción breve: Aplicación móvil para registrar, consultar y analizar gastos de
+supermercado, permitiendo al usuario llevar un mejor control de sus compras y detectar
+oportunidades de ahorro.
+Objetivo
+Desarrollar una aplicación Android funcional que permita gestionar compras de
+supermercado y los productos asociados a cada compra, almacenando información
+relevante como fecha, comercio, total abonado, detalle de productos e imagen del ticket.
+La aplicación deberá aplicar los conceptos vistos en la materia, incluyendo navegación,
+persistencia local, base de datos, networking, corrutinas e interacción con funcionalidades
+del dispositivo.
+
+Descripción de la Aplicación
+La aplicación SUPER AHORRO permitirá al usuario:
+● Registrarse, iniciar sesión y cerrar sesión.
+● Gestionar su perfil de usuario.
+● Registrar una compra indicando:
+○ fecha
+○ hora
+○ supermercado
+○ total de la compra
+● Registrar los productos asociados a cada compra.
+● Para cada producto almacenar:
+○ id
+○ código
+○ nombre
+○ descripción
+○ precio
+● Visualizar un listado de las últimas compras realizadas.
+● Consultar un historial de compras.
+● Ver estadísticas y gráficos de gastos.
+● Adjuntar o capturar una imagen del ticket de compra.
+● Opcionalmente, procesar el ticket con IA para cargar automáticamente la compra.
+● Opcionalmente, consultar mediante un chat preguntas sobre consumos y precios
+históricos.
+
+Requisitos
+1. Requerimientos funcionales
+La aplicación deberá:
+1. Gestión de usuario
+● Implementar una pantalla de bienvenida o Splash.
+● Contener flujo de registro, inicio de sesión y cierre de sesión.
+● Permitir modificar datos del usuario desde una pantalla Mi Perfil.
+● Persistir información básica del usuario o de sesión mediante SharedPreferences o
+DataStore.
+2. Gestión de compras
+● Permitir registrar una nueva compra.
+● Cada compra deberá incluir:
+○ fecha
+○ hora
+○ supermercado
+○ total
+● Permitir editar o eliminar compras registradas.
+● Mostrar una pantalla con el listado de las últimas compras.
+3. Gestión de productos por compra
+● Cada compra podrá contener uno o más productos.
+● Cada producto deberá incluir:
+○ id
+○ código
+○ nombre
+○ descripción
+○ precio
+● Permitir agregar, editar y eliminar productos dentro de una compra.
+● Mostrar el detalle completo de una compra con sus productos asociados.
+
+4. Historial, estadísticas y visualización
+● Mostrar historial de compras ordenado por fecha.
+● Permitir consultar estadísticas, por ejemplo:
+○ gasto total por período
+○ gasto por supermercado
+○ evolución del gasto mensual
+○ productos más comprados
+● Incluir al menos una pantalla con gráficos o indicadores visuales.
+5. Ticket de compra
+● Permitir adjuntar una imagen del ticket desde la galería o cámara.
+● Asociar la imagen del ticket a una compra.
+● Gestionar los permisos necesarios del dispositivo si corresponde.
+6. Networking
+● Consumir una API externa o simulada para alguna funcionalidad de la app.
+Ejemplos:
+○ listado de supermercados
+○ categorías
+○ precios de referencia
+○ promociones
+○ carga o sincronización remota de compras
+● Las operaciones de red deberán ejecutarse con corrutinas para no bloquear la
+interfaz.
+7. Navegación e interacción con Android
+● Utilizar Navigation Compose para la navegación principal.
+● Utilizar Intents al menos en una funcionalidad.
+Ejemplos:
+○ compartir una compra
+○ enviar consulta por email
+○ abrir la cámara o galería
+
+2. Requerimientos No Funcionales
+● Crear el proyecto desde cero en Android Studio.
+● El proyecto deberá estar versionado en GitHub o GitLab.
+● La aplicación deberá ser usable, clara y consistente visualmente.
+● El nombre del paquete deberá respetar la estructura:
+com.undef.nombreappalumno
+● La aplicación deberá utilizar Jetpack Compose.
+● La aplicación deberá incluir navegación entre pantallas.
+● Deberá utilizar corrutinas en operaciones asincrónicas.
+● Deberá utilizar persistencia local.
+● Deberá utilizar base de datos local.
+● Deberá incorporar al menos una interacción de red.
+● Deberá contemplar internacionalización mediante strings.xml.
+● El código deberá estar organizado aplicando una arquitectura clara, preferentemente
+MVVM.
+
+Criterios de Evaluación:
+- Funcionalidad: La aplicación debe cumplir con todos los requisitos funcionales
+establecidos, incluyendo la correcta integración con el servidor y la implementación de
+todas las funcionalidades solicitadas.
+- Usabilidad: Se evaluará la facilidad de uso y la experiencia de usuario. La interfaz debe ser
+intuitiva y atractiva.
+- Calidad del Código: El código debe ser limpio, organizado y documentado. Se valorará el
+uso adecuado de patrones de diseño, en particular la correcta implementación de MVVM:
+Model View View Model.
+
+Tecnologías/conceptos mínimos a aplicar
+El trabajo debe evidenciar el uso de los siguientes temas de la materia:
+● Activity
+● Compose
+● Navigation Compose
+● Intents
+● Persistencia con SharedPreferences o preferentemente DataStore
+● Base de datos local (por ejemplo Room)
+● Networking
+● Corrutinas
+
+Extras que suman:
+- Testing: Se evaluará la cobertura y la efectividad de las pruebas implementadas.
+- Documentación: La documentación debe ser clara, detallada y útil tanto para usuarios
+como para desarrolladores que puedan trabajar en el proyecto en el futuro.
+
+Entregas
+Primera entrega
+La primera entrega deberá incluir la parte visual de la aplicación, aunque todavía no sea
+funcional.
+Debe contener:
+● Diseño general de la app
+● Todas las pantallas principales
+● Navegación entre pantallas
+● Datos estáticos o mockeados.
+● Estructura base del proyecto
+Pantallas mínimas sugeridas
+● Splash / Bienvenida
+● Login / Registro
+● Home
+● Nueva compra
+● Nuevo Producto
+● Detalle de compra
+● Historial de compras
+● Estadísticas
+● Mi perfil
+● Settings
+Forma de entrega
+● Repositorio en GitHub / GitLab
+● README con descripción del proyecto
+● GIF o capturas de la app
+● APK compilada
+
+Segunda entrega
+La segunda entrega deberá incorporar funcionalidad real.
+Debe incluir:
+● Persistencia local de sesión o preferencias.
+● Base de datos local para compras y productos.
+● Operaciones con corrutinas.
+● Networking.
+● Menús y diálogos.
+● Carga real de datos.
+● Al menos una funcionalidad con Intents.
+Ejemplos concretos
+● Guardar usuario logueado.
+● Registrar compras en Room.
+● Listar compras guardadas.
+● Consultar supermercados o promociones desde API.
+● Compartir una compra por Intent.
+Etapa final
+La etapa final deberá completar funcionalidades faltantes e incorporar un agregado
+diferencial.
+Puede incluir alguno de estos opcionales:
+● Carga automática del ticket con IA
+● OCR del ticket
+● Chat para consultas sobre historial de compras
+● Comparativa de precios entre supermercados
+● Notificaciones
+● Exportación de datos
+● Filtros avanzados
+● Autenticación biométrica
+● Sincronización en la nube.
