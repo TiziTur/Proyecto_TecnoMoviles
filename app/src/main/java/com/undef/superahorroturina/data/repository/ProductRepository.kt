@@ -5,6 +5,10 @@ import com.undef.superahorroturina.data.local.db.ProductDao
 import com.undef.superahorroturina.data.local.db.ProductEntity
 import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.network.dto.CreateProductRequest
+import com.undef.superahorroturina.data.network.dto.MatchSeedItemDto
+import com.undef.superahorroturina.data.network.dto.MatchSeedRequest
+import com.undef.superahorroturina.data.network.dto.SeedMatchResultDto
+import com.undef.superahorroturina.data.network.dto.SeedSearchResultDto
 import com.undef.superahorroturina.data.network.dto.UpdateProductRequest
 import com.undef.superahorroturina.model.Product
 import kotlinx.coroutines.flow.first
@@ -21,11 +25,12 @@ class ProductRepository @Inject constructor(
         val token = session.bearerToken.first()
         val response = api.getProducts(token, purchaseId)
         if (response.isSuccessful) {
-            val products = response.body()!!.map {
+            val dtos = response.body()!!
+            val products = dtos.map {
                 Product(it.id, it.code, it.name, it.description, it.price, it.quantity)
             }
-            productDao.upsertAll(products.map { p ->
-                ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity)
+            productDao.upsertAll(dtos.map { p ->
+                ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity, p.category, p.seedProductName)
             })
             ApiResult.Success(products)
         } else {
@@ -35,17 +40,18 @@ class ProductRepository @Inject constructor(
 
     suspend fun createProduct(
         purchaseId: Int, code: String, name: String,
-        description: String, price: Double, quantity: Int, category: String = ""
+        description: String, price: Double, quantity: Int,
+        category: String = "", seedProductName: String? = null
     ): ApiResult<Product> = runCatching {
         val token = session.bearerToken.first()
         val response = api.createProduct(
             token, purchaseId,
-            CreateProductRequest(code, name, description, price, quantity, category)
+            CreateProductRequest(code, name, description, price, quantity, category, seedProductName)
         )
         if (response.isSuccessful) {
             val p = response.body()!!
             val product = Product(p.id, p.code, p.name, p.description, p.price, p.quantity)
-            productDao.upsert(ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity, p.category))
+            productDao.upsert(ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity, p.category, p.seedProductName))
             ApiResult.Success(product)
         } else {
             ApiResult.Error("Error al crear producto: ${response.code()}")
@@ -64,7 +70,7 @@ class ProductRepository @Inject constructor(
         if (response.isSuccessful) {
             val p = response.body()!!
             val product = Product(p.id, p.code, p.name, p.description, p.price, p.quantity)
-            productDao.upsert(ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity))
+            productDao.upsert(ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity, p.category, p.seedProductName))
             ApiResult.Success(product)
         } else {
             ApiResult.Error("Error al actualizar producto: ${response.code()}")
@@ -86,4 +92,27 @@ class ProductRepository @Inject constructor(
         productDao.getByPurchaseId(purchaseId).first().map { e ->
             Product(e.id, e.code, e.name, e.description, e.price, e.quantity)
         }
+
+    // ── Matching contra la seed ──────────────────────────────────
+    suspend fun matchSeed(names: List<String>): ApiResult<List<SeedMatchResultDto>> = runCatching {
+        val token = session.bearerToken.first()
+        val response = api.matchSeedProducts(token, MatchSeedRequest(names.map { MatchSeedItemDto(it) }))
+        if (response.isSuccessful) {
+            val matches: List<SeedMatchResultDto> = response.body()?.matches ?: emptyList()
+            ApiResult.Success(matches)
+        } else {
+            ApiResult.Error("Error al vincular productos: ${response.code()}")
+        }
+    }.getOrElse { ApiResult.Error(it.message ?: "Error de conexión") }
+
+    suspend fun searchSeedProducts(query: String): ApiResult<List<SeedSearchResultDto>> = runCatching {
+        val token = session.bearerToken.first()
+        val response = api.searchSeedProducts(token, query)
+        if (response.isSuccessful) {
+            val results: List<SeedSearchResultDto> = response.body() ?: emptyList()
+            ApiResult.Success(results)
+        } else {
+            ApiResult.Error("Error al buscar productos: ${response.code()}")
+        }
+    }.getOrElse { ApiResult.Error(it.message ?: "Error de conexión") }
 }
