@@ -30,7 +30,7 @@ function normalizeFormat(name: string): string {
     .replace(/\bX(\d+)\s*X\s*(\d+(?:[.,]\d+)?)\s*ML\b/gi, '$1x$2ml')
     .replace(/\bX(\d+(?:[.,]\d+)?)\s*ML\b/gi, '$1ml')
     .replace(/\bX(\d+(?:[.,]\d+)?)\s*KG\b/gi, '$1kg')
-    .replace(/\bX(\d+(?:[.,]\d+)?)\s*GRS?\b/gi, '$1g')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*GR?S?\b/gi, '$1g')
     .replace(/\bX(\d+)\s*UN\b/gi, 'x$1')
     // Variantes sin prefijo "X" observadas en datos reales de SEPA, con o sin punto final
     // (ej. "1.5lt.", "750cc.", "500 Ml", "X800g.", "112G", "1.5 Litro").
