@@ -65,7 +65,10 @@ fun PurchaseDetailScreen(
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val moneyFormat   = remember { NumberFormat.getNumberInstance(Locale("es", "AR")) }
 
-    // Pantalla completa de confirmación (reemplaza el flujo normal mientras hay productos para revisar)
+    // Pantalla completa de confirmación (reemplaza el flujo normal mientras hay productos para revisar).
+    // Retorna antes de declarar showDeleteDialog/showTicketChooser — es seguro porque el diálogo de
+    // borrado es modal y bloquea el botón "Adjuntar ticket" mientras está abierto, por lo que nunca
+    // pueden coexistir una confirmación de ticket y un diálogo abierto.
     if (ticketState is TicketScanState.Confirm) {
         val confirmState = ticketState as TicketScanState.Confirm
         TicketConfirmScreen(
