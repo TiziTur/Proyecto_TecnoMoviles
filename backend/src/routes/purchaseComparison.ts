@@ -1,26 +1,15 @@
 // purchaseComparison.ts — Compara una compra completa contra precios SEPA.
-// Hace matching por palabras clave entre los nombres del ticket y reference_prices.
-// GET /purchases/:purchaseId/compare
+// Para productos vinculados a la seed (seed_product_name), hace un match exacto.
+// Para los no vinculados, cae al matching difuso por tokens (tokenize/scoreMatch).
 import { Router, Response } from 'express';
 import pool from '../db';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { tokenize, scoreMatch } from '../lib/seedMatching';
 
 const router = Router({ mergeParams: true });
 router.use(authMiddleware);
 
-function tokenize(name: string): string[] {
-  return name
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter(t => t.length >= 3);
-}
-
-function scoreMatch(ticketTokens: string[], sepaName: string): number {
-  const sepaLow = sepaName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  return ticketTokens.filter(t => sepaLow.includes(t)).length;
-}
+interface SepaMatch { product_name: string; supermarket: string; price: number }
 
 router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
   const purchaseId = parseInt(req.params.purchaseId);
@@ -35,9 +24,9 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     if (pRes.rows.length === 0) { res.status(404).json({ error: 'Compra no encontrada' }); return; }
     const purchase = pRes.rows[0];
 
-    // 2. Obtener productos de la compra
+    // 2. Obtener productos de la compra (incluyendo el vínculo a la seed si existe)
     const prodRes = await pool.query(
-      'SELECT id, name, price, quantity, category FROM products WHERE purchase_id = $1 ORDER BY id',
+      'SELECT id, name, price, quantity, category, seed_product_name FROM products WHERE purchase_id = $1 ORDER BY id',
       [purchaseId]
     );
     const products = prodRes.rows;
@@ -46,23 +35,45 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
-    // 3. Para cada producto, buscar candidatos en SEPA usando palabras clave
+    // 3. Para cada producto: match exacto si está vinculado, si no matching difuso por tokens.
     const matchedByProduct: Array<{
       ticketName: string;
       ticketPrice: number;
       ticketQty: number;
       category: string;
-      sepaMatches: Array<{ product_name: string; supermarket: string; price: number }>;
+      sepaMatches: SepaMatch[];
     }> = [];
 
     for (const prod of products) {
+      if (prod.seed_product_name) {
+        const exactRes = await pool.query(
+          `SELECT product_name, supermarket, price FROM reference_prices WHERE product_name = $1`,
+          [prod.seed_product_name]
+        );
+        const bestBySupermarket = new Map<string, SepaMatch>();
+        for (const row of exactRes.rows as SepaMatch[]) {
+          if (!bestBySupermarket.has(row.supermarket)) bestBySupermarket.set(row.supermarket, row);
+        }
+        matchedByProduct.push({
+          ticketName: prod.name,
+          ticketPrice: parseFloat(prod.price),
+          ticketQty: prod.quantity,
+          category: prod.category ?? '',
+          sepaMatches: Array.from(bestBySupermarket.values()).map(c => ({
+            product_name: c.product_name,
+            supermarket: c.supermarket,
+            price: parseFloat(String(c.price))
+          }))
+        });
+        continue;
+      }
+
       const tokens = tokenize(prod.name);
       if (tokens.length === 0) {
         matchedByProduct.push({ ticketName: prod.name, ticketPrice: prod.price, ticketQty: prod.quantity, category: prod.category ?? '', sepaMatches: [] });
         continue;
       }
 
-      // Query ILIKE con los primeros 3 tokens para no ser demasiado restrictivo
       const topTokens = tokens.slice(0, 3);
       const conditions = topTokens.map((t, i) => `LOWER(product_name) LIKE $${i + 1}`).join(' AND ');
       const params = topTokens.map(t => `%${t}%`);
@@ -72,7 +83,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         params
       );
 
-      // Si no hubo resultados con AND, intentar con OR usando solo el primer token
       let candidates = sepaRes.rows;
       if (candidates.length === 0 && tokens.length > 0) {
         const orRes = await pool.query(
@@ -82,13 +92,11 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         candidates = orRes.rows;
       }
 
-      // Ordenar por score de coincidencia y tomar top 10 por supermarket
       const scored = candidates
         .map((c: any) => ({ ...c, score: scoreMatch(tokens, c.product_name) }))
         .filter((c: any) => c.score > 0)
         .sort((a: any, b: any) => b.score - a.score);
 
-      // Un candidato por supermercado (el mejor scored)
       const bestBySupermarket = new Map<string, typeof scored[0]>();
       for (const c of scored) {
         if (!bestBySupermarket.has(c.supermarket)) bestBySupermarket.set(c.supermarket, c);
@@ -142,7 +150,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             category: mp.category
           });
         } else {
-          // Producto no encontrado en este super: usar precio del ticket (asumimos mismo precio)
           total += mp.ticketPrice * mp.ticketQty;
           productDetails.push({
             ticketName: mp.ticketName,
@@ -154,7 +161,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         }
       }
 
-      if (matchedCount === 0) continue; // ignorar supermercados sin ninguna coincidencia
+      if (matchedCount === 0) continue;
 
       const savings = userTotal - total;
       const savingsPct = userTotal > 0 ? Math.round((savings / userTotal) * 100) : 0;
@@ -162,7 +169,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
       comparisons.push({ supermarket, total, matchedCount, savings, savingsPct, products: productDetails });
     }
 
-    // Ordenar de menor precio total a mayor
     comparisons.sort((a, b) => a.total - b.total);
 
     const unmatchedProducts = matchedByProduct
