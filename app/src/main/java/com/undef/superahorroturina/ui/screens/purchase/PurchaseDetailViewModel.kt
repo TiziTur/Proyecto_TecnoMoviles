@@ -1,6 +1,6 @@
 // ViewModel para el detalle de una compra.
 // Carga la compra con sus productos desde el backend.
-// También maneja el flujo de OCR: escanear ticket → mostrar productos detectados → confirmar inserción.
+// También maneja el flujo de OCR: escanear ticket → matchear contra la seed → confirmar inserción.
 package com.undef.superahorroturina.ui.screens.purchase
 
 import android.content.Context
@@ -15,6 +15,7 @@ import com.undef.superahorroturina.data.local.SessionDataStore
 import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.network.dto.ScannedProductDto
 import com.undef.superahorroturina.data.network.dto.ScanTicketRequest
+import com.undef.superahorroturina.data.network.dto.SeedSearchResultDto
 import com.undef.superahorroturina.data.repository.ApiResult
 import com.undef.superahorroturina.data.repository.ProductRepository
 import com.undef.superahorroturina.data.repository.PurchaseRepository
@@ -34,11 +35,19 @@ data class PurchaseDetailUiState(
     val error: String = ""
 )
 
+// Un producto detectado en el ticket junto con su estado de vínculo a la seed.
+// seedMatch = nombre exacto de reference_prices.product_name, o null si no está vinculado.
+data class ScannedProductUi(
+    val product: ScannedProductDto,
+    val seedMatch: String? = null,
+    val seedCandidates: List<String> = emptyList()
+)
+
 // Estado del flujo de escaneo de ticket
 sealed class TicketScanState {
     object Idle : TicketScanState()
     object Scanning : TicketScanState()
-    data class Confirm(val products: List<ScannedProductDto>, val supermarket: String?) : TicketScanState()
+    data class Confirm(val items: List<ScannedProductUi>, val supermarket: String?) : TicketScanState()
     object Inserting : TicketScanState()
     data class Error(val message: String) : TicketScanState()
     object Done : TicketScanState()
@@ -98,7 +107,6 @@ class PurchaseDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _ticketScanState.value = TicketScanState.Scanning
             try {
-                // 1. Leer bytes e intentar con Gemini Vision
                 val bytes = context.contentResolver.openInputStream(imageUri)?.readBytes()
                     ?: run {
                         _ticketScanState.value = TicketScanState.Error("No se pudo leer la imagen")
@@ -114,16 +122,15 @@ class PurchaseDetailViewModel @Inject constructor(
                     val body = response.body()
                     val products = body?.products ?: emptyList()
                     if (products.isNotEmpty()) {
-                        _ticketScanState.value = TicketScanState.Confirm(products, body?.supermarket)
+                        _ticketScanState.value = buildConfirmState(products, body?.supermarket)
                         return@launch
                     }
                 }
 
-                // 2. Fallback: ML Kit OCR (sin parseo de productos — extrae texto crudo)
+                // Fallback: ML Kit OCR (sin parseo de productos — extrae texto crudo)
                 mlKitFallback(context, imageUri, purchaseId)
 
             } catch (e: Exception) {
-                // Si Gemini falla por red/timeout, intentar ML Kit
                 try { mlKitFallback(context, imageUri, purchaseId) }
                 catch (ex: Exception) {
                     _ticketScanState.value = TicketScanState.Error("Error al escanear: ${ex.message}")
@@ -145,7 +152,6 @@ class PurchaseDetailViewModel @Inject constructor(
             return
         }
 
-        // Intentar parsear líneas como "Nombre    precio" simples
         val parsed = mutableListOf<ScannedProductDto>()
         val priceRegex = Regex("""(\d{1,6}[.,]\d{2})""")
         rawText.lines().forEach { line ->
@@ -159,30 +165,63 @@ class PurchaseDetailViewModel @Inject constructor(
         }
 
         _ticketScanState.value = if (parsed.isNotEmpty()) {
-            TicketScanState.Confirm(parsed, null)
+            buildConfirmState(parsed, null)
         } else {
-            // Mostrar el texto como un único producto para revisión manual
-            TicketScanState.Confirm(
+            buildConfirmState(
                 listOf(ScannedProductDto(name = "Ticket escaneado", price = 0.0, description = rawText.take(200))),
                 null
             )
         }
     }
 
-    // Confirmar e insertar los productos detectados en la compra
-    fun confirmScannedProducts(purchaseId: Int, products: List<ScannedProductDto>) {
+    // Llama a /products/match-seed para los productos detectados y arma el estado de confirmación
+    // con el resultado del matching (auto-vinculado o candidatos para elegir manualmente).
+    private suspend fun buildConfirmState(products: List<ScannedProductDto>, supermarket: String?): TicketScanState {
+        val matchResult = productRepository.matchSeed(products.map { it.name })
+        val matches = (matchResult as? ApiResult.Success)?.data
+        val items = products.mapIndexed { index, p ->
+            val match = matches?.getOrNull(index)
+            ScannedProductUi(
+                product        = p,
+                seedMatch      = match?.seedMatch,
+                seedCandidates = match?.candidates ?: emptyList()
+            )
+        }
+        return TicketScanState.Confirm(items, supermarket)
+    }
+
+    // Cambia o quita el vínculo de un producto a la seed (elegido a mano por el usuario).
+    fun updateSeedLink(index: Int, seedProductName: String?) {
+        val current = _ticketScanState.value
+        if (current is TicketScanState.Confirm) {
+            val updated = current.items.toMutableList()
+            updated[index] = updated[index].copy(seedMatch = seedProductName)
+            _ticketScanState.value = current.copy(items = updated)
+        }
+    }
+
+    // Búsqueda libre en el catálogo para el buscador manual de vínculo.
+    suspend fun searchSeedProducts(query: String): List<SeedSearchResultDto> {
+        val result = productRepository.searchSeedProducts(query)
+        return (result as? ApiResult.Success)?.data ?: emptyList()
+    }
+
+    // Confirmar e insertar los productos detectados en la compra, con su vínculo a la seed (si lo hay).
+    fun confirmScannedProducts(purchaseId: Int, items: List<ScannedProductUi>) {
         viewModelScope.launch {
             _ticketScanState.value = TicketScanState.Inserting
             try {
-                products.forEach { p ->
+                items.forEach { item ->
+                    val p = item.product
                     productRepository.createProduct(
-                        purchaseId  = purchaseId,
-                        code        = p.code,
-                        name        = p.name,
-                        description = p.description,
-                        price       = p.price,
-                        quantity    = p.quantity,
-                        category    = p.category
+                        purchaseId      = purchaseId,
+                        code            = p.code,
+                        name            = p.name,
+                        description     = p.description,
+                        price           = p.price,
+                        quantity        = p.quantity,
+                        category        = p.category,
+                        seedProductName = item.seedMatch
                     )
                 }
                 _ticketScanState.value = TicketScanState.Done
