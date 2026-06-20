@@ -58,7 +58,7 @@ data class UpdateProductRequest(
     val description: String = "",
     val price: Double,
     val quantity: Int = 1,
-    val category: String = "",
+    val category: String? = null,
     @SerializedName("seed_product_name") val seedProductName: String? = null
 )
 
