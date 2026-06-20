@@ -11,6 +11,7 @@ import ticketRoutes from './routes/ticket';
 import chatRoutes from './routes/chat';
 import priceRoutes from './routes/prices';
 import purchaseComparisonRoutes from './routes/purchaseComparison';
+import productMatchRoutes from './routes/productMatch';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use('/supermarkets', supermarketRoutes);
 app.use('/chat', chatRoutes);
 app.use('/prices', priceRoutes);
 app.use('/purchases/:purchaseId/compare', purchaseComparisonRoutes);
+app.use('/products', productMatchRoutes);
 
 app.listen(PORT, () => {
   console.log(`SuperAhorro API corriendo en puerto ${PORT}`);
