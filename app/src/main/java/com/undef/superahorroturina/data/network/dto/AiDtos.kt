@@ -5,9 +5,13 @@ import com.google.gson.annotations.SerializedName
 
 // ── Ticket OCR ──────────────────────────────────────────────────
 
-data class ScanTicketRequest(
+data class TicketImageDto(
     @SerializedName("imageBase64") val imageBase64: String,
     @SerializedName("mimeType")    val mimeType: String = "image/jpeg"
+)
+
+data class ScanTicketRequest(
+    @SerializedName("images") val images: List<TicketImageDto>
 )
 
 data class ScannedProductDto(

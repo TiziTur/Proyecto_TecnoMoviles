@@ -16,6 +16,7 @@ import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.network.dto.ScannedProductDto
 import com.undef.superahorroturina.data.network.dto.ScanTicketRequest
 import com.undef.superahorroturina.data.network.dto.SeedSearchResultDto
+import com.undef.superahorroturina.data.network.dto.TicketImageDto
 import com.undef.superahorroturina.data.repository.ApiResult
 import com.undef.superahorroturina.data.repository.ProductRepository
 import com.undef.superahorroturina.data.repository.PurchaseRepository
@@ -102,21 +103,26 @@ class PurchaseDetailViewModel @Inject constructor(
     }
 
     // ── Ticket OCR ────────────────────────────────────────────────
-    // Intenta con Gemini Vision; si falla, usa ML Kit como fallback.
-    fun scanTicketFromUri(context: Context, imageUri: Uri, purchaseId: Int) {
+    // Intenta con Gemini Vision (multi-imagen, para tickets largos escaneados en varias fotos);
+    // si falla, usa ML Kit como fallback.
+    fun scanTicketFromUris(context: Context, imageUris: List<Uri>, purchaseId: Int) {
         viewModelScope.launch {
             _ticketScanState.value = TicketScanState.Scanning
             try {
-                val bytes = context.contentResolver.openInputStream(imageUri)?.readBytes()
-                    ?: run {
-                        _ticketScanState.value = TicketScanState.Error("No se pudo leer la imagen")
-                        return@launch
-                    }
-                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+                val images = mutableListOf<TicketImageDto>()
+                for (imageUri in imageUris) {
+                    val bytes = context.contentResolver.openInputStream(imageUri)?.readBytes()
+                        ?: run {
+                            _ticketScanState.value = TicketScanState.Error("No se pudo leer la imagen")
+                            return@launch
+                        }
+                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+                    images.add(TicketImageDto(base64, mimeType))
+                }
 
                 val token = session.bearerToken.first()
-                val response = api.scanTicket(token, purchaseId, ScanTicketRequest(base64, mimeType))
+                val response = api.scanTicket(token, purchaseId, ScanTicketRequest(images))
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -128,10 +134,10 @@ class PurchaseDetailViewModel @Inject constructor(
                 }
 
                 // Fallback: ML Kit OCR (sin parseo de productos — extrae texto crudo)
-                mlKitFallback(context, imageUri, purchaseId)
+                mlKitFallback(context, imageUris, purchaseId)
 
             } catch (e: Exception) {
-                try { mlKitFallback(context, imageUri, purchaseId) }
+                try { mlKitFallback(context, imageUris, purchaseId) }
                 catch (ex: Exception) {
                     _ticketScanState.value = TicketScanState.Error("Error al escanear: ${ex.message}")
                 }
@@ -139,13 +145,18 @@ class PurchaseDetailViewModel @Inject constructor(
         }
     }
 
-    // ML Kit: reconoce el texto del ticket y arma una lista de producto genérico
-    // con el texto completo para que el usuario lo vea y ajuste manualmente.
-    private suspend fun mlKitFallback(context: Context, imageUri: Uri, purchaseId: Int) {
-        val image = InputImage.fromFilePath(context, imageUri)
+    // ML Kit: reconoce el texto de cada foto del ticket y concatena el resultado como si fuera
+    // un único documento continuo, antes de armar una lista de producto genérico con el texto
+    // completo para que el usuario lo vea y ajuste manualmente.
+    private suspend fun mlKitFallback(context: Context, imageUris: List<Uri>, purchaseId: Int) {
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        val visionText = recognizer.process(image).await()
-        val rawText = visionText.text.trim()
+        val texts = mutableListOf<String>()
+        for (imageUri in imageUris) {
+            val image = InputImage.fromFilePath(context, imageUri)
+            val visionText = recognizer.process(image).await()
+            texts.add(visionText.text.trim())
+        }
+        val rawText = texts.joinToString("\n").trim()
 
         if (rawText.isBlank()) {
             _ticketScanState.value = TicketScanState.Error("No se pudo extraer texto del ticket")
