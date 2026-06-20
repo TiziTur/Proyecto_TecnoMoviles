@@ -98,3 +98,27 @@ data class PurchaseComparisonResponse(
     @SerializedName("comparisons")         val comparisons: List<PurchaseSupermarketComparisonDto>,
     @SerializedName("unmatchedProducts")   val unmatchedProducts: List<String> = emptyList()
 )
+
+// ── Matching ticket → seed ───────────────────────────────────────
+
+data class MatchSeedItemDto(
+    @SerializedName("name") val name: String
+)
+
+data class MatchSeedRequest(
+    @SerializedName("products") val products: List<MatchSeedItemDto>
+)
+
+data class SeedMatchResultDto(
+    @SerializedName("seedMatch")  val seedMatch: String?,
+    @SerializedName("candidates") val candidates: List<String> = emptyList()
+)
+
+data class MatchSeedResponse(
+    @SerializedName("matches") val matches: List<SeedMatchResultDto>
+)
+
+data class SeedSearchResultDto(
+    @SerializedName("productName") val productName: String,
+    @SerializedName("brand")       val brand: String = ""
+)
