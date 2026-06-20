@@ -38,7 +38,8 @@ data class ProductDto(
     val description: String = "",
     val price: Double,
     val quantity: Int = 1,
-    val category: String = ""
+    val category: String = "",
+    @SerializedName("seed_product_name") val seedProductName: String? = null
 )
 
 data class CreateProductRequest(
@@ -47,7 +48,8 @@ data class CreateProductRequest(
     val description: String = "",
     val price: Double,
     val quantity: Int = 1,
-    val category: String = ""
+    val category: String = "",
+    @SerializedName("seed_product_name") val seedProductName: String? = null
 )
 
 data class UpdateProductRequest(
@@ -56,7 +58,8 @@ data class UpdateProductRequest(
     val description: String = "",
     val price: Double,
     val quantity: Int = 1,
-    val category: String = ""
+    val category: String = "",
+    @SerializedName("seed_product_name") val seedProductName: String? = null
 )
 
 // ── Supermarket ───────────────────────────────────────────────
