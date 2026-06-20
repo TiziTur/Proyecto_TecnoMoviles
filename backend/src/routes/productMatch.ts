@@ -12,9 +12,13 @@ router.use(authMiddleware);
 // Body: { products: [{ name: string }] }
 // Response: { matches: [{ seedMatch: string|null, candidates: string[] }] } (mismo orden que el body)
 router.post('/match-seed', async (req: AuthRequest, res: Response): Promise<void> => {
-  const products = (req.body.products ?? []) as Array<{ name: string }>;
+  const products = req.body.products;
+  if (!Array.isArray(products)) {
+    res.status(400).json({ error: 'products debe ser un array' });
+    return;
+  }
   try {
-    const matches = await Promise.all(products.map(p => matchNameToSeed(pool, p.name ?? '')));
+    const matches = await Promise.all((products as Array<{ name: string }>).map(p => matchNameToSeed(pool, p.name ?? '')));
     res.json({ matches });
   } catch (err: any) {
     console.error('Error en match-seed:', err);
