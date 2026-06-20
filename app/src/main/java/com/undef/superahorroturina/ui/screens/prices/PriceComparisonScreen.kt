@@ -60,6 +60,27 @@ private fun categoryColor(category: String): Color = when (category) {
     else              -> Color(0xFF64748B)
 }
 
+private fun categoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector = when (category) {
+    "Bebida"          -> Icons.Default.LocalDrink
+    "Lácteo"          -> Icons.Default.Icecream
+    "Carne y Fiambre" -> Icons.Default.LunchDining
+    "Panadería"       -> Icons.Default.BakeryDining
+    "Almacén"         -> Icons.Default.ShoppingBasket
+    "Cereales"        -> Icons.Default.BreakfastDining
+    "Aceite"          -> Icons.Default.WaterDrop
+    "Condimento"      -> Icons.Default.Restaurant
+    "Enlatado"        -> Icons.Default.Inventory
+    "Congelado"       -> Icons.Default.AcUnit
+    "Golosinas"       -> Icons.Default.Cookie
+    "Snack"           -> Icons.Default.Fastfood
+    "Limpieza"        -> Icons.Default.CleaningServices
+    "Papel"           -> Icons.Default.Inventory2
+    "Perfumería"      -> Icons.Default.Spa
+    "Bebé"            -> Icons.Default.ChildCare
+    "Mascotas"        -> Icons.Default.Pets
+    else              -> Icons.Default.LocalGroceryStore
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PriceComparisonScreen(
@@ -209,7 +230,8 @@ fun PriceComparisonScreen(
                                     viewModel.selectedCategory.value =
                                         if (selectedCategory == cat) "" else cat
                                 },
-                                label = { Text("$cat (${uiState.categoryCounts[cat] ?: 0})") }
+                                label       = { Text("$cat (${uiState.categoryCounts[cat] ?: 0})") },
+                                leadingIcon = { Icon(categoryIcon(cat), contentDescription = null, modifier = Modifier.size(16.dp)) }
                             )
                         }
                     }
@@ -503,12 +525,23 @@ private fun CompactPriceCard(
                                     .background(catColor.copy(alpha = 0.15f))
                                     .padding(horizontal = 5.dp, vertical = 2.dp)
                             ) {
-                                Text(
-                                    text       = item.category,
-                                    style      = MaterialTheme.typography.labelSmall,
-                                    color      = catColor,
-                                    fontWeight = FontWeight.Medium
-                                )
+                                Row(
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(
+                                        imageVector        = categoryIcon(item.category),
+                                        contentDescription = null,
+                                        tint               = catColor,
+                                        modifier           = Modifier.size(11.dp)
+                                    )
+                                    Text(
+                                        text       = item.category,
+                                        style      = MaterialTheme.typography.labelSmall,
+                                        color      = catColor,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                         if (item.brand.isNotBlank()) {
