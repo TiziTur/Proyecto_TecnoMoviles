@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS products (
     created_at  TIMESTAMP     DEFAULT NOW()
 );
 
+-- Vínculo opcional al catálogo de precios de referencia (reference_prices.product_name exacto).
+-- NULL = no vinculado (no comparable contra otros supermercados todavía).
+ALTER TABLE products ADD COLUMN IF NOT EXISTS seed_product_name TEXT;
+
 -- Índices para mejorar performance de las queries más frecuentes
 CREATE INDEX IF NOT EXISTS idx_purchases_user_id ON purchases(user_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_date    ON purchases(purchase_date DESC);
