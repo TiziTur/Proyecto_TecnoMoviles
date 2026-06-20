@@ -1,6 +1,7 @@
 // ticket.ts — Endpoint para escanear un ticket de supermercado con Gemini Vision.
-// Recibe una imagen en base64, la envía a Gemini 1.5 Flash con un prompt estructurado
-// y devuelve los productos parseados listos para guardar.
+// Recibe una o más imágenes en base64 (fragmentos consecutivos de un mismo ticket largo),
+// las envía juntas a Gemini con un prompt estructurado y devuelve los productos parseados
+// listos para guardar.
 // Montado en: POST /purchases/:id/scan-ticket
 import { Router, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
@@ -18,12 +19,12 @@ interface ParsedProduct {
 }
 
 // POST /purchases/:purchaseId/scan-ticket
-// Body: { imageBase64: string, mimeType: "image/jpeg" | "image/png" }
+// Body: { images: Array<{ imageBase64: string, mimeType?: "image/jpeg" | "image/png" }> }
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
-  const { imageBase64, mimeType = 'image/jpeg' } = req.body;
+  const { images } = req.body;
 
-  if (!imageBase64) {
-    res.status(400).json({ error: 'Se requiere imageBase64' });
+  if (!Array.isArray(images) || images.length === 0) {
+    res.status(400).json({ error: 'Se requiere images como un array no vacío' });
     return;
   }
 
@@ -34,6 +35,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
   }
 
   const prompt = `Analizá este ticket de supermercado y extraé la lista de productos.
+A continuación se incluyen una o más fotos. Si hay más de una imagen, son fragmentos consecutivos de UN MISMO ticket de supermercado muy largo que no entraba en una sola foto — analizalas todas juntas como si fueran un solo documento continuo, en el orden en que se presentan. Si dos fotos se solapan levemente y un mismo producto aparece visible en ambas, contalo UNA SOLA VEZ en la lista final.
 Devolvé ÚNICAMENTE un JSON válido con este formato exacto, sin texto adicional ni markdown:
 {
   "supermarket": "nombre del supermercado si es visible, sino null",
@@ -64,17 +66,17 @@ Reglas:
       contents: [{
         parts: [
           { text: prompt },
-          {
+          ...images.map((img: { imageBase64: string; mimeType?: string }) => ({
             inline_data: {
-              mime_type: mimeType,
-              data: imageBase64
+              mime_type: img.mimeType ?? 'image/jpeg',
+              data: img.imageBase64
             }
-          }
+          }))
         ]
       }],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 2048
+        maxOutputTokens: 4096
       }
     };
 
