@@ -70,17 +70,11 @@ Botón **"Confirmar y guardar"** dispara `confirmScannedProducts`, que ahora tam
 
 Se requiere una migración Room (`AppDatabase` versión +1) para la columna nueva en `ProductEntity`.
 
-## 3. Pantalla "Comparar compra"
+## 3. Pantalla "Comparar compra" — ya implementada (verificado durante el plan)
 
-Nueva pantalla `PurchaseComparisonScreen` (ruta `purchase/{id}/compare`), accedida con un botón **"Comparar precios"** agregado en `PurchaseDetailScreen`. Consume `GET /purchases/:id/compare` (ya existe, solo se ajusta su lógica de matching interna como se describió en la sección 1).
+Al planificar la implementación se descubrió que esta pieza **ya existe completa y funcionando**: `PurchaseComparisonScreen.kt` + `PurchaseComparisonViewModel.kt` (en `ui/screens/purchase/`), con ruta `Routes.PurchaseComparison`, wireada en `NavGraph.kt`, y un botón de entrada (ícono `CompareArrows`, tooltip "Comparar precios") ya presente en `PurchaseDetailScreen.kt:173-175`. Implementa exactamente lo que describía esta sección: header con total real, ranking de supermercados de más barato a más caro con ahorro %, tarjetas expandibles con detalle producto por producto, y sección de productos sin match. `ApiService.comparePurchase()` y el DTO `PurchaseComparisonResponse` también ya existen.
 
-Contenido:
-- Header con el total real de la compra y el supermercado donde se hizo.
-- Lista de supermercados candidatos ordenada de más barato a más caro: total estimado, ahorro/recargo (%, monto) vs. la compra real, badge **"Más barato"** en el primero.
-- Cada supermercado expandible: detalle producto por producto (precio ticket vs. precio estimado en ese super), marcando los no comparables.
-- Sección final con los productos del ticket que no tuvieron ningún match en ningún supermercado (`unmatchedProducts`), para que el usuario entienda por qué el ahorro mostrado es parcial.
-
-No incluye, en este ciclo, compartir por Intent ni accesos directos a crear una nueva compra — confirmado como fuera de alcance.
+**No hay trabajo nuevo de UI/pantalla en esta sección.** El único impacto de este ciclo sobre esta pantalla es indirecto: una vez que `purchaseComparison.ts` (backend) empiece a usar `seed_product_name` para hacer el join exacto (sección 1), los resultados que ya muestra esta pantalla serán más precisos para los productos vinculados — sin cambiar el código Android de la pantalla en absoluto.
 
 ## 4. Pulido del listado de comparativa de precios
 
