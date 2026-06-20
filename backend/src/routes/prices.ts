@@ -26,12 +26,12 @@ function cleanProductName(raw: string): string {
 // en vez del formato crudo de SEPA (ej. "X1.5LT" -> "1.5L", "X500GR" -> "500g").
 function normalizeFormat(name: string): string {
   return name
-    .replace(/\bX(\d+(?:[.,]\d+)?)\s*LT\b/gi, '$1L')
-    .replace(/\bX(\d+)\s*X\s*(\d+(?:[.,]\d+)?)\s*ML\b/gi, '$1x$2ml')
-    .replace(/\bX(\d+(?:[.,]\d+)?)\s*ML\b/gi, '$1ml')
-    .replace(/\bX(\d+(?:[.,]\d+)?)\s*KG\b/gi, '$1kg')
-    .replace(/\bX(\d+(?:[.,]\d+)?)\s*GR?S?\b/gi, '$1g')
-    .replace(/\bX(\d+)\s*UN\b/gi, 'x$1')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*LT(?:\.(?=\s|$)|\b)/gi, '$1L')
+    .replace(/\bX(\d+)\s*X\s*(\d+(?:[.,]\d+)?)\s*ML(?:\.(?=\s|$)|\b)/gi, '$1x$2ml')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*ML(?:\.(?=\s|$)|\b)/gi, '$1ml')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*KG(?:\.(?=\s|$)|\b)/gi, '$1kg')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*GR?S?(?:\.(?=\s|$)|\b)/gi, '$1g')
+    .replace(/\bX(\d+)\s*UN(?:\.(?=\s|$)|\b)/gi, 'x$1')
     // Variantes sin prefijo "X" observadas en datos reales de SEPA, con o sin punto final
     // (ej. "1.5lt.", "750cc.", "500 Ml", "X800g.", "112G", "1.5 Litro").
     // El punto final solo se consume si va seguido de espacio o fin de string, para no
