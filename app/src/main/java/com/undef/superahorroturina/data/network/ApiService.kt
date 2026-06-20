@@ -123,4 +123,17 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("purchaseId") purchaseId: Int
     ): Response<PurchaseComparisonResponse>
+
+    // ── Matching ticket → seed ─────────────────────────────────
+    @POST("products/match-seed")
+    suspend fun matchSeedProducts(
+        @Header("Authorization") token: String,
+        @Body body: MatchSeedRequest
+    ): Response<MatchSeedResponse>
+
+    @GET("products/seed-search")
+    suspend fun searchSeedProducts(
+        @Header("Authorization") token: String,
+        @Query("query") query: String
+    ): Response<List<SeedSearchResultDto>>
 }
