@@ -14,7 +14,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,17 +21,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
-import com.undef.superahorroturina.data.network.dto.ScannedProductDto
 import com.undef.superahorroturina.ui.components.*
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
@@ -69,6 +65,21 @@ fun PurchaseDetailScreen(
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val moneyFormat   = remember { NumberFormat.getNumberInstance(Locale("es", "AR")) }
 
+    // Pantalla completa de confirmación (reemplaza el flujo normal mientras hay productos para revisar)
+    if (ticketState is TicketScanState.Confirm) {
+        val confirmState = ticketState as TicketScanState.Confirm
+        TicketConfirmScreen(
+            products     = confirmState.items,
+            supermarket  = confirmState.supermarket,
+            moneyFormat  = moneyFormat,
+            onSearchSeed = { query -> viewModel.searchSeedProducts(query) },
+            onLinkChange = { index, name -> viewModel.updateSeedLink(index, name) },
+            onConfirm    = { viewModel.confirmScannedProducts(purchaseId, confirmState.items) },
+            onCancel     = { viewModel.resetTicketScan() }
+        )
+        return
+    }
+
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showTicketChooser by remember { mutableStateOf(false) }
 
@@ -85,17 +96,8 @@ fun PurchaseDetailScreen(
         galleryLauncher.launch("image/*")
     }
 
-    // Diálogo de confirmación de productos escaneados
+    // Diálogo de error de escaneo / auto-reset al confirmar
     when (val state = ticketState) {
-        is TicketScanState.Confirm -> {
-            TicketScanConfirmDialog(
-                products    = state.products,
-                supermarket = state.supermarket,
-                moneyFormat = moneyFormat,
-                onConfirm   = { viewModel.confirmScannedProducts(purchaseId, state.products) },
-                onDismiss   = { viewModel.resetTicketScan() }
-            )
-        }
         is TicketScanState.Error -> {
             AlertDialog(
                 onDismissRequest = { viewModel.resetTicketScan() },
@@ -367,80 +369,4 @@ fun PurchaseDetailScreen(
             }
         }
     }
-}
-
-// ── Diálogo de confirmación de productos escaneados ───────────
-
-@Composable
-private fun TicketScanConfirmDialog(
-    products: List<ScannedProductDto>,
-    supermarket: String?,
-    moneyFormat: NumberFormat,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Ticket escaneado", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                if (!supermarket.isNullOrBlank()) {
-                    Text(
-                        text  = "Supermercado: ${supermarket.replaceFirstChar { it.uppercaseChar() }}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text  = "Se detectaron ${products.size} producto(s). ¿Querés agregarlos a la compra?",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(4.dp))
-                products.take(8).forEach { p ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text     = "${p.name} x${p.quantity}",
-                            style    = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text  = if (p.price > 0) "$ ${moneyFormat.format(p.price)}" else "–",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-                if (products.size > 8) {
-                    Text(
-                        text  = "… y ${products.size - 8} más",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("Agregar todos")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
 }
