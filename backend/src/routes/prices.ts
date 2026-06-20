@@ -9,17 +9,42 @@ router.use(authMiddleware);
 
 const PAGE_SIZE = 50;
 
-// Limpia nombres de producto: quita abreviaturas corporativas (S.A., S.R.L., S.A.F.R.T., etc.)
-// y aplica título case.
+// Limpia nombres de producto: quita abreviaturas corporativas (S.A., S.R.L., S.A.F.R.T., etc.),
+// aplica título case y normaliza el formato/tamaño final (ej. "X1.5LT" -> "1.5L").
 function cleanProductName(raw: string): string {
   const cleaned = raw
     .replace(/\s+[A-Z](\.[A-Z])+\.?/g, ' ')   // quita S.A., S.A.F.R.T., S.R.L., S.A.I.C., etc.
     .replace(/\s{2,}/g, ' ')
     .trim();
   if (!cleaned) return raw;
-  // Título case
-  return cleaned.toLowerCase()
+  const titled = cleaned.toLowerCase()
     .replace(/(^|[\s\-\/])(\S)/g, (_, sep, char) => sep + char.toUpperCase());
+  return normalizeFormat(titled);
+}
+
+// Normaliza el formato/tamaño al final del nombre para que se lea como en un local real
+// en vez del formato crudo de SEPA (ej. "X1.5LT" -> "1.5L", "X500GR" -> "500g").
+function normalizeFormat(name: string): string {
+  return name
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*LT\b/gi, '$1L')
+    .replace(/\bX(\d+)\s*X\s*(\d+(?:[.,]\d+)?)\s*ML\b/gi, '$1x$2ml')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*ML\b/gi, '$1ml')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*KG\b/gi, '$1kg')
+    .replace(/\bX(\d+(?:[.,]\d+)?)\s*GRS?\b/gi, '$1g')
+    .replace(/\bX(\d+)\s*UN\b/gi, 'x$1')
+    // Variantes sin prefijo "X" observadas en datos reales de SEPA, con o sin punto final
+    // (ej. "1.5lt.", "750cc.", "500 Ml", "X800g.", "112G", "1.5 Litro").
+    // El punto final solo se consume si va seguido de espacio o fin de string, para no
+    // pegar la unidad con la palabra siguiente (ej. "1.250 LT.RETORNAB" no debe perder el espacio).
+    .replace(/\b(\d+(?:[.,]\d+)?)\s*Cc(?:\.(?=\s|$)|\b)/gi, '$1ml')
+    .replace(/\b(\d+(?:[.,]\d+)?)\s*Lt(?:\.(?=\s|$)|\b)/gi, '$1L')
+    .replace(/\b(\d+(?:[.,]\d+)?)\s*Litro[s]?(?:\.(?=\s|$)|\b)/gi, '$1L')
+    .replace(/\b(\d+(?:[.,]\d+)?)\s*Ml(?:\.(?=\s|$)|\b)/gi, '$1ml')
+    .replace(/\b(\d+(?:[.,]\d+)?)\s*Kg(?:\.(?=\s|$)|\b)/gi, '$1kg')
+    .replace(/\b(\d+(?:[.,]\d+)?)\s*Gr[s]?(?:\.(?=\s|$)|\b)/gi, '$1g')
+    .replace(/\b(\d+(?:[.,]\d+)?)\s*G(?:\.(?=\s|$)|\b)/gi, '$1g')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 function normalize(name: string): string {
