@@ -23,5 +23,6 @@ data class ProductEntity(
     val description: String,
     val price: Double,
     val quantity: Int,
-    val category: String = ""
+    val category: String = "",
+    val seedProductName: String? = null
 )
