@@ -376,6 +376,15 @@ fun HomeScreen(
                             }
                         }
 
+                        item {
+                            CheapestSummaryCard(
+                                loading  = uiState.cheapestSummaryLoading,
+                                error    = uiState.cheapestSummaryError,
+                                headline = uiState.cheapestSummary?.headline,
+                                onClick  = onNavigateToPriceComparison
+                            )
+                        }
+
                         // Recent purchases section
                         item {
                             SectionHeader(
@@ -510,6 +519,69 @@ private fun AppDrawerContent(
                 selected = false,
                 onClick  = onLogout
             )
+        }
+    }
+}
+
+// ── CheapestSummaryCard ──────────────────────────────────────
+
+@Composable
+private fun CheapestSummaryCard(
+    loading: Boolean,
+    error: Boolean,
+    headline: String?,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp)),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.TipsAndUpdates,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text  = "¿Dónde conviene comprar este mes?",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                when {
+                    loading -> Text(
+                        text  = "Calculando…",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    error || headline.isNullOrBlank() -> Text(
+                        text  = "Aún no hay suficientes datos para calcularlo",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    else -> Text(
+                        text     = headline,
+                        style    = MaterialTheme.typography.bodySmall,
+                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3
+                    )
+                }
+            }
+            if (loading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            }
         }
     }
 }
