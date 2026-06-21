@@ -10,6 +10,7 @@ import com.undef.superahorroturina.data.network.dto.LoginRequest
 import com.undef.superahorroturina.data.network.dto.RegisterRequest
 import com.undef.superahorroturina.data.network.dto.UpdateUserRequest
 import com.undef.superahorroturina.model.User
+import com.undef.superahorroturina.ui.biometric.BiometricCryptoManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -25,7 +26,8 @@ sealed class ApiResult<out T> {
 class AuthRepository @Inject constructor(
     private val api: ApiService,
     private val session: SessionDataStore,
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val biometricCryptoManager: BiometricCryptoManager
 ) {
     // Borra la caché local (Room) de la cuenta anterior para que un nuevo
     // login/registro no muestre compras de otro usuario que quedaron cacheadas.
@@ -107,6 +109,7 @@ class AuthRepository @Inject constructor(
 
     suspend fun logout() {
         session.clearSession()
+        biometricCryptoManager.disableBiometricLogin()
         clearLocalCache()
     }
 
