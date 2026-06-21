@@ -53,27 +53,27 @@ class HomeViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            try {
-                val token = sessionDataStore.bearerToken.first()
-                val response = api.getCheapestSummary(token)
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    _uiState.value = _uiState.value.copy(
-                        cheapestSummary        = body,
-                        cheapestSummaryLoading = false,
-                        cheapestSummaryError   = body == null || body.isEmpty
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        cheapestSummaryLoading = false,
-                        cheapestSummaryError   = true
-                    )
-                }
-            } catch (e: Exception) {
+            val markCheapestSummaryError = {
                 _uiState.value = _uiState.value.copy(
                     cheapestSummaryLoading = false,
                     cheapestSummaryError   = true
                 )
+            }
+            try {
+                val token = sessionDataStore.bearerToken.first()
+                val response = api.getCheapestSummary(token)
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
+                    _uiState.value = _uiState.value.copy(
+                        cheapestSummary        = body,
+                        cheapestSummaryLoading = false,
+                        cheapestSummaryError   = body.isEmpty
+                    )
+                } else {
+                    markCheapestSummaryError()
+                }
+            } catch (e: Exception) {
+                markCheapestSummaryError()
             }
         }
         loadData()
