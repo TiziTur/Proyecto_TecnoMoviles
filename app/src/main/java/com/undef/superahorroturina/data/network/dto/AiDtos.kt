@@ -126,3 +126,15 @@ data class SeedSearchResultDto(
     @SerializedName("productName") val productName: String,
     @SerializedName("brand")       val brand: String = ""
 )
+
+// ── Sugerencia: donde conviene comprar en general ────────────────
+
+data class CheapestSummaryResponse(
+    @SerializedName("isEmpty")             val isEmpty: Boolean = false,
+    @SerializedName("cheapestSupermarket") val cheapestSupermarket: String = "",
+    @SerializedName("productsCompared")    val productsCompared: Int = 0,
+    @SerializedName("productsWon")         val productsWon: Int = 0,
+    @SerializedName("totalSavings")        val totalSavings: Double = 0.0,
+    @SerializedName("avgSavingsPct")       val avgSavingsPct: Int = 0,
+    @SerializedName("headline")            val headline: String = ""
+)
