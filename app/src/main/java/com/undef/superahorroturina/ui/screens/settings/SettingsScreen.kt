@@ -16,14 +16,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.biometric.BiometricPrompt
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.undef.superahorroturina.R
+import com.undef.superahorroturina.ui.biometric.canUseBiometric
+import com.undef.superahorroturina.ui.biometric.showBiometricPrompt
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.coloredShadow
 import com.undef.superahorroturina.ui.components.dotPatternBackground
 import com.undef.superahorroturina.ui.components.glowBorder
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -38,6 +44,9 @@ fun SettingsScreen(
         stringResource(R.string.settings_sort_oldest),
         stringResource(R.string.settings_sort_highest)
     )
+    val activity = LocalContext.current as? FragmentActivity
+    val coroutineScope = rememberCoroutineScope()
+    val biometricAvailable = activity != null && canUseBiometric(activity)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -103,6 +112,42 @@ fun SettingsScreen(
                             )
                         }
                     }
+                }
+
+                SettingsCard(isDark = isDark) {
+                    SettingsCategoryHeader("Seguridad")
+
+                    SettingsToggleItem(
+                        icon            = Icons.Default.Fingerprint,
+                        title           = "Inicio con huella",
+                        subtitle        = if (biometricAvailable)
+                            "Usá tu huella o PIN para entrar más rápido"
+                        else
+                            "Tu dispositivo no tiene biometría ni PIN configurado",
+                        checked         = uiState.biometricEnabled && biometricAvailable,
+                        onCheckedChange = { enabled ->
+                            if (biometricAvailable) {
+                                if (!enabled) {
+                                    viewModel.onBiometricDisabled()
+                                } else {
+                                    coroutineScope.launch {
+                                        val cipher = viewModel.prepareBiometricEnrollCipher()
+                                        if (cipher != null && activity != null) {
+                                            showBiometricPrompt(
+                                                activity     = activity,
+                                                cryptoObject = BiometricPrompt.CryptoObject(cipher),
+                                                title        = "Activar huella",
+                                                subtitle     = "Confirmá tu huella para activar el acceso rápido",
+                                                onSuccess    = { result ->
+                                                    viewModel.onBiometricEnrollConfirmed(result.cryptoObject!!.cipher!!)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
 
                 SettingsCard(isDark = isDark) {
