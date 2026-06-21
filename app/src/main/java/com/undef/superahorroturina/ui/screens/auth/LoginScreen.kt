@@ -1,8 +1,10 @@
 // Pantalla de login conectada a LoginViewModel.
-// v3: agrega autenticación biométrica con BiometricPrompt.
-// Si hay una sesión JWT guardada, muestra el botón de huella para acceso rápido.
+// v4: la huella desbloquea el token cifrado en Keystore (CryptoObject), no solo
+// gatea la navegación. Tras un login con contraseña sin biometría activada, se
+// ofrece un diálogo único para activarla.
 package com.undef.superahorroturina.ui.screens.auth
 
+import androidx.biometric.BiometricPrompt
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -33,6 +35,7 @@ import com.undef.superahorroturina.ui.biometric.canUseBiometric
 import com.undef.superahorroturina.ui.biometric.showBiometricPrompt
 import com.undef.superahorroturina.ui.components.*
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -40,23 +43,48 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
-    val uiState        by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState         by viewModel.uiState.collectAsStateWithLifecycle()
     val hasSavedSession by viewModel.hasSavedSession.collectAsStateWithLifecycle()
-    val savedUserName  by viewModel.savedUserName.collectAsStateWithLifecycle()
-    val isDark          = isSystemInDarkTheme()
+    val savedUserName   by viewModel.savedUserName.collectAsStateWithLifecycle()
+    val showEnrollDialog by viewModel.showEnrollDialog.collectAsStateWithLifecycle()
+    val biometricMessage by viewModel.biometricMessage.collectAsStateWithLifecycle()
+    val isDark           = isSystemInDarkTheme()
+    val coroutineScope    = rememberCoroutineScope()
 
     // LocalActivity es la FragmentActivity host — necesaria para BiometricPrompt
     val activity = LocalContext.current as? FragmentActivity
 
-    // Si hay sesión guardada Y el dispositivo tiene biometría, ofrecemos huella al entrar
+    // Si hay biometría activada Y el dispositivo la soporta, intentamos desbloquear al entrar
     LaunchedEffect(hasSavedSession) {
         if (hasSavedSession && activity != null && canUseBiometric(activity)) {
-            showBiometricPrompt(
-                activity  = activity,
-                title     = "Bienvenido de vuelta${if (savedUserName.isNotBlank()) ", $savedUserName" else ""}",
-                subtitle  = "Usá tu huella para acceder a Klarity",
-                onSuccess = { viewModel.onBiometricSuccess(onLoginSuccess) }
-            )
+            when (val unlockState = viewModel.prepareUnlockCipher()) {
+                is BiometricUnlockState.Ready -> {
+                    showBiometricPrompt(
+                        activity     = activity,
+                        cryptoObject = BiometricPrompt.CryptoObject(unlockState.cipher),
+                        title        = "Bienvenido de vuelta${if (savedUserName.isNotBlank()) ", $savedUserName" else ""}",
+                        subtitle     = "Usá tu huella para acceder a Klarity",
+                        onSuccess    = { result ->
+                            coroutineScope.launch {
+                                viewModel.onBiometricUnlockSuccess(result.cryptoObject!!.cipher!!)
+                                onLoginSuccess()
+                            }
+                        }
+                    )
+                }
+                is BiometricUnlockState.KeyInvalidated -> {
+                    viewModel.onBiometricKeyInvalidated()
+                }
+                is BiometricUnlockState.NotAvailable -> Unit
+            }
+        }
+    }
+
+    // Si el diálogo de activar huella quedó pendiente pero el dispositivo no la soporta,
+    // no nos quedamos trabados: directamente seguimos a Home (ya está logueado).
+    LaunchedEffect(showEnrollDialog) {
+        if (showEnrollDialog && (activity == null || !canUseBiometric(activity))) {
+            viewModel.onEnrollDeclined(onDone = onLoginSuccess)
         }
     }
 
@@ -95,7 +123,7 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            // ── Bienvenida rápida si hay sesión ───────────────────
+            // ── Bienvenida rápida si hay biometría activada ───────────────
             if (hasSavedSession && savedUserName.isNotBlank()) {
                 Spacer(Modifier.height(16.dp))
                 Card(
@@ -142,12 +170,28 @@ fun LoginScreen(
                         if (activity != null && canUseBiometric(activity)) {
                             IconButton(
                                 onClick = {
-                                    showBiometricPrompt(
-                                        activity  = activity,
-                                        title     = "Bienvenido de vuelta, $savedUserName",
-                                        subtitle  = "Usá tu huella para acceder",
-                                        onSuccess = { viewModel.onBiometricSuccess(onLoginSuccess) }
-                                    )
+                                    coroutineScope.launch {
+                                        when (val unlockState = viewModel.prepareUnlockCipher()) {
+                                            is BiometricUnlockState.Ready -> {
+                                                showBiometricPrompt(
+                                                    activity     = activity,
+                                                    cryptoObject = BiometricPrompt.CryptoObject(unlockState.cipher),
+                                                    title        = "Bienvenido de vuelta, $savedUserName",
+                                                    subtitle     = "Usá tu huella para acceder",
+                                                    onSuccess    = { result ->
+                                                        coroutineScope.launch {
+                                                            viewModel.onBiometricUnlockSuccess(result.cryptoObject!!.cipher!!)
+                                                            onLoginSuccess()
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                            is BiometricUnlockState.KeyInvalidated -> {
+                                                viewModel.onBiometricKeyInvalidated()
+                                            }
+                                            is BiometricUnlockState.NotAvailable -> Unit
+                                        }
+                                    }
                                 }
                             ) {
                                 Icon(
@@ -290,6 +334,53 @@ fun LoginScreen(
 
             Spacer(Modifier.height(48.dp))
         }
+    }
+
+    // ── Diálogo de invalidación de clave biométrica ───────────────────
+    if (biometricMessage.isNotBlank()) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearBiometricMessage() },
+            title = { Text("Huella desactivada") },
+            text  = { Text(biometricMessage) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearBiometricMessage() }) { Text("Entendido") }
+            }
+        )
+    }
+
+    // ── Diálogo de consentimiento para activar huella tras login con contraseña ──
+    if (showEnrollDialog && activity != null && canUseBiometric(activity)) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEnrollDeclined(onDone = onLoginSuccess) },
+            title = { Text("¿Activar inicio con huella?") },
+            text  = { Text("Vas a poder volver a entrar a Klarity con tu huella o PIN, sin escribir la contraseña cada vez.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    coroutineScope.launch {
+                        val cipher = viewModel.prepareEnrollCipher()
+                        if (cipher != null) {
+                            showBiometricPrompt(
+                                activity     = activity,
+                                cryptoObject = BiometricPrompt.CryptoObject(cipher),
+                                title        = "Activar huella",
+                                subtitle     = "Confirmá tu huella para activar el acceso rápido",
+                                onSuccess    = { result ->
+                                    coroutineScope.launch {
+                                        viewModel.onEnrollConfirmed(result.cryptoObject!!.cipher!!, onDone = onLoginSuccess)
+                                    }
+                                },
+                                onError = { viewModel.onEnrollDeclined(onDone = onLoginSuccess) }
+                            )
+                        } else {
+                            viewModel.onEnrollDeclined(onDone = onLoginSuccess)
+                        }
+                    }
+                }) { Text("Activar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onEnrollDeclined(onDone = onLoginSuccess) }) { Text("Ahora no") }
+            }
+        )
     }
 }
 

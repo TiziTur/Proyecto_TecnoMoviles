@@ -1,7 +1,9 @@
 // BiometricHelper.kt — Encapsula la lógica de BiometricPrompt de AndroidX.
 // Muestra el diálogo nativo del sistema para autenticación con huella dactilar
-// o credenciales de dispositivo (PIN/patrón) como fallback.
-// Se usa desde LoginScreen cuando el usuario ya tiene sesión guardada.
+// o credenciales de dispositivo (PIN/patrón) como fallback. El prompt siempre va
+// atado a un CryptoObject (ver BiometricCryptoManager) — la autenticación no es
+// solo un gate de UI, es lo que habilita usar la clave de Keystore para cifrar o
+// descifrar el token de sesión.
 package com.undef.superahorroturina.ui.biometric
 
 import androidx.biometric.BiometricManager
@@ -22,18 +24,20 @@ fun canUseBiometric(activity: FragmentActivity): Boolean {
 }
 
 /**
- * Lanza el diálogo biométrico del sistema.
- * @param activity  La Activity host (necesaria para FragmentManager)
- * @param title     Título del diálogo
- * @param subtitle  Subtítulo del diálogo
- * @param onSuccess Callback al autenticarse correctamente
- * @param onError   Callback al cancelar o fallar (recibe mensaje de error)
+ * Lanza el diálogo biométrico del sistema, atado a un CryptoObject.
+ * @param activity     La Activity host (necesaria para FragmentManager)
+ * @param cryptoObject El Cipher (de BiometricCryptoManager) que se autentica con este prompt
+ * @param title        Título del diálogo
+ * @param subtitle     Subtítulo del diálogo
+ * @param onSuccess    Callback al autenticarse correctamente (recibe el resultado, con el Cipher ya autenticado)
+ * @param onError      Callback al cancelar o fallar (recibe mensaje de error)
  */
 fun showBiometricPrompt(
     activity: FragmentActivity,
+    cryptoObject: BiometricPrompt.CryptoObject,
     title: String = "Desbloquear Klarity",
     subtitle: String = "Usá tu huella dactilar para continuar",
-    onSuccess: () -> Unit,
+    onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
     onError: (String) -> Unit = {}
 ) {
     val executor = ContextCompat.getMainExecutor(activity)
@@ -41,7 +45,7 @@ fun showBiometricPrompt(
     val callback = object : BiometricPrompt.AuthenticationCallback() {
         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
             super.onAuthenticationSucceeded(result)
-            onSuccess()
+            onSuccess(result)
         }
         override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
             super.onAuthenticationError(errorCode, errString)
@@ -65,5 +69,5 @@ fun showBiometricPrompt(
         .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
         .build()
 
-    prompt.authenticate(promptInfo)
+    prompt.authenticate(promptInfo, cryptoObject)
 }
