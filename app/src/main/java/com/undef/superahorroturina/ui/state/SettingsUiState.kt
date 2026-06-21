@@ -7,5 +7,6 @@ data class SettingsUiState(
     val language: String = "Español",
     val languageExpanded: Boolean = false,
     val selectedSort: String = "Más reciente",
-    val monthlyLimit: Float = 50000f
+    val monthlyLimit: Float = 50000f,
+    val biometricEnabled: Boolean = false
 )
