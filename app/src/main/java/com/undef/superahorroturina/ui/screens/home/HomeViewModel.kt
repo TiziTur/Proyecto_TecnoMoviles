@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.undef.superahorroturina.data.local.SessionDataStore
 import com.undef.superahorroturina.data.local.ThemeDataStore
+import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.repository.PurchaseRepository
 import com.undef.superahorroturina.ui.state.HomeUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +19,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val purchaseRepository: PurchaseRepository,
     private val sessionDataStore: SessionDataStore,
-    private val themeDataStore: ThemeDataStore
+    private val themeDataStore: ThemeDataStore,
+    private val api: ApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -48,6 +50,30 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             themeDataStore.monthlyLimit.collect { limit ->
                 _uiState.value = _uiState.value.copy(monthlyLimit = limit)
+            }
+        }
+        viewModelScope.launch {
+            try {
+                val token = sessionDataStore.bearerToken.first()
+                val response = api.getCheapestSummary(token)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    _uiState.value = _uiState.value.copy(
+                        cheapestSummary        = body,
+                        cheapestSummaryLoading = false,
+                        cheapestSummaryError   = body == null || body.isEmpty
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        cheapestSummaryLoading = false,
+                        cheapestSummaryError   = true
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    cheapestSummaryLoading = false,
+                    cheapestSummaryError   = true
+                )
             }
         }
         loadData()
