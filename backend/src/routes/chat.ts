@@ -5,6 +5,7 @@
 import { Router, Response } from 'express';
 import pool from '../db';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { computeCheapestSummary } from '../lib/cheapestSummary';
 
 const router = Router();
 router.use(authMiddleware);
@@ -54,6 +55,22 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
       return `Compra #${p.id} en ${p.supermarket} el ${p.purchase_date}: $${parseFloat(p.total).toFixed(2)}\n${prods || '  (sin productos detallados)'}`;
     }).join('\n\n');
 
+    // Contexto de precios agregado — si falla, el chat sigue funcionando sin él
+    // (no debe romper la respuesta del chat por un problema en este cálculo aparte).
+    let priceContext = '';
+    try {
+      const cheapestStats = await computeCheapestSummary(pool);
+      if (cheapestStats) {
+        priceContext = `\n\nDATOS GENERALES DE PRECIOS (SEPA, comparativa entre supermercados):
+- De ${cheapestStats.productsCompared} productos comparados, ${cheapestStats.cheapestSupermarket} tiene el precio más bajo en ${cheapestStats.productsWon} de ellos.
+- Ahorro promedio estimado eligiendo ${cheapestStats.cheapestSupermarket} en esos productos: ${cheapestStats.avgSavingsPct}%.
+- Podés usar este dato general para recomendar dónde conviene comprar, además del historial del usuario.`;
+      }
+    } catch (priceErr) {
+      console.error('Error calculando contexto de precios para el chat:', priceErr);
+      // priceContext queda en '' — el chat sigue funcionando solo con el historial.
+    }
+
     const systemPrompt = `Sos un asistente financiero personal integrado en la app Klarity, que ayuda a los usuarios a entender y optimizar sus gastos de supermercado.
 
 DATOS DEL USUARIO:
@@ -63,6 +80,7 @@ DATOS DEL USUARIO:
 
 HISTORIAL RECIENTE (últimas 20 compras):
 ${contextSummary || 'El usuario aún no tiene compras registradas.'}
+${priceContext}
 
 INSTRUCCIONES:
 - Respondé en español, de manera amigable y concisa
