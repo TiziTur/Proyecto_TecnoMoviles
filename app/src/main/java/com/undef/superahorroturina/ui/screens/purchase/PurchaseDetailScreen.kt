@@ -8,6 +8,7 @@ package com.undef.superahorroturina.ui.screens.purchase
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -66,7 +67,7 @@ fun PurchaseDetailScreen(
     val moneyFormat   = remember { NumberFormat.getNumberInstance(Locale("es", "AR")) }
 
     // Pantalla completa de confirmación (reemplaza el flujo normal mientras hay productos para revisar).
-    // Retorna antes de declarar showDeleteDialog/showTicketChooser — es seguro porque el diálogo de
+    // Retorna antes de declarar showDeleteDialog/stagedPhotos — es seguro porque el diálogo de
     // borrado es modal y bloquea el botón "Adjuntar ticket" mientras está abierto, por lo que nunca
     // pueden coexistir una confirmación de ticket y un diálogo abierto.
     if (ticketState is TicketScanState.Confirm) {
@@ -84,19 +85,37 @@ fun PurchaseDetailScreen(
     }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showTicketChooser by remember { mutableStateOf(false) }
+    // Fotos del ticket adjuntadas pero todavía no enviadas a escanear (puede ser más de una,
+    // para tickets largos que no entran en una sola foto). Se mantiene como estado local de la
+    // pantalla, separado de TicketScanState, porque es una etapa previa al escaneo en sí.
+    var stagedPhotos by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    // Launcher para galería (pick image)
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { viewModel.scanTicketFromUri(context, it, purchaseId) }
+    // Launcher de galería: permite seleccionar una o varias fotos a la vez.
+    val multiPhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            stagedPhotos = stagedPhotos + uris
+        }
     }
 
-    // Lanzar chooser de cámara/galería cuando se pide
-    if (showTicketChooser) {
-        showTicketChooser = false
-        galleryLauncher.launch("image/*")
+    // Pantalla de preview de fotos staged (reemplaza el flujo normal mientras hay fotos
+    // cargadas pero no enviadas). Permite agregar más fotos o quitar alguna antes de escanear.
+    if (stagedPhotos.isNotEmpty()) {
+        TicketPhotosPreviewScreen(
+            photos   = stagedPhotos,
+            onRemove = { index -> stagedPhotos = stagedPhotos.toMutableList().also { it.removeAt(index) } },
+            onAddMore = {
+                multiPhotoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            onScan = {
+                val photosToScan = stagedPhotos
+                stagedPhotos = emptyList()
+                viewModel.scanTicketFromUris(context, photosToScan, purchaseId)
+            },
+            onCancel = { stagedPhotos = emptyList() }
+        )
+        return
     }
 
     // Diálogo de error de escaneo / auto-reset al confirmar
@@ -320,7 +339,11 @@ fun PurchaseDetailScreen(
                                     )
                                 }
                                 FilledTonalButton(
-                                    onClick = { showTicketChooser = true },
+                                    onClick = {
+                                        multiPhotoLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
                                     enabled = ticketState !is TicketScanState.Scanning && ticketState !is TicketScanState.Inserting,
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                     modifier = Modifier.height(36.dp)
