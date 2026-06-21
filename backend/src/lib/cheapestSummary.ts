@@ -62,6 +62,9 @@ export async function computeCheapestSummary(pool: Pool): Promise<CheapestSummar
   const [cheapestSupermarket] = Object.entries(wins).sort((a, b) => b[1] - a[1])[0];
   const acc = winnerAcc[cheapestSupermarket];
 
+  // totalSavings/avgSavingsPct se calculan solo sobre los productos ganados por
+  // cheapestSupermarket (no sobre el total de productos comparados) — es el ahorro
+  // que ese supermercado representa específicamente donde es la mejor opción.
   return {
     cheapestSupermarket,
     productsCompared: byProduct.size,
