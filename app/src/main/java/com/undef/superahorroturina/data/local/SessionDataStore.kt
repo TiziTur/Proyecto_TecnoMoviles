@@ -1,6 +1,7 @@
-// Persiste el token JWT y datos básicos del usuario usando DataStore Preferences.
-// DataStore es el reemplazo moderno de SharedPreferences — usa coroutines y es type-safe.
-// El token se guarda al hacer login y se limpia al cerrar sesión.
+// Persiste los datos no sensibles del usuario en DataStore Preferences (nombre,
+// email, etc.) y mantiene el token JWT SOLO en memoria — nunca en disco en texto
+// plano. El token sobrevive a un reinicio de la app únicamente si la biometría está
+// activada (ver BiometricCryptoManager), que lo guarda cifrado por separado.
 package com.undef.superahorroturina.data.local
 
 import android.content.Context
@@ -12,6 +13,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,7 +36,6 @@ class SessionDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private object Keys {
-        val TOKEN      = stringPreferencesKey("token")
         val USER_ID    = intPreferencesKey("user_id")
         val FIRST_NAME = stringPreferencesKey("first_name")
         val LAST_NAME  = stringPreferencesKey("last_name")
@@ -41,10 +43,13 @@ class SessionDataStore @Inject constructor(
         val PHONE      = stringPreferencesKey("phone")
     }
 
-    // Flow reactivo: cualquier cambio en DataStore emite un nuevo SessionData
-    val session: Flow<SessionData> = context.dataStore.data.map { prefs ->
+    // Token en memoria — nunca se persiste en texto plano; solo vive mientras corre el proceso.
+    private val _token = MutableStateFlow("")
+
+    // Flow reactivo: combina el token en memoria con los datos no sensibles persistidos.
+    val session: Flow<SessionData> = combine(_token, context.dataStore.data) { token, prefs ->
         SessionData(
-            token     = prefs[Keys.TOKEN]      ?: "",
+            token     = token,
             userId    = prefs[Keys.USER_ID]    ?: -1,
             firstName = prefs[Keys.FIRST_NAME] ?: "",
             lastName  = prefs[Keys.LAST_NAME]  ?: "",
@@ -55,8 +60,8 @@ class SessionDataStore @Inject constructor(
 
     suspend fun saveSession(token: String, userId: Int, firstName: String,
                             lastName: String, email: String, phone: String) {
+        _token.value = token
         context.dataStore.edit { prefs ->
-            prefs[Keys.TOKEN]      = token
             prefs[Keys.USER_ID]    = userId
             prefs[Keys.FIRST_NAME] = firstName
             prefs[Keys.LAST_NAME]  = lastName
@@ -65,7 +70,14 @@ class SessionDataStore @Inject constructor(
         }
     }
 
+    // Restaura el token en memoria tras un desbloqueo biométrico exitoso, sin tocar
+    // el resto de la sesión (que ya está persistida en DataStore).
+    fun restoreToken(token: String) {
+        _token.value = token
+    }
+
     suspend fun clearSession() {
+        _token.value = ""
         context.dataStore.edit { it.clear() }
     }
 
