@@ -117,6 +117,11 @@ interface ApiService {
         @Query("offset")   offset: Int? = null
     ): Response<PriceComparisonResponse>
 
+    @GET("prices/cheapest-summary")
+    suspend fun getCheapestSummary(
+        @Header("Authorization") token: String
+    ): Response<CheapestSummaryResponse>
+
     // ── Comparativa de compra completa contra SEPA ────────────
     @GET("purchases/{purchaseId}/compare")
     suspend fun comparePurchase(
