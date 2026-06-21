@@ -3,6 +3,7 @@
 import { Router, Response } from 'express';
 import pool from '../db';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { computeCheapestSummary } from '../lib/cheapestSummary';
 
 const router = Router();
 router.use(authMiddleware);
@@ -315,6 +316,59 @@ router.get('/compare', async (req: AuthRequest, res: Response): Promise<void> =>
     });
   } catch (err: any) {
     console.error('Error en /prices/compare:', err);
+    res.status(500).json({ error: err.message ?? 'Error interno' });
+  }
+});
+
+// GET /prices/cheapest-summary — resumen de qué supermercado conviene en general,
+// calculado de forma determinística; Gemini solo redacta el texto final.
+router.get('/cheapest-summary', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const stats = await computeCheapestSummary(pool);
+    if (!stats) {
+      res.json({ isEmpty: true });
+      return;
+    }
+
+    // Texto de respaldo (siempre válido) en caso de que Gemini no esté disponible o falle.
+    let headline = `${stats.cheapestSupermarket} tiene los precios más bajos en ${stats.productsWon} de ${stats.productsCompared} productos comparados. Podrías ahorrar hasta $${stats.totalSavings.toFixed(2)} (${stats.avgSavingsPct}% en promedio).`;
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      try {
+        const prompt = `Redactá 1 o 2 frases cortas y amigables en español sobre estos datos de precios de supermercado. NO inventes ni modifiques los números, usalos tal cual:
+- Supermercado más barato en general: ${stats.cheapestSupermarket}
+- Gana en ${stats.productsWon} de ${stats.productsCompared} productos comparados
+- Ahorro total estimado: $${stats.totalSavings.toFixed(2)}
+- Ahorro promedio: ${stats.avgSavingsPct}%
+Devolvé únicamente el texto, sin markdown ni comillas.`;
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+        const response = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 150 }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json() as any;
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (text) headline = text;
+        } else {
+          console.error('Gemini cheapest-summary error:', await response.text());
+        }
+      } catch (geminiErr) {
+        console.error('Error generando headline con Gemini:', geminiErr);
+        // Sigue con el headline de respaldo armado arriba — no rompe la respuesta.
+      }
+    }
+
+    res.json({ ...stats, isEmpty: false, headline });
+  } catch (err: any) {
+    console.error('Error en /prices/cheapest-summary:', err);
     res.status(500).json({ error: err.message ?? 'Error interno' });
   }
 });
