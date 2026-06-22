@@ -56,6 +56,8 @@ Ejemplo genérico para no confundir ambos casos:
   1234567890123 (21.00%)                9000.00     → (21.00%) es IVA, se ignora; price provisorio = 9000.00
   50% INDUMENTARIA -$4500.00                          → esto SÍ es un descuento (termina en $-monto): price final = 9000.00 - 4500.00 = 4500.00
 
+OJO: algunas líneas de descuento (promociones bancarias/bancos, tarjetas, programas de puntos) mencionan DOS montos en pesos en la misma línea, por ejemplo "$1299 PROGRAMA X $-1600.00" — un monto de referencia/umbral del programa (sin signo negativo, en este ejemplo "$1299") y el descuento real al final (siempre con signo negativo, en este ejemplo "$-1600.00"). En esos casos usá SIEMPRE el último monto de la línea, el que tiene el signo negativo "$-", e ignorá cualquier otro monto en pesos que aparezca antes en esa misma línea — no es parte del cálculo.
+
 Ignorá por completo líneas que son código de barras suelto, porcentaje de IVA suelto, subtotal, total, "Régimen de Transparencia Fiscal", impuestos nacionales, vuelto, CAE, QR, o cualquier línea sin un nombre de producto real asociado. Nunca inventes un producto genérico como "Producto" para una línea que no puedas identificar — si no podés leer bien un producto, omitilo en vez de inventar un nombre o precio placeholder.
 Si el nombre impreso de un producto es parcialmente ilegible (letras borrosas, cortadas, etc.) pero podés leer su código de barras y su precio con claridad, NUNCA reemplaces el nombre por el de otro producto de una categoría distinta que "suene parecido" o que te parezca plausible — eso es peor que no saberlo. En ese caso usá como name el código de barras tal como aparece impreso (ej: "Producto 7799120000993"), manteniendo price, quantity y code correctos. Solo escribí un nombre de producto real cuando puedas leerlo con razonable certeza letra por letra.
 
@@ -93,7 +95,11 @@ Reglas:
 - Una entrada del JSON por producto comprado, nunca una entrada por línea de texto. No incluyas descuentos, subtotales, impuestos ni líneas sin nombre de producto como entradas propias`;
 
   try {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // gemini-2.5-flash (sin "-lite") tiene una cuota free-tier de apenas 20 requests/día —
+    // se agota con cualquier uso real, no solo con pruebas. flash-lite tiene una cuota mucho
+    // más usable y, con el prompt ya corregido (IVA, descuentos, pesos), da resultados
+    // comparables en la práctica.
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
     const geminiBody = {
       contents: [{
@@ -109,15 +115,7 @@ Reglas:
       }],
       generationConfig: {
         temperature: 0,
-        maxOutputTokens: 16000,
-        // Los modelos Gemini 2.5 reservan parte de maxOutputTokens para "thinking" interno por
-        // default — con un ticket largo y un prompt detallado eso alcanzaba a truncar el JSON a
-        // mitad de respuesta. Desactivarlo del todo (thinkingBudget: 0) generaba un bug distinto
-        // (cantidad duplicada con precio mitad para compensar) — el razonamiento ayuda a leer bien
-        // cada bloque, así que lo dejamos en un presupuesto acotado en vez de apagarlo.
-        thinkingConfig: {
-          thinkingBudget: 2048
-        }
+        maxOutputTokens: 16000
       }
     };
 
