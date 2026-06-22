@@ -10,9 +10,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.data.network.dto.SeedSearchResultDto
 import kotlinx.coroutines.delay
@@ -34,10 +37,12 @@ fun TicketConfirmScreen(
     moneyFormat: NumberFormat,
     onSearchSeed: suspend (String) -> List<SeedSearchResultDto>,
     onLinkChange: (Int, String?) -> Unit,
+    onEditProduct: (Int, String, Double, Int) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
     var pickerIndex by remember { mutableStateOf<Int?>(null) }
+    var editIndex by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
         topBar = {
@@ -82,7 +87,8 @@ fun TicketConfirmScreen(
                     ScannedProductRow(
                         item        = item,
                         moneyFormat = moneyFormat,
-                        onLinkClick = { pickerIndex = index }
+                        onLinkClick = { pickerIndex = index },
+                        onEditClick = { editIndex = index }
                     )
                 }
             }
@@ -99,13 +105,26 @@ fun TicketConfirmScreen(
             onDismiss         = { pickerIndex = null }
         )
     }
+
+    val editingIndex = editIndex
+    if (editingIndex != null) {
+        EditProductDialog(
+            item      = products[editingIndex],
+            onDismiss = { editIndex = null },
+            onSave    = { name, price, quantity ->
+                onEditProduct(editingIndex, name, price, quantity)
+                editIndex = null
+            }
+        )
+    }
 }
 
 @Composable
 private fun ScannedProductRow(
     item: ScannedProductUi,
     moneyFormat: NumberFormat,
-    onLinkClick: () -> Unit
+    onLinkClick: () -> Unit,
+    onEditClick: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -126,6 +145,14 @@ private fun ScannedProductRow(
                     fontWeight = FontWeight.SemiBold,
                     color      = MaterialTheme.colorScheme.primary
                 )
+                IconButton(onClick = onEditClick, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Corregir producto",
+                        tint     = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             val seedMatch = item.seedMatch
@@ -222,4 +249,68 @@ private fun SeedLinkPickerSheet(
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+// Corrección manual de nombre/precio/cantidad cuando la IA no leyó bien el producto.
+@Composable
+private fun EditProductDialog(
+    item: ScannedProductUi,
+    onDismiss: () -> Unit,
+    onSave: (name: String, price: Double, quantity: Int) -> Unit
+) {
+    var name by remember { mutableStateOf(item.product.name) }
+    var priceText by remember { mutableStateOf(item.product.price.toString()) }
+    var quantityText by remember { mutableStateOf(item.product.quantity.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Corregir producto") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Si la IA no leyó bien este producto, corregilo acá antes de guardar.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value         = name,
+                    onValueChange = { name = it },
+                    label         = { Text("Nombre") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth()
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier              = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value         = quantityText,
+                        onValueChange = { quantityText = it.filter { c -> c.isDigit() } },
+                        label         = { Text("Cantidad") },
+                        singleLine    = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier      = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value         = priceText,
+                        onValueChange = { priceText = it.filter { c -> c.isDigit() || c == '.' } },
+                        label         = { Text("Precio unitario") },
+                        singleLine    = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier      = Modifier.weight(1f)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val price = priceText.toDoubleOrNull() ?: item.product.price
+                val quantity = quantityText.toIntOrNull()?.coerceAtLeast(1) ?: item.product.quantity
+                onSave(name.trim().ifBlank { item.product.name }, price, quantity)
+            }) { Text("Guardar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
 }

@@ -80,6 +80,7 @@ fun PurchaseDetailScreen(
             moneyFormat  = moneyFormat,
             onSearchSeed = { query -> viewModel.searchSeedProducts(query) },
             onLinkChange = { index, name -> viewModel.updateSeedLink(index, name) },
+            onEditProduct = { index, name, price, quantity -> viewModel.updateScannedProduct(index, name, price, quantity) },
             onConfirm    = { viewModel.confirmScannedProducts(purchaseId, confirmState.items) },
             onCancel     = { viewModel.resetTicketScan() }
         )

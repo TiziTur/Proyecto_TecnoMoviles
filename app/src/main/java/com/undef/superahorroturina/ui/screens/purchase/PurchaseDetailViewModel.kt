@@ -252,6 +252,17 @@ class PurchaseDetailViewModel @Inject constructor(
         }
     }
 
+    // Corrección manual de un producto detectado por la IA (nombre, precio o cantidad mal leídos).
+    fun updateScannedProduct(index: Int, name: String, price: Double, quantity: Int) {
+        val current = _ticketScanState.value
+        if (current is TicketScanState.Confirm) {
+            val updated = current.items.toMutableList()
+            val item = updated[index]
+            updated[index] = item.copy(product = item.product.copy(name = name, price = price, quantity = quantity))
+            _ticketScanState.value = current.copy(items = updated)
+        }
+    }
+
     // Búsqueda libre en el catálogo para el buscador manual de vínculo.
     suspend fun searchSeedProducts(query: String): List<SeedSearchResultDto> {
         val result = productRepository.searchSeedProducts(query)
