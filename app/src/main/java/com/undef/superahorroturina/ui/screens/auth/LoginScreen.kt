@@ -126,186 +126,46 @@ fun LoginScreen(
             // ── Bienvenida rápida si hay biometría activada ───────────────
             if (hasSavedSession && savedUserName.isNotBlank()) {
                 Spacer(Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors   = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Fingerprint,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text  = "Bienvenido de vuelta, $savedUserName",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text  = "Tocá para usar huella dactilar",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            )
-                        }
-                        if (activity != null && canUseBiometric(activity)) {
-                            IconButton(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        when (val unlockState = viewModel.prepareUnlockCipher()) {
-                                            is BiometricUnlockState.Ready -> {
-                                                showBiometricPrompt(
-                                                    activity     = activity,
-                                                    cryptoObject = BiometricPrompt.CryptoObject(unlockState.cipher),
-                                                    title        = "Bienvenido de vuelta, $savedUserName",
-                                                    subtitle     = "Usá tu huella para acceder",
-                                                    onSuccess    = { result ->
-                                                        coroutineScope.launch {
-                                                            viewModel.onBiometricUnlockSuccess(result.cryptoObject!!.cipher!!)
-                                                            onLoginSuccess()
-                                                        }
-                                                    }
-                                                )
+                BiometricWelcomeCard(
+                    savedUserName    = savedUserName,
+                    showUnlockButton = activity != null && canUseBiometric(activity),
+                    onUnlockClick = {
+                        coroutineScope.launch {
+                            when (val unlockState = viewModel.prepareUnlockCipher()) {
+                                is BiometricUnlockState.Ready -> {
+                                    showBiometricPrompt(
+                                        activity     = activity!!,
+                                        cryptoObject = BiometricPrompt.CryptoObject(unlockState.cipher),
+                                        title        = "Bienvenido de vuelta, $savedUserName",
+                                        subtitle     = "Usá tu huella para acceder",
+                                        onSuccess    = { result ->
+                                            coroutineScope.launch {
+                                                viewModel.onBiometricUnlockSuccess(result.cryptoObject!!.cipher!!)
+                                                onLoginSuccess()
                                             }
-                                            is BiometricUnlockState.KeyInvalidated -> {
-                                                viewModel.onBiometricKeyInvalidated()
-                                            }
-                                            is BiometricUnlockState.NotAvailable -> Unit
                                         }
-                                    }
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    Icons.Default.Fingerprint,
-                                    contentDescription = "Autenticar con huella",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp)
-                                )
+                                is BiometricUnlockState.KeyInvalidated -> {
+                                    viewModel.onBiometricKeyInvalidated()
+                                }
+                                is BiometricUnlockState.NotAvailable -> Unit
                             }
                         }
                     }
-                }
+                )
             }
 
             Spacer(Modifier.height(if (hasSavedSession) 16.dp else 48.dp))
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .coloredShadow(
-                        color        = MaterialTheme.colorScheme.primary,
-                        borderRadius = 28.dp,
-                        blurRadius   = 20.dp,
-                        offsetY      = 6.dp
-                    )
-                    .glowBorder(cornerRadius = 28.dp, isDark = isDark),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.login_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    OutlinedTextField(
-                        value = uiState.email,
-                        onValueChange = { viewModel.onEmailChange(it) },
-                        label = { Text(stringResource(R.string.field_email)) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Email, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        isError = uiState.emailError,
-                        supportingText = if (uiState.emailError) {
-                            { Text(stringResource(R.string.error_email)) }
-                        } else null,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium
-                    )
-
-                    OutlinedTextField(
-                        value = uiState.password,
-                        onValueChange = { viewModel.onPasswordChange(it) },
-                        label = { Text(stringResource(R.string.field_password)) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Lock, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { viewModel.onTogglePasswordVisibility() }) {
-                                Icon(
-                                    imageVector = if (uiState.showPassword) Icons.Default.VisibilityOff
-                                                  else Icons.Default.Visibility,
-                                    contentDescription = null
-                                )
-                            }
-                        },
-                        visualTransformation = if (uiState.showPassword) VisualTransformation.None
-                                               else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium
-                    )
-
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        TextButton(
-                            onClick = { /* TODO */ },
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.login_forgot_password),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    if (uiState.apiError.isNotBlank()) {
-                        Text(
-                            text = uiState.apiError,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    KlarityButton(
-                        text = stringResource(R.string.action_login),
-                        onClick = { viewModel.onLogin(onLoginSuccess) },
-                        loading = uiState.isLoading,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
+            LoginFormCard(
+                uiState    = uiState,
+                isDark     = isDark,
+                onEmailChange    = { viewModel.onEmailChange(it) },
+                onPasswordChange = { viewModel.onPasswordChange(it) },
+                onTogglePasswordVisibility = { viewModel.onTogglePasswordVisibility() },
+                onLogin    = { viewModel.onLogin(onLoginSuccess) }
+            )
 
             Spacer(Modifier.height(24.dp))
 
@@ -340,10 +200,10 @@ fun LoginScreen(
     if (biometricMessage.isNotBlank()) {
         AlertDialog(
             onDismissRequest = { viewModel.clearBiometricMessage() },
-            title = { Text("Huella desactivada") },
+            title = { Text(stringResource(R.string.biometric_disabled_title)) },
             text  = { Text(biometricMessage) },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearBiometricMessage() }) { Text("Entendido") }
+                TextButton(onClick = { viewModel.clearBiometricMessage() }) { Text(stringResource(R.string.action_understood)) }
             }
         )
     }
@@ -352,8 +212,8 @@ fun LoginScreen(
     if (showEnrollDialog && activity != null && canUseBiometric(activity)) {
         AlertDialog(
             onDismissRequest = { viewModel.onEnrollDeclined(onDone = onLoginSuccess) },
-            title = { Text("¿Activar inicio con huella?") },
-            text  = { Text("Vas a poder volver a entrar a Klarity con tu huella o PIN, sin escribir la contraseña cada vez.") },
+            title = { Text(stringResource(R.string.biometric_enroll_title)) },
+            text  = { Text(stringResource(R.string.biometric_enroll_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     coroutineScope.launch {
@@ -375,12 +235,186 @@ fun LoginScreen(
                             viewModel.onEnrollDeclined(onDone = onLoginSuccess)
                         }
                     }
-                }) { Text("Activar") }
+                }) { Text(stringResource(R.string.action_activate)) }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onEnrollDeclined(onDone = onLoginSuccess) }) { Text("Ahora no") }
+                TextButton(onClick = { viewModel.onEnrollDeclined(onDone = onLoginSuccess) }) { Text(stringResource(R.string.action_not_now)) }
             }
         )
+    }
+}
+
+// ── Tarjeta de bienvenida rápida con huella ───────────────────────────────────
+
+@Composable
+private fun BiometricWelcomeCard(
+    savedUserName: String,
+    showUnlockButton: Boolean,
+    onUnlockClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors   = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Fingerprint,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text  = stringResource(R.string.login_welcome_back_named, savedUserName),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text  = stringResource(R.string.login_tap_fingerprint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
+            if (showUnlockButton) {
+                IconButton(onClick = onUnlockClick) {
+                    Icon(
+                        Icons.Default.Fingerprint,
+                        contentDescription = stringResource(R.string.action_authenticate_fingerprint),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Formulario de email/contraseña ────────────────────────────────────────────
+
+@Composable
+private fun LoginFormCard(
+    uiState: com.undef.superahorroturina.ui.state.LoginUiState,
+    isDark: Boolean,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onTogglePasswordVisibility: () -> Unit,
+    onLogin: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .coloredShadow(
+                color        = MaterialTheme.colorScheme.primary,
+                borderRadius = 28.dp,
+                blurRadius   = 20.dp,
+                offsetY      = 6.dp
+            )
+            .glowBorder(cornerRadius = 28.dp, isDark = isDark),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.login_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            OutlinedTextField(
+                value = uiState.email,
+                onValueChange = onEmailChange,
+                label = { Text(stringResource(R.string.field_email)) },
+                leadingIcon = {
+                    Icon(Icons.Default.Email, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                isError = uiState.emailError,
+                supportingText = if (uiState.emailError) {
+                    { Text(stringResource(R.string.error_email)) }
+                } else null,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
+            )
+
+            OutlinedTextField(
+                value = uiState.password,
+                onValueChange = onPasswordChange,
+                label = { Text(stringResource(R.string.field_password)) },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                trailingIcon = {
+                    IconButton(onClick = onTogglePasswordVisibility) {
+                        Icon(
+                            imageVector = if (uiState.showPassword) Icons.Default.VisibilityOff
+                                          else Icons.Default.Visibility,
+                            contentDescription = null
+                        )
+                    }
+                },
+                visualTransformation = if (uiState.showPassword) VisualTransformation.None
+                                       else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
+            )
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                TextButton(
+                    onClick = { /* TODO */ },
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.login_forgot_password),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (uiState.apiError.isNotBlank()) {
+                Text(
+                    text = uiState.apiError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            KlarityButton(
+                text = stringResource(R.string.action_login),
+                onClick = onLogin,
+                loading = uiState.isLoading,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 

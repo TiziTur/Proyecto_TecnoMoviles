@@ -13,8 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.undef.superahorroturina.R
 import kotlinx.coroutines.flow.filter
 
 private val DRUM_ITEM_H = 52.dp
@@ -120,12 +122,12 @@ fun DrumTimePickerDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Seleccionar hora", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.time_picker_title), style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Deslizá cada dígito",
+                    stringResource(R.string.time_picker_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -179,10 +181,10 @@ fun DrumTimePickerDialog(
                 val hour   = minOf(23, h1 * 10 + h2)
                 val minute = m1 * 10 + m2
                 onConfirm(hour, minute)
-            }) { Text("Listo") }
+            }) { Text(stringResource(R.string.action_done)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     )
 }

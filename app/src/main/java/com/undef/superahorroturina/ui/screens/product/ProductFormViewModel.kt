@@ -7,9 +7,11 @@ import com.undef.superahorroturina.data.repository.ApiResult
 import com.undef.superahorroturina.data.repository.ProductRepository
 import com.undef.superahorroturina.ui.state.ProductFormUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.undef.superahorroturina.model.Product
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,26 +26,39 @@ class ProductFormViewModel @Inject constructor(
     private var currentPurchaseId: Int = 0
     private var currentProductId: Int? = null
 
+    // Room es la fuente de verdad: primero busca el producto en caché local (ya debería estar
+    // ahí, cargado cuando se abrió el detalle de la compra). Solo si no está, refresca desde
+    // el backend y reintenta — evita un viaje a la red innecesario en el caso común.
     fun loadProduct(purchaseId: Int, productId: Int?) {
         currentPurchaseId = purchaseId
         currentProductId  = productId
         if (productId == null) return
 
         viewModelScope.launch {
-            when (val result = productRepository.getProducts(purchaseId)) {
+            val local = productRepository.getProductsFlow(purchaseId).first()
+            val cached = local.find { it.id == productId }
+            if (cached != null) {
+                applyProduct(cached)
+                return@launch
+            }
+            when (productRepository.refreshProducts(purchaseId)) {
                 is ApiResult.Success -> {
-                    val product = result.data.find { it.id == productId } ?: return@launch
-                    _uiState.value = ProductFormUiState(
-                        code        = product.code,
-                        name        = product.name,
-                        description = product.description,
-                        price       = product.price.toString(),
-                        quantity    = product.quantity.toString()
-                    )
+                    val refreshed = productRepository.getProductsFlow(purchaseId).first()
+                    refreshed.find { it.id == productId }?.let { applyProduct(it) }
                 }
                 is ApiResult.Error -> { /* mantiene estado actual */ }
             }
         }
+    }
+
+    private fun applyProduct(product: Product) {
+        _uiState.value = ProductFormUiState(
+            code        = product.code,
+            name        = product.name,
+            description = product.description,
+            price       = product.price.toString(),
+            quantity    = product.quantity.toString()
+        )
     }
 
     fun onCodeChange(value: String)        { _uiState.value = _uiState.value.copy(code = value) }

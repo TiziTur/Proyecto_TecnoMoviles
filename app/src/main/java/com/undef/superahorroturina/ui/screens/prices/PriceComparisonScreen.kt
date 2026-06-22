@@ -23,10 +23,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.undef.superahorroturina.R
 import com.undef.superahorroturina.data.network.dto.PriceComparisonItemDto
 import com.undef.superahorroturina.data.network.dto.PriceEntryDto
 import com.undef.superahorroturina.ui.components.*
@@ -119,7 +121,7 @@ fun PriceComparisonScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppTopBar(
-                title    = "Comparativa de Precios",
+                title    = stringResource(R.string.screen_price_comparison),
                 showBack = true,
                 onBack   = onNavigateBack
             )
@@ -139,183 +141,41 @@ fun PriceComparisonScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // ── Búsqueda + botón de filtros ───────────────────────────────
-                Row(
-                    modifier              = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value         = searchQuery,
-                        onValueChange = { viewModel.searchQuery.value = it },
-                        label         = { Text("Buscar producto…") },
-                        leadingIcon   = { Icon(Icons.Default.Search, null) },
-                        trailingIcon  = {
-                            if (searchQuery.isNotBlank())
-                                IconButton(onClick = { viewModel.searchQuery.value = "" }) {
-                                    Icon(Icons.Default.Clear, null)
-                                }
-                        },
-                        modifier   = Modifier.weight(1f),
-                        singleLine = true,
-                        shape      = MaterialTheme.shapes.large
-                    )
-                    BadgedBox(
-                        badge = {
-                            if (activeFilterCount > 0)
-                                Badge { Text("$activeFilterCount") }
-                        }
-                    ) {
-                        IconButton(onClick = { showFilterSheet = true }) {
-                            Icon(
-                                Icons.Default.FilterList,
-                                contentDescription = "Filtros",
-                                tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.primary
-                                       else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+                SearchAndFilterRow(
+                    searchQuery       = searchQuery,
+                    onSearchChange    = { viewModel.searchQuery.value = it },
+                    activeFilterCount = activeFilterCount,
+                    onFilterClick     = { showFilterSheet = true }
+                )
                 Spacer(Modifier.height(8.dp))
 
-                // ── Chips de ordenamiento ────────────────────────────────────
-                Row(
-                    modifier              = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = sortOrder == "price_asc",
-                        onClick  = {
-                            viewModel.sortOrder.value =
-                                if (sortOrder == "price_asc") "name" else "price_asc"
-                        },
-                        label        = { Text("Precio ↑") },
-                        leadingIcon  = { Icon(Icons.Default.ArrowUpward, null, Modifier.size(14.dp)) }
-                    )
-                    FilterChip(
-                        selected = sortOrder == "price_desc",
-                        onClick  = {
-                            viewModel.sortOrder.value =
-                                if (sortOrder == "price_desc") "name" else "price_desc"
-                        },
-                        label        = { Text("Precio ↓") },
-                        leadingIcon  = { Icon(Icons.Default.ArrowDownward, null, Modifier.size(14.dp)) }
-                    )
-                }
+                SortChipsRow(
+                    sortOrder    = sortOrder,
+                    onSortChange = { viewModel.sortOrder.value = it }
+                )
                 Spacer(Modifier.height(4.dp))
 
-                // ── Chips de categoría ────────────────────────────────────────
                 val visibleCats = CATEGORY_ORDER.filter { (uiState.categoryCounts[it] ?: 0) > 0 }
                 if (visibleCats.isNotEmpty()) {
-                    LazyRow(
-                        contentPadding        = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        item {
-                            FilterChip(
-                                selected = selectedCategory.isBlank(),
-                                onClick  = { viewModel.selectedCategory.value = "" },
-                                label    = { Text("Todos (${uiState.total})") }
-                            )
-                        }
-                        items(visibleCats) { cat ->
-                            FilterChip(
-                                selected = selectedCategory == cat,
-                                onClick  = {
-                                    viewModel.selectedCategory.value =
-                                        if (selectedCategory == cat) "" else cat
-                                },
-                                label       = { Text("$cat (${uiState.categoryCounts[cat] ?: 0})") },
-                                leadingIcon = { Icon(categoryIcon(cat), contentDescription = null, modifier = Modifier.size(16.dp)) }
-                            )
-                        }
-                    }
+                    CategoryChipsRow(
+                        visibleCats      = visibleCats,
+                        selectedCategory = selectedCategory,
+                        total            = uiState.total,
+                        categoryCounts   = uiState.categoryCounts,
+                        onCategoryChange = { viewModel.selectedCategory.value = it }
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
 
-                // ── Contenido ─────────────────────────────────────────────────
-                when {
-                    uiState.isLoading -> {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    uiState.error.isNotBlank() -> {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(uiState.error, color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                    uiState.allComparisons.isEmpty() -> {
-                        EmptyState(
-                            icon    = Icons.Default.SearchOff,
-                            message = when {
-                                searchQuery.isNotBlank() ->
-                                    "Sin resultados para \"$searchQuery\"\nProbá sin tilde o con otra ortografía"
-                                selectedCategory.isNotBlank() || activeFilterCount > 0 ->
-                                    "Sin productos con los filtros aplicados"
-                                else ->
-                                    "Registrá compras en varios supermercados para ver comparativas"
-                            },
-                            modifier = Modifier.fillMaxSize().padding(32.dp)
-                        )
-                    }
-                    else -> {
-                        LazyColumn(
-                            state               = listState,
-                            modifier            = Modifier.fillMaxSize(),
-                            contentPadding      = PaddingValues(vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            item {
-                                SavingsBanner(
-                                    totalSavings = uiState.allComparisons.sumOf { it.maxSavings },
-                                    shown        = uiState.allComparisons.size,
-                                    total        = uiState.total,
-                                    isDark       = isDark,
-                                    moneyFormat  = moneyFormat,
-                                    modifier     = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
-
-                            items(uiState.allComparisons, key = { it.productName + it.category }) { item ->
-                                CompactPriceCard(
-                                    item        = item,
-                                    isDark      = isDark,
-                                    moneyFormat = moneyFormat,
-                                    modifier    = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
-
-                            if (uiState.isLoadingMore) {
-                                item {
-                                    Box(
-                                        modifier         = Modifier.fillMaxWidth().padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) { CircularProgressIndicator(modifier = Modifier.size(28.dp)) }
-                                }
-                            }
-
-                            if (uiState.source.isNotBlank()) {
-                                item {
-                                    Text(
-                                        text  = "Fuente: ${uiState.source}" +
-                                                if (uiState.lastUpdated != null)
-                                                    " · Act: ${uiState.lastUpdated!!.take(10)}" else "",
-                                        style    = MaterialTheme.typography.labelSmall,
-                                        color    = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-                            item { Spacer(Modifier.height(24.dp)) }
-                        }
-                    }
-                }
+                PriceComparisonContent(
+                    uiState           = uiState,
+                    searchQuery       = searchQuery,
+                    selectedCategory  = selectedCategory,
+                    activeFilterCount = activeFilterCount,
+                    isDark            = isDark,
+                    moneyFormat       = moneyFormat,
+                    listState         = listState
+                )
             }
         }
     }
@@ -334,6 +194,207 @@ fun PriceComparisonScreen(
                 onClear       = { viewModel.clearFilters(); showFilterSheet = false },
                 onDone        = { showFilterSheet = false }
             )
+        }
+    }
+}
+
+// ── Búsqueda + botón de filtros ───────────────────────────────────────────────
+
+@Composable
+private fun SearchAndFilterRow(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    activeFilterCount: Int,
+    onFilterClick: () -> Unit
+) {
+    Row(
+        modifier              = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(top = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment     = Alignment.CenterVertically
+    ) {
+        OutlinedTextField(
+            value         = searchQuery,
+            onValueChange = onSearchChange,
+            label         = { Text(stringResource(R.string.search_product_placeholder)) },
+            leadingIcon   = { Icon(Icons.Default.Search, null) },
+            trailingIcon  = {
+                if (searchQuery.isNotBlank())
+                    IconButton(onClick = { onSearchChange("") }) {
+                        Icon(Icons.Default.Clear, null)
+                    }
+            },
+            modifier   = Modifier.weight(1f),
+            singleLine = true,
+            shape      = MaterialTheme.shapes.large
+        )
+        BadgedBox(
+            badge = {
+                if (activeFilterCount > 0)
+                    Badge { Text("$activeFilterCount") }
+            }
+        ) {
+            IconButton(onClick = onFilterClick) {
+                Icon(
+                    Icons.Default.FilterList,
+                    contentDescription = stringResource(R.string.price_comparison_filters_title),
+                    tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+// ── Chips de ordenamiento ────────────────────────────────────────────────────
+
+@Composable
+private fun SortChipsRow(
+    sortOrder: String,
+    onSortChange: (String) -> Unit
+) {
+    Row(
+        modifier              = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        FilterChip(
+            selected = sortOrder == "price_asc",
+            onClick  = { onSortChange(if (sortOrder == "price_asc") "name" else "price_asc") },
+            label        = { Text(stringResource(R.string.price_comparison_sort_price_asc)) },
+            leadingIcon  = { Icon(Icons.Default.ArrowUpward, null, Modifier.size(14.dp)) }
+        )
+        FilterChip(
+            selected = sortOrder == "price_desc",
+            onClick  = { onSortChange(if (sortOrder == "price_desc") "name" else "price_desc") },
+            label        = { Text(stringResource(R.string.price_comparison_sort_price_desc)) },
+            leadingIcon  = { Icon(Icons.Default.ArrowDownward, null, Modifier.size(14.dp)) }
+        )
+    }
+}
+
+// ── Chips de categoría ────────────────────────────────────────────────────────
+
+@Composable
+private fun CategoryChipsRow(
+    visibleCats: List<String>,
+    selectedCategory: String,
+    total: Int,
+    categoryCounts: Map<String, Int>,
+    onCategoryChange: (String) -> Unit
+) {
+    LazyRow(
+        contentPadding        = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedCategory.isBlank(),
+                onClick  = { onCategoryChange("") },
+                label    = { Text(stringResource(R.string.price_comparison_filter_all, total)) }
+            )
+        }
+        items(visibleCats) { cat ->
+            FilterChip(
+                selected = selectedCategory == cat,
+                onClick  = { onCategoryChange(if (selectedCategory == cat) "" else cat) },
+                label       = { Text(stringResource(R.string.price_comparison_category_count, cat, categoryCounts[cat] ?: 0)) },
+                leadingIcon = { Icon(categoryIcon(cat), contentDescription = null, modifier = Modifier.size(16.dp)) }
+            )
+        }
+    }
+}
+
+// ── Contenido principal (loading / error / empty / lista) ────────────────────
+
+@Composable
+private fun PriceComparisonContent(
+    uiState: PriceComparisonUiState,
+    searchQuery: String,
+    selectedCategory: String,
+    activeFilterCount: Int,
+    isDark: Boolean,
+    moneyFormat: java.text.NumberFormat,
+    listState: androidx.compose.foundation.lazy.LazyListState
+) {
+    when {
+        uiState.isLoading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        uiState.error.isNotBlank() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(uiState.error, color = MaterialTheme.colorScheme.error)
+            }
+        }
+        uiState.allComparisons.isEmpty() -> {
+            EmptyState(
+                icon    = Icons.Default.SearchOff,
+                message = when {
+                    searchQuery.isNotBlank() ->
+                        stringResource(R.string.price_comparison_no_results_query, searchQuery)
+                    selectedCategory.isNotBlank() || activeFilterCount > 0 ->
+                        stringResource(R.string.price_comparison_no_results_filters)
+                    else ->
+                        stringResource(R.string.price_comparison_empty_hint)
+                },
+                modifier = Modifier.fillMaxSize().padding(32.dp)
+            )
+        }
+        else -> {
+            LazyColumn(
+                state               = listState,
+                modifier            = Modifier.fillMaxSize(),
+                contentPadding      = PaddingValues(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    SavingsBanner(
+                        totalSavings = uiState.allComparisons.sumOf { it.maxSavings },
+                        shown        = uiState.allComparisons.size,
+                        total        = uiState.total,
+                        isDark       = isDark,
+                        moneyFormat  = moneyFormat,
+                        modifier     = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+
+                items(uiState.allComparisons, key = { it.productName + it.category }) { item ->
+                    CompactPriceCard(
+                        item        = item,
+                        isDark      = isDark,
+                        moneyFormat = moneyFormat,
+                        modifier    = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+
+                if (uiState.isLoadingMore) {
+                    item {
+                        Box(
+                            modifier         = Modifier.fillMaxWidth().padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) { CircularProgressIndicator(modifier = Modifier.size(28.dp)) }
+                    }
+                }
+
+                if (uiState.source.isNotBlank()) {
+                    item {
+                        Text(
+                            text  = uiState.lastUpdated?.let {
+                                stringResource(R.string.price_comparison_source_updated, uiState.source, it.take(10))
+                            } ?: stringResource(R.string.price_comparison_source, uiState.source),
+                            style    = MaterialTheme.typography.labelSmall,
+                            color    = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(24.dp)) }
+            }
         }
     }
 }
@@ -359,13 +420,13 @@ private fun FilterSheetContent(
             .padding(bottom = 32.dp),
         verticalArrangement   = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Filtros", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.price_comparison_filters_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
         // Marca
         OutlinedTextField(
             value         = selectedBrand,
             onValueChange = onBrandChange,
-            label         = { Text("Marca") },
+            label         = { Text(stringResource(R.string.price_comparison_brand_label)) },
             leadingIcon   = { Icon(Icons.Default.Store, null) },
             trailingIcon  = {
                 if (selectedBrand.isNotBlank())
@@ -391,7 +452,7 @@ private fun FilterSheetContent(
         HorizontalDivider()
 
         // Rango de precios
-        Text("Rango de precio ($)", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.price_comparison_price_range), style = MaterialTheme.typography.labelLarge)
         Row(
             modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -399,7 +460,7 @@ private fun FilterSheetContent(
             OutlinedTextField(
                 value         = minPrice,
                 onValueChange = onMinChange,
-                label         = { Text("Mínimo") },
+                label         = { Text(stringResource(R.string.price_comparison_min)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier      = Modifier.weight(1f),
                 singleLine    = true,
@@ -408,7 +469,7 @@ private fun FilterSheetContent(
             OutlinedTextField(
                 value         = maxPrice,
                 onValueChange = onMaxChange,
-                label         = { Text("Máximo") },
+                label         = { Text(stringResource(R.string.price_comparison_max)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier      = Modifier.weight(1f),
                 singleLine    = true,
@@ -424,11 +485,11 @@ private fun FilterSheetContent(
             OutlinedButton(
                 onClick  = onClear,
                 modifier = Modifier.weight(1f)
-            ) { Text("Limpiar") }
+            ) { Text(stringResource(R.string.action_clear)) }
             Button(
                 onClick  = onDone,
                 modifier = Modifier.weight(1f)
-            ) { Text("Listo") }
+            ) { Text(stringResource(R.string.action_done)) }
         }
     }
 }
@@ -459,7 +520,7 @@ private fun SavingsBanner(
             .padding(20.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Ahorro potencial", style = MaterialTheme.typography.labelLarge,
+            Text(stringResource(R.string.price_comparison_savings), style = MaterialTheme.typography.labelLarge,
                 color = Color.White.copy(alpha = 0.8f))
             Text(
                 text       = "$ ${moneyFormat.format(totalSavings.toLong())}",
@@ -468,7 +529,7 @@ private fun SavingsBanner(
                 color      = Color.White
             )
             Text(
-                text  = "Mostrando $shown de $total productos · deslizá para ver más",
+                text  = stringResource(R.string.price_comparison_showing, shown, total),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.7f)
             )
@@ -621,7 +682,7 @@ private fun CompactPriceCard(
                             Icon(Icons.Default.TipsAndUpdates, null,
                                 tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                             Text(
-                                text       = "Compralo en ${supermarketLabel(item.cheapestAt)} y ahorrás $ ${moneyFormat.format(item.maxSavings.toLong())}",
+                                text       = stringResource(R.string.price_comparison_buy_at_save, supermarketLabel(item.cheapestAt), moneyFormat.format(item.maxSavings.toLong())),
                                 style      = MaterialTheme.typography.labelSmall,
                                 color      = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium

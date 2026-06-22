@@ -37,6 +37,21 @@
     <string name="action_add_product">Agregar producto</string>
     <string name="action_see_all">Ver todo</string>
     <string name="action_attach">Adjuntar</string>
+    <string name="action_clear">Limpiar</string>
+    <string name="action_done">Listo</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="action_close">Cerrar</string>
+    <string name="action_understood">Entendido</string>
+    <string name="action_activate">Activar</string>
+    <string name="action_not_now">Ahora no</string>
+    <string name="action_take_photo">Tomar foto</string>
+    <string name="action_choose_from_gallery">Elegir de galería</string>
+    <string name="action_add_more_photos">Agregar más fotos</string>
+    <string name="action_all">Todos</string>
+    <string name="action_export_csv">Exportar CSV</string>
+    <string name="action_ok">OK</string>
+    <string name="action_hide_detail">Ocultar detalle</string>
+    <string name="action_view_products">Ver productos</string>
 
     <!-- Home -->
     <string name="home_welcome">Hola, %1$s</string>
@@ -150,4 +165,105 @@
     <!-- Dialogs -->
     <string name="dialog_delete_title">¿Eliminar?</string>
     <string name="dialog_delete_purchase_msg">Esta acción eliminará la compra y todos sus productos. No se puede deshacer.</string>
+
+    <!-- Price comparison -->
+    <string name="search_product_placeholder">Buscar producto…</string>
+    <string name="price_comparison_sort_price_asc">Precio ↑</string>
+    <string name="price_comparison_sort_price_desc">Precio ↓</string>
+    <string name="price_comparison_filter_all">Todos (%1$d)</string>
+    <string name="price_comparison_filters_title">Filtros</string>
+    <string name="price_comparison_brand_label">Marca</string>
+    <string name="price_comparison_price_range">Rango de precio ($)</string>
+    <string name="price_comparison_min">Mínimo</string>
+    <string name="price_comparison_max">Máximo</string>
+    <string name="price_comparison_savings">Ahorro potencial</string>
+    <string name="screen_price_comparison">Comparativa de Precios</string>
+    <string name="price_comparison_category_count">%1$s (%2$d)</string>
+    <string name="price_comparison_no_results_query">Sin resultados para \"%1$s\"\nProbá sin tilde o con otra ortografía</string>
+    <string name="price_comparison_no_results_filters">Sin productos con los filtros aplicados</string>
+    <string name="price_comparison_empty_hint">Registrá compras en varios supermercados para ver comparativas</string>
+    <string name="price_comparison_source">Fuente: %1$s</string>
+    <string name="price_comparison_source_updated">Fuente: %1$s · Act: %2$s</string>
+    <string name="price_comparison_showing">Mostrando %1$d de %2$d productos · deslizá para ver más</string>
+    <string name="price_comparison_buy_at_save">Compralo en %1$s y ahorrás $ %2$s</string>
+
+    <!-- History filters -->
+    <string name="history_advanced_filters">Filtros avanzados</string>
+    <string name="history_date_from">Desde</string>
+    <string name="history_date_to">Hasta</string>
+    <string name="history_amount_min">Monto mín.</string>
+    <string name="history_amount_max">Monto máx.</string>
+    <string name="history_filters_count">Filtros (%1$d)</string>
+
+    <!-- Biometric dialogs (Login) -->
+    <string name="biometric_disabled_title">Huella desactivada</string>
+    <string name="biometric_enroll_title">¿Activar inicio con huella?</string>
+    <string name="biometric_enroll_message">Vas a poder volver a entrar a Klarity con tu huella o PIN, sin escribir la contraseña cada vez.</string>
+
+    <!-- Ticket attach / scan -->
+    <string name="dialog_scan_error_title">Error al escanear</string>
+    <string name="ticket_attach_title">Adjuntar ticket</string>
+    <string name="purchase_load_error">No se pudo cargar la compra</string>
+    <string name="ticket_photos_title">Fotos del ticket (%1$d)</string>
+    <string name="action_scan_ticket">Escanear ticket (%1$d)</string>
+    <string name="ticket_photos_empty">No hay fotos cargadas</string>
+    <string name="ticket_photos_long_hint">Si el ticket es largo, sacá una foto por tramo: se analizan todas juntas como un solo ticket.</string>
+    <string name="ticket_photo_description">Foto %1$d del ticket</string>
+    <string name="ticket_photo_remove">Quitar foto %1$d</string>
+    <string name="action_share_purchase">Compartir compra</string>
+    <string name="action_compare_prices">Comparar precios</string>
+    <string name="purchase_date_at_time">%1$s a las %2$s</string>
+
+    <!-- Ticket confirm (revisión de productos escaneados con IA) -->
+    <string name="ticket_confirm_title">Confirmar productos</string>
+    <string name="ticket_confirm_save">Confirmar y guardar (%1$d)</string>
+    <string name="seed_link_title">Vincular con el catálogo</string>
+    <string name="seed_unlink">No vincular este producto</string>
+    <string name="edit_scanned_product_title">Corregir producto</string>
+    <string name="edit_scanned_product_hint">Si la IA no leyó bien este producto, corregilo acá antes de guardar.</string>
+    <string name="ticket_edit_name_label">Nombre</string>
+    <string name="ticket_edit_price_label">Precio unitario</string>
+    <string name="purchase_supermarket_label">Supermercado: %1$s</string>
+    <string name="seed_linked_to">Vinculado a %1$s</string>
+    <string name="seed_no_match">Sin coincidencia — tocar para buscar</string>
+    <string name="seed_no_results">Sin resultados</string>
+
+    <!-- Home -->
+    <string name="home_ai_assistant">Asistente IA</string>
+    <string name="home_price_comparison">Comparativa de precios</string>
+
+    <!-- Chat -->
+    <string name="chat_placeholder">Preguntame sobre tus compras...</string>
+    <string name="action_send">Enviar</string>
+    <string name="product_code_hint">EAN / código de barras</string>
+    <string name="action_scan_barcode">Escanear código de barras</string>
+    <string name="login_welcome_back_named">Bienvenido de vuelta, %1$s</string>
+    <string name="login_tap_fingerprint">Tocá para usar huella dactilar</string>
+    <string name="settings_biometric_title">Inicio con huella</string>
+    <string name="settings_biometric_subtitle_available">Usá tu huella o PIN para entrar más rápido</string>
+    <string name="settings_biometric_subtitle_unavailable">Tu dispositivo no tiene biometría ni PIN configurado</string>
+    <string name="home_this_month">Este mes</string>
+    <string name="home_monthly_budget">Presupuesto mensual</string>
+    <string name="home_ai_tools_title">Herramientas IA</string>
+    <string name="home_ai_assistant_subtitle">Consultá tu historial</string>
+    <string name="home_comparison_card_title">Comparativa</string>
+    <string name="home_comparison_card_subtitle">Precios por super</string>
+    <string name="home_cheapest_question">¿Dónde conviene comprar este mes?</string>
+    <string name="home_cheapest_calculating">Calculando…</string>
+    <string name="home_cheapest_no_data">Aún no hay suficientes datos para calcularlo</string>
+    <string name="action_authenticate_fingerprint">Autenticar con huella</string>
+
+    <!-- Time picker -->
+    <string name="time_picker_title">Seleccionar hora</string>
+    <string name="time_picker_hint">Deslizá cada dígito</string>
+
+    <!-- Purchase comparison (vs SEPA) -->
+    <string name="screen_purchase_comparison">¿Dónde hubiera sido más barato?</string>
+    <string name="purchase_comparison_loading">Analizando precios SEPA...</string>
+    <string name="purchase_comparison_bought_at">Compraste en %1$s</string>
+    <string name="purchase_comparison_could_save">Podías ahorrar hasta $ %1$s en %2$s</string>
+    <string name="purchase_comparison_no_sepa_data">No se encontraron precios SEPA para comparar estos productos.</string>
+    <string name="purchase_comparison_unmatched_count">Sin datos SEPA (%1$d)</string>
+    <string name="purchase_comparison_matched_count">%1$d productos coinciden</string>
+    <string name="purchase_comparison_no_data">sin dato</string>
 </resources>

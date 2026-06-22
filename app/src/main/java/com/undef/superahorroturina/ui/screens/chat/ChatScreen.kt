@@ -22,11 +22,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.dotPatternBackground
 
@@ -50,7 +52,7 @@ fun ChatScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppTopBar(
-                title    = "Asistente IA",
+                title    = stringResource(R.string.home_ai_assistant),
                 showBack = true,
                 onBack   = onNavigateBack
             )
@@ -96,7 +98,7 @@ fun ChatScreen(
                     OutlinedTextField(
                         value         = uiState.inputText,
                         onValueChange = { viewModel.onInputChange(it) },
-                        placeholder   = { Text("Preguntame sobre tus compras...") },
+                        placeholder   = { Text(stringResource(R.string.chat_placeholder)) },
                         modifier      = Modifier.weight(1f),
                         maxLines      = 4,
                         shape         = RoundedCornerShape(24.dp),
@@ -134,7 +136,7 @@ fun ChatScreen(
                             } else {
                                 Icon(
                                     Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Enviar",
+                                    contentDescription = stringResource(R.string.action_send),
                                     tint = if (uiState.inputText.isBlank())
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                     else Color.White,

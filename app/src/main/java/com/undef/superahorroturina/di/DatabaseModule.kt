@@ -3,8 +3,10 @@ package com.undef.superahorroturina.di
 import android.content.Context
 import androidx.room.Room
 import com.undef.superahorroturina.data.local.db.AppDatabase
+import com.undef.superahorroturina.data.local.db.PriceComparisonDao
 import com.undef.superahorroturina.data.local.db.ProductDao
 import com.undef.superahorroturina.data.local.db.PurchaseDao
+import com.undef.superahorroturina.data.local.db.SupermarketDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,7 +22,10 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "klarity_db")
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .addMigrations(
+                AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3,
+                AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5
+            )
             .fallbackToDestructiveMigration()
             .build()
 
@@ -29,4 +34,10 @@ object DatabaseModule {
 
     @Provides
     fun provideProductDao(db: AppDatabase): ProductDao = db.productDao()
+
+    @Provides
+    fun provideSupermarketDao(db: AppDatabase): SupermarketDao = db.supermarketDao()
+
+    @Provides
+    fun providePriceComparisonDao(db: AppDatabase): PriceComparisonDao = db.priceComparisonDao()
 }

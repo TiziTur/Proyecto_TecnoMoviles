@@ -145,10 +145,10 @@ fun PurchaseDetailScreen(
         is TicketScanState.Error -> {
             AlertDialog(
                 onDismissRequest = { viewModel.resetTicketScan() },
-                title = { Text("Error al escanear") },
+                title = { Text(stringResource(R.string.dialog_scan_error_title)) },
                 text  = { Text(state.message) },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.resetTicketScan() }) { Text("Cerrar") }
+                    TextButton(onClick = { viewModel.resetTicketScan() }) { Text(stringResource(R.string.action_close)) }
                 }
             )
         }
@@ -160,38 +160,15 @@ fun PurchaseDetailScreen(
 
     // ── Diálogo para elegir cámara o galería al adjuntar un ticket ─────
     if (showPhotoSourceDialog) {
-        AlertDialog(
-            onDismissRequest = { showPhotoSourceDialog = false },
-            title = { Text("Adjuntar ticket") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(
-                        onClick = {
-                            showPhotoSourceDialog = false
-                            launchCamera()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Tomar foto")
-                    }
-                    TextButton(
-                        onClick = {
-                            showPhotoSourceDialog = false
-                            multiPhotoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Elegir de galería")
-                    }
-                }
+        PhotoSourceChooserDialog(
+            onDismiss = { showPhotoSourceDialog = false },
+            onTakePhoto = {
+                showPhotoSourceDialog = false
+                launchCamera()
             },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showPhotoSourceDialog = false }) { Text(stringResource(R.string.action_cancel)) }
+            onChooseGallery = {
+                showPhotoSourceDialog = false
+                multiPhotoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
             }
         )
     }
@@ -230,32 +207,20 @@ fun PurchaseDetailScreen(
                     }
                 },
                 actions = {
-                    // ── Intent: Compartir compra ──────────────────
                     IconButton(onClick = {
                         uiState.purchase?.let { p ->
-                            val text = buildString {
-                                appendLine("🛒 Compra en ${p.supermarket}")
-                                appendLine("📅 ${p.date.format(dateFormatter)} ${p.time.format(timeFormatter)}")
-                                appendLine("─────────────────")
-                                p.products.forEach { prod ->
-                                    appendLine("• ${prod.name} x${prod.quantity} — $ ${moneyFormat.format(prod.price * prod.quantity)}")
-                                }
-                                appendLine("─────────────────")
-                                appendLine("💰 Total: $ ${moneyFormat.format(p.total)}")
-                                appendLine("\nRegistrado con Super Ahorro")
-                            }
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_SUBJECT, "Compra en ${p.supermarket}")
-                                putExtra(Intent.EXTRA_TEXT, text)
+                                putExtra(Intent.EXTRA_TEXT, buildShareText(p, dateFormatter, timeFormatter, moneyFormat))
                             }
                             context.startActivity(Intent.createChooser(intent, "Compartir compra"))
                         }
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Compartir compra")
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.action_share_purchase))
                     }
                     IconButton(onClick = { uiState.purchase?.let { onNavigateToPurchaseComparison(it.id) } }) {
-                        Icon(Icons.Default.CompareArrows, contentDescription = "Comparar precios")
+                        Icon(Icons.Default.CompareArrows, contentDescription = stringResource(R.string.action_compare_prices))
                     }
                     IconButton(onClick = { uiState.purchase?.let { onNavigateToEdit(it.id) } }) {
                         Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.action_edit))
@@ -282,7 +247,7 @@ fun PurchaseDetailScreen(
             }
             uiState.purchase == null -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("No se pudo cargar la compra", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.purchase_load_error), color = MaterialTheme.colorScheme.error)
                 }
             }
             else -> {
@@ -306,115 +271,24 @@ fun PurchaseDetailScreen(
                 ) {
                     item { Spacer(Modifier.height(4.dp)) }
 
-                    // ── Tarjeta de info general ───────────────────
                     item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .coloredShadow(
-                                    color        = MaterialTheme.colorScheme.primary,
-                                    borderRadius = 16.dp,
-                                    blurRadius   = 12.dp,
-                                    offsetY      = 3.dp
-                                )
-                                .glowBorder(cornerRadius = 16.dp, isDark = isDark),
-                            shape = MaterialTheme.shapes.large,
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Icons.Default.Store, contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary)
-                                    Text(purchase.supermarket, style = MaterialTheme.typography.titleMedium)
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Icons.Default.CalendarToday, contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp))
-                                    Text(
-                                        "${purchase.date.format(dateFormatter)} a las ${purchase.time.format(timeFormatter)}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                HorizontalDivider()
-                                Row(modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically) {
-                                    Text(stringResource(R.string.purchase_total),
-                                        style = MaterialTheme.typography.titleMedium)
-                                    Text(
-                                        "$ ${moneyFormat.format(purchase.total)}",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
+                        PurchaseInfoCard(
+                            purchase      = purchase,
+                            dateFormatter = dateFormatter,
+                            timeFormatter = timeFormatter,
+                            moneyFormat   = moneyFormat,
+                            isDark        = isDark
+                        )
                     }
 
-                    // ── Placeholder ticket ────────────────────────
                     item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .coloredShadow(
-                                    color        = MaterialTheme.colorScheme.secondary,
-                                    borderRadius = 16.dp,
-                                    blurRadius   = 8.dp,
-                                    offsetY      = 2.dp
-                                )
-                                .glowBorder(cornerRadius = 16.dp, isDark = isDark),
-                            shape = MaterialTheme.shapes.large,
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
-                        ) {
-                            Row(modifier = Modifier.fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)) {
-                                    Icon(Icons.Default.Receipt, contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp))
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text(stringResource(R.string.purchase_ticket),
-                                            style = MaterialTheme.typography.titleSmall)
-                                        Text(stringResource(R.string.purchase_ticket_hint),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                                // Indicador de carga mientras escanea
-                                if (ticketState is TicketScanState.Scanning || ticketState is TicketScanState.Inserting) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                }
-                                FilledTonalButton(
-                                    onClick = { showPhotoSourceDialog = true },
-                                    enabled = ticketState !is TicketScanState.Scanning && ticketState !is TicketScanState.Inserting,
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                    modifier = Modifier.height(36.dp)
-                                ) {
-                                    Icon(Icons.Default.CameraAlt, contentDescription = null,
-                                        modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(stringResource(R.string.action_attach),
-                                        maxLines = 1, style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
-                        }
+                        TicketAttachCard(
+                            ticketState = ticketState,
+                            isDark      = isDark,
+                            onAttachClick = { showPhotoSourceDialog = true }
+                        )
                     }
 
-                    // ── Lista de productos ────────────────────────
                     item {
                         SectionHeader(
                             title = stringResource(R.string.purchase_products, purchase.products.size),
@@ -448,6 +322,179 @@ fun PurchaseDetailScreen(
                     item { Spacer(Modifier.height(80.dp)) }
                 }
                 } // dotPatternBackground Box
+            }
+        }
+    }
+}
+
+// ── Diálogo para elegir cámara o galería al adjuntar un ticket ───────────────
+
+@Composable
+private fun PhotoSourceChooserDialog(
+    onDismiss: () -> Unit,
+    onTakePhoto: () -> Unit,
+    onChooseGallery: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ticket_attach_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = onTakePhoto, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.action_take_photo))
+                }
+                TextButton(onClick = onChooseGallery, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.action_choose_from_gallery))
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    )
+}
+
+// ── Texto para compartir la compra por Intent ─────────────────────────────────
+
+private fun buildShareText(
+    p: com.undef.superahorroturina.model.Purchase,
+    dateFormatter: DateTimeFormatter,
+    timeFormatter: DateTimeFormatter,
+    moneyFormat: NumberFormat
+): String = buildString {
+    appendLine("🛒 Compra en ${p.supermarket}")
+    appendLine("📅 ${p.date.format(dateFormatter)} ${p.time.format(timeFormatter)}")
+    appendLine("─────────────────")
+    p.products.forEach { prod ->
+        appendLine("• ${prod.name} x${prod.quantity} — $ ${moneyFormat.format(prod.price * prod.quantity)}")
+    }
+    appendLine("─────────────────")
+    appendLine("💰 Total: $ ${moneyFormat.format(p.total)}")
+    appendLine("\nRegistrado con Super Ahorro")
+}
+
+// ── Tarjeta de info general (supermercado, fecha/hora, total) ────────────────
+
+@Composable
+private fun PurchaseInfoCard(
+    purchase: com.undef.superahorroturina.model.Purchase,
+    dateFormatter: DateTimeFormatter,
+    timeFormatter: DateTimeFormatter,
+    moneyFormat: NumberFormat,
+    isDark: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .coloredShadow(
+                color        = MaterialTheme.colorScheme.primary,
+                borderRadius = 16.dp,
+                blurRadius   = 12.dp,
+                offsetY      = 3.dp
+            )
+            .glowBorder(cornerRadius = 16.dp, isDark = isDark),
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Store, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary)
+                Text(purchase.supermarket, style = MaterialTheme.typography.titleMedium)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.CalendarToday, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp))
+                Text(
+                    stringResource(R.string.purchase_date_at_time, purchase.date.format(dateFormatter), purchase.time.format(timeFormatter)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            HorizontalDivider()
+            Row(modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.purchase_total),
+                    style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "$ ${moneyFormat.format(purchase.total)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+// ── Placeholder de ticket + botón adjuntar ────────────────────────────────────
+
+@Composable
+private fun TicketAttachCard(
+    ticketState: TicketScanState,
+    isDark: Boolean,
+    onAttachClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .coloredShadow(
+                color        = MaterialTheme.colorScheme.secondary,
+                borderRadius = 16.dp,
+                blurRadius   = 8.dp,
+                offsetY      = 2.dp
+            )
+            .glowBorder(cornerRadius = 16.dp, isDark = isDark),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
+    ) {
+        Row(modifier = Modifier.fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.Receipt, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(stringResource(R.string.purchase_ticket),
+                        style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.purchase_ticket_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            // Indicador de carga mientras escanea
+            if (ticketState is TicketScanState.Scanning || ticketState is TicketScanState.Inserting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+            FilledTonalButton(
+                onClick = onAttachClick,
+                enabled = ticketState !is TicketScanState.Scanning && ticketState !is TicketScanState.Inserting,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Icon(Icons.Default.CameraAlt, contentDescription = null,
+                    modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.action_attach),
+                    maxLines = 1, style = MaterialTheme.typography.labelMedium)
             }
         }
     }

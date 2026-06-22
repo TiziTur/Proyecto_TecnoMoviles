@@ -11,7 +11,9 @@ import com.undef.superahorroturina.data.network.dto.SeedMatchResultDto
 import com.undef.superahorroturina.data.network.dto.SeedSearchResultDto
 import com.undef.superahorroturina.data.network.dto.UpdateProductRequest
 import com.undef.superahorroturina.model.Product
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,18 +23,22 @@ class ProductRepository @Inject constructor(
     private val session: SessionDataStore,
     private val productDao: ProductDao
 ) {
-    suspend fun getProducts(purchaseId: Int): ApiResult<List<Product>> = runCatching {
+    // Room es la fuente de verdad para la UI — refreshProducts() solo actualiza el caché,
+    // nunca devuelve los productos directamente (mismo patrón que PurchaseRepository).
+    fun getProductsFlow(purchaseId: Int): Flow<List<Product>> =
+        productDao.getByPurchaseId(purchaseId).map { entities ->
+            entities.map { Product(it.id, it.code, it.name, it.description, it.price, it.quantity) }
+        }
+
+    suspend fun refreshProducts(purchaseId: Int): ApiResult<Unit> = runCatching {
         val token = session.bearerToken.first()
         val response = api.getProducts(token, purchaseId)
         if (response.isSuccessful) {
             val dtos = response.body()!!
-            val products = dtos.map {
-                Product(it.id, it.code, it.name, it.description, it.price, it.quantity)
-            }
             productDao.upsertAll(dtos.map { p ->
                 ProductEntity(p.id, purchaseId, p.code, p.name, p.description, p.price, p.quantity, p.category, p.seedProductName)
             })
-            ApiResult.Success(products)
+            ApiResult.Success(Unit)
         } else {
             ApiResult.Error("Error al cargar productos: ${response.code()}")
         }
@@ -89,9 +95,7 @@ class ProductRepository @Inject constructor(
     }.getOrElse { ApiResult.Error(it.message ?: "Error de conexión") }
 
     suspend fun getLocalProductsForPurchase(purchaseId: Int): List<Product> =
-        productDao.getByPurchaseId(purchaseId).first().map { e ->
-            Product(e.id, e.code, e.name, e.description, e.price, e.quantity)
-        }
+        getProductsFlow(purchaseId).first()
 
     // ── Matching contra la seed ──────────────────────────────────
     suspend fun matchSeed(names: List<String>): ApiResult<List<SeedMatchResultDto>> = runCatching {

@@ -119,11 +119,11 @@ fun SettingsScreen(
 
                     SettingsToggleItem(
                         icon            = Icons.Default.Fingerprint,
-                        title           = "Inicio con huella",
+                        title           = stringResource(R.string.settings_biometric_title),
                         subtitle        = if (biometricAvailable)
-                            "Usá tu huella o PIN para entrar más rápido"
+                            stringResource(R.string.settings_biometric_subtitle_available)
                         else
-                            "Tu dispositivo no tiene biometría ni PIN configurado",
+                            stringResource(R.string.settings_biometric_subtitle_unavailable),
                         checked         = uiState.biometricEnabled && biometricAvailable,
                         onCheckedChange = { enabled ->
                             if (biometricAvailable) {

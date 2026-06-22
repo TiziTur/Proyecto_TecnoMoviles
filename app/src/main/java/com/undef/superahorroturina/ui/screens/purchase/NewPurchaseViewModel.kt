@@ -13,6 +13,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -39,12 +41,16 @@ class NewPurchaseViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(date = today, time = now)
     }
 
+    // Room es la fuente de verdad para el dropdown: se observa el Flow de caché (siempre
+    // disponible, incluso offline) y en paralelo se dispara un refresh contra la API que
+    // actualiza esa misma caché — la UI nunca lee la respuesta de red directamente.
     private fun loadSupermarkets() {
+        supermarketRepository.getSupermarketsFlow()
+            .onEach { names -> _uiState.value = _uiState.value.copy(supermarketList = names) }
+            .launchIn(viewModelScope)
+
         viewModelScope.launch {
-            when (val result = supermarketRepository.getSupermarkets()) {
-                is ApiResult.Success -> _uiState.value = _uiState.value.copy(supermarketList = result.data)
-                is ApiResult.Error   -> { /* usa fallback ya cargado en el repositorio */ }
-            }
+            supermarketRepository.refreshSupermarkets()
         }
     }
 

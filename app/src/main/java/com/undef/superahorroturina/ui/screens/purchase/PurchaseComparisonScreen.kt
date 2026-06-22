@@ -15,11 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.undef.superahorroturina.R
 import com.undef.superahorroturina.data.network.dto.PurchaseSupermarketComparisonDto
 import com.undef.superahorroturina.ui.components.AppTopBar
 import com.undef.superahorroturina.ui.components.dotPatternBackground
@@ -37,7 +39,7 @@ fun PurchaseComparisonScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppTopBar(
-                title    = "¿Dónde hubiera sido más barato?",
+                title    = stringResource(R.string.screen_purchase_comparison),
                 showBack = true,
                 onBack   = onNavigateBack
             )
@@ -62,7 +64,7 @@ fun PurchaseComparisonScreen(
                         CircularProgressIndicator()
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            "Analizando precios SEPA...",
+                            stringResource(R.string.purchase_comparison_loading),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -79,7 +81,7 @@ fun PurchaseComparisonScreen(
                         Spacer(Modifier.height(12.dp))
                         Text(uiState.error, style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { viewModel.load() }) { Text("Reintentar") }
+                        Button(onClick = { viewModel.load() }) { Text(stringResource(R.string.action_retry)) }
                     }
                 }
                 uiState.data != null -> {
@@ -110,7 +112,7 @@ fun PurchaseComparisonScreen(
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
-                                        "Compraste en ${data.supermarket}",
+                                        stringResource(R.string.purchase_comparison_bought_at, data.supermarket),
                                         style = MaterialTheme.typography.labelLarge,
                                         color = Color.White.copy(alpha = 0.8f)
                                     )
@@ -124,7 +126,7 @@ fun PurchaseComparisonScreen(
                                         val cheapest = data.comparisons.first()
                                         if (cheapest.savings > 0) {
                                             Text(
-                                                "Podías ahorrar hasta $ ${moneyFmt.format(cheapest.savings.toLong())} en ${cheapest.supermarket.replaceFirstChar { it.uppercaseChar() }}",
+                                                stringResource(R.string.purchase_comparison_could_save, moneyFmt.format(cheapest.savings.toLong()), cheapest.supermarket.replaceFirstChar { it.uppercaseChar() }),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = Color(0xFF86EFAC)
                                             )
@@ -139,7 +141,7 @@ fun PurchaseComparisonScreen(
                                 Card(modifier = Modifier.fillMaxWidth()) {
                                     Box(Modifier.padding(24.dp), contentAlignment = Alignment.Center) {
                                         Text(
-                                            "No se encontraron precios SEPA para comparar estos productos.",
+                                            stringResource(R.string.purchase_comparison_no_sepa_data),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -170,7 +172,7 @@ fun PurchaseComparisonScreen(
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                         Text(
-                                            "Sin datos SEPA (${data.unmatchedProducts.size})",
+                                            stringResource(R.string.purchase_comparison_unmatched_count, data.unmatchedProducts.size),
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -257,7 +259,7 @@ private fun SupermarketComparisonCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            "${comparison.matchedCount} productos coinciden",
+                            stringResource(R.string.purchase_comparison_matched_count, comparison.matchedCount),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -286,7 +288,7 @@ private fun SupermarketComparisonCard(
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Text(
-                    if (expanded) "Ocultar detalle" else "Ver productos",
+                    if (expanded) stringResource(R.string.action_hide_detail) else stringResource(R.string.action_view_products),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -343,7 +345,7 @@ private fun SupermarketComparisonCard(
                             )
                             if (!hasMatch) {
                                 Text(
-                                    "sin dato",
+                                    stringResource(R.string.purchase_comparison_no_data),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )

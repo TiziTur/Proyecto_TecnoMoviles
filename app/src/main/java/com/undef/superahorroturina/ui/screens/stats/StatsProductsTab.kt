@@ -107,7 +107,7 @@ fun StatsProductsTab(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = "Total gastado",
+                                            text = stringResource(R.string.stat_total_spent),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )

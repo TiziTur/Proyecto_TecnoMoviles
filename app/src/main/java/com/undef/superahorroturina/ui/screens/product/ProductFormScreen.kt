@@ -102,7 +102,7 @@ fun ProductFormScreen(
                                 modifier       = Modifier.weight(1f),
                                 singleLine     = true,
                                 supportingText = {
-                                    Text("EAN / código de barras",
+                                    Text(stringResource(R.string.product_code_hint),
                                         style = MaterialTheme.typography.labelSmall)
                                 }
                             )
@@ -111,7 +111,7 @@ fun ProductFormScreen(
                                 modifier = Modifier.size(56.dp)
                             ) {
                                 Icon(Icons.Default.CameraAlt,
-                                    contentDescription = "Escanear código de barras",
+                                    contentDescription = stringResource(R.string.action_scan_barcode),
                                     modifier = Modifier.size(24.dp))
                             }
                         }

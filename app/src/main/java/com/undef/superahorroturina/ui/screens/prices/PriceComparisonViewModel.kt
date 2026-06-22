@@ -2,9 +2,9 @@ package com.undef.superahorroturina.ui.screens.prices
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.undef.superahorroturina.data.local.SessionDataStore
-import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.network.dto.PriceComparisonItemDto
+import com.undef.superahorroturina.data.repository.ApiResult
+import com.undef.superahorroturina.data.repository.PriceComparisonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -28,8 +28,7 @@ data class PriceComparisonUiState(
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class PriceComparisonViewModel @Inject constructor(
-    private val api: ApiService,
-    private val session: SessionDataStore
+    private val repository: PriceComparisonRepository
 ) : ViewModel() {
 
     companion object { private const val PAGE_SIZE = 50 }
@@ -48,6 +47,14 @@ class PriceComparisonViewModel @Inject constructor(
     private var currentOffset = 0
 
     init {
+        // Room como fuente de verdad para la primera pintura: mientras se resuelve la
+        // llamada de red real, mostrar lo que ya hay cacheado de la última vista base.
+        viewModelScope.launch {
+            val cached = repository.getCachedComparisonsFlow().first()
+            if (cached.isNotEmpty() && _uiState.value.allComparisons.isEmpty()) {
+                _uiState.value = _uiState.value.copy(allComparisons = cached, isLoading = true)
+            }
+        }
         reload()
         viewModelScope.launch {
             combine(
@@ -95,21 +102,18 @@ class PriceComparisonViewModel @Inject constructor(
                 sortOrder.value != "name"
 
     private suspend fun fetchPage(offset: Int, append: Boolean) {
-        try {
-            val token = session.bearerToken.first()
-            val sort  = sortOrder.value.takeIf { it != "name" }
-            val response = api.getPriceComparisons(
-                token    = token,
-                query    = searchQuery.value.ifBlank { null },
-                category = selectedCategory.value.ifBlank { null },
-                brand    = selectedBrand.value.ifBlank { null },
-                minPrice = minPriceInput.value.toIntOrNull(),
-                maxPrice = maxPriceInput.value.toIntOrNull(),
-                sort     = sort,
-                offset   = offset
-            )
-            if (response.isSuccessful) {
-                val body = response.body()!!
+        val sort = sortOrder.value.takeIf { it != "name" }
+        when (val result = repository.fetchPage(
+            query    = searchQuery.value.ifBlank { null },
+            category = selectedCategory.value.ifBlank { null },
+            brand    = selectedBrand.value.ifBlank { null },
+            minPrice = minPriceInput.value.toIntOrNull(),
+            maxPrice = maxPriceInput.value.toIntOrNull(),
+            sort     = sort,
+            offset   = offset
+        )) {
+            is ApiResult.Success -> {
+                val body = result.data
                 currentOffset = offset
                 val prev = _uiState.value
                 _uiState.value = prev.copy(
@@ -128,17 +132,13 @@ class PriceComparisonViewModel @Inject constructor(
                     isEmpty         = body.isEmpty,
                     error           = ""
                 )
-            } else {
+            }
+            is ApiResult.Error -> {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false, isLoadingMore = false,
-                    error = "Error ${response.code()}"
+                    error = result.message
                 )
             }
-        } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(
-                isLoading = false, isLoadingMore = false,
-                error = e.message ?: "Error de conexión"
-            )
         }
     }
 }

@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.*
+import com.undef.superahorroturina.ui.state.HomeUiState
 import com.undef.superahorroturina.ui.theme.SuperAhorroTheme
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
@@ -196,231 +197,275 @@ fun HomeScreen(
                         onRefresh    = { viewModel.refresh() },
                         modifier     = Modifier.fillMaxSize()
                     ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        item { Spacer(Modifier.height(4.dp)) }
-
-                        // Welcome header
-                        item {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    text  = stringResource(R.string.home_welcome, uiState.userName),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text  = stringResource(R.string.home_subtitle),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // Summary card — glassmorphism simulado con gradiente profundo
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .coloredShadow(
-                                        color        = MaterialTheme.colorScheme.primary,
-                                        borderRadius = 24.dp,
-                                        blurRadius   = 24.dp,
-                                        offsetY      = 8.dp
-                                    )
-                                    .background(
-                                        Brush.linearGradient(
-                                            colorStops = arrayOf(
-                                                0.0f to Color(if (isDark) 0xFF1E3A8A else 0xFF2563EB),
-                                                0.6f to Color(if (isDark) 0xFF164E63 else 0xFF0E7490),
-                                                1.0f to Color(if (isDark) 0xFF065F46 else 0xFF065F46)
-                                            )
-                                        )
-                                    )
-                                    .glowBorder(cornerRadius = 24.dp, isDark = isDark)
-                            ) {
-                                Column(modifier = Modifier.padding(22.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text  = stringResource(R.string.home_month_total),
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = Color.White.copy(alpha = 0.75f)
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(Color.White.copy(alpha = 0.12f))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                text  = "Este mes",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Color.White.copy(alpha = 0.8f)
-                                            )
-                                        }
-                                    }
-                                                    Spacer(Modifier.height(6.dp))
-                                    Text(
-                                        text  = "$ ${moneyFormat.format(animatedTotal)}",
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White
-                                    )
-
-                                    // ── Barra de presupuesto mensual ──────────────
-                                    val budgetProgress = (uiState.totalThisMonth / uiState.monthlyLimit)
-                                        .toFloat().coerceIn(0f, 1f)
-                                    val budgetColor = when {
-                                        budgetProgress >= 1f  -> Color(0xFFEF4444) // rojo
-                                        budgetProgress >= 0.8f -> Color(0xFFF59E0B) // amarillo
-                                        else -> Color.White.copy(alpha = 0.85f)
-                                    }
-                                    Spacer(Modifier.height(12.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text  = "Presupuesto mensual",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.White.copy(alpha = 0.7f)
-                                        )
-                                        Text(
-                                            text  = "${(budgetProgress * 100).toInt()}%",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = budgetColor
-                                        )
-                                    }
-                                    Spacer(Modifier.height(4.dp))
-                                    com.undef.superahorroturina.ui.screens.stats.SegmentBar(
-                                        progress   = budgetProgress,
-                                        color      = budgetColor,
-                                        height     = 6.dp,
-                                        trackColor = Color.White.copy(alpha = 0.2f)
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        text  = "$ ${moneyFormat.format(uiState.totalThisMonth.toLong())} de $ ${moneyFormat.format(uiState.monthlyLimit.toLong())}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White.copy(alpha = 0.6f)
-                                    )
-
-                                    Spacer(Modifier.height(16.dp))
-                                    GradientDivider(color = Color.White.copy(alpha = 0.3f))
-                                    Spacer(Modifier.height(16.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        StatCard(
-                                            label          = stringResource(R.string.stat_purchases),
-                                            value          = uiState.purchaseCount.toString(),
-                                            icon           = Icons.Default.ShoppingCart,
-                                            modifier       = Modifier.weight(1f),
-                                            containerColor = Color.White.copy(alpha = 0.14f),
-                                            contentColor   = Color.White,
-                                            accentColor    = Color.White
-                                        )
-                                        StatCard(
-                                            label          = stringResource(R.string.stat_supermarkets),
-                                            value          = uiState.supermarketCount.toString(),
-                                            icon           = Icons.Default.Store,
-                                            modifier       = Modifier.weight(1f),
-                                            containerColor = Color.White.copy(alpha = 0.14f),
-                                            contentColor   = Color.White,
-                                            accentColor    = Color.White
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── Funciones IA ──────────────────────────────
-                        item {
-                            SectionHeader(
-                                title       = "Herramientas IA",
-                                actionLabel = null
-                            )
-                        }
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Chat IA card
-                                AiFeatureCard(
-                                    modifier  = Modifier.weight(1f),
-                                    icon      = Icons.Default.AutoAwesome,
-                                    title     = "Asistente IA",
-                                    subtitle  = "Consultá tu historial",
-                                    gradientColors = listOf(Color(0xFF3B82F6), Color(0xFF06B6D4)),
-                                    onClick   = onNavigateToChat
-                                )
-                                // Comparativa card
-                                AiFeatureCard(
-                                    modifier  = Modifier.weight(1f),
-                                    icon      = Icons.Default.CompareArrows,
-                                    title     = "Comparativa",
-                                    subtitle  = "Precios por super",
-                                    gradientColors = listOf(Color(0xFF059669), Color(0xFF0E7490)),
-                                    onClick   = onNavigateToPriceComparison
-                                )
-                            }
-                        }
-
-                        item {
-                            CheapestSummaryCard(
-                                loading  = uiState.cheapestSummaryLoading,
-                                error    = uiState.cheapestSummaryError,
-                                headline = uiState.cheapestSummary?.headline,
-                                onClick  = onNavigateToPriceComparison
-                            )
-                        }
-
-                        // Recent purchases section
-                        item {
-                            SectionHeader(
-                                title       = stringResource(R.string.home_recent),
-                                actionLabel = stringResource(R.string.action_see_all),
-                                onAction    = onNavigateToHistory
-                            )
-                        }
-
-                        if (uiState.recentPurchases.isEmpty()) {
-                            item {
-                                EmptyState(
-                                    icon     = Icons.Default.ShoppingBag,
-                                    message  = stringResource(R.string.home_empty),
-                                    modifier = Modifier.padding(vertical = 32.dp)
-                                )
-                            }
-                        } else {
-                            items(uiState.recentPurchases) { purchase ->
-                                PurchaseCard(
-                                    supermarket  = purchase.supermarket,
-                                    date         = purchase.date.format(dateFormatter),
-                                    time         = purchase.time.format(timeFormatter),
-                                    total        = "$ ${moneyFormat.format(purchase.total)}",
-                                    productCount = purchase.displayProductCount,
-                                    onClick      = { onNavigateToPurchaseDetail(purchase.id) }
-                                )
-                            }
-                        }
-
-                        item { Spacer(Modifier.height(80.dp)) }
+                        HomeContent(
+                            uiState         = uiState,
+                            isDark          = isDark,
+                            moneyFormat     = moneyFormat,
+                            animatedTotal   = animatedTotal,
+                            dateFormatter   = dateFormatter,
+                            timeFormatter   = timeFormatter,
+                            padding         = padding,
+                            onNavigateToChat = onNavigateToChat,
+                            onNavigateToPriceComparison = onNavigateToPriceComparison,
+                            onNavigateToHistory = onNavigateToHistory,
+                            onNavigateToPurchaseDetail = onNavigateToPurchaseDetail
+                        )
                     }
-                    } // PullToRefreshBox
                 }
             }
         }
+    }
+}
+
+// ── Contenido principal (lista con header, resumen, IA y compras recientes) ──
+
+@Composable
+private fun HomeContent(
+    uiState: HomeUiState,
+    isDark: Boolean,
+    moneyFormat: java.text.NumberFormat,
+    animatedTotal: Float,
+    dateFormatter: DateTimeFormatter,
+    timeFormatter: DateTimeFormatter,
+    padding: androidx.compose.foundation.layout.PaddingValues,
+    onNavigateToChat: () -> Unit,
+    onNavigateToPriceComparison: () -> Unit,
+    onNavigateToHistory: () -> Unit,
+    onNavigateToPurchaseDetail: (Int) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item { Spacer(Modifier.height(4.dp)) }
+
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text  = stringResource(R.string.home_welcome, uiState.userName),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text  = stringResource(R.string.home_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        item {
+            MonthSummaryCard(uiState = uiState, isDark = isDark, moneyFormat = moneyFormat, animatedTotal = animatedTotal)
+        }
+
+        item {
+            SectionHeader(title = stringResource(R.string.home_ai_tools_title), actionLabel = null)
+        }
+        item {
+            AiToolsRow(onNavigateToChat = onNavigateToChat, onNavigateToPriceComparison = onNavigateToPriceComparison)
+        }
+
+        item {
+            CheapestSummaryCard(
+                loading  = uiState.cheapestSummaryLoading,
+                error    = uiState.cheapestSummaryError,
+                headline = uiState.cheapestSummary?.headline,
+                onClick  = onNavigateToPriceComparison
+            )
+        }
+
+        item {
+            SectionHeader(
+                title       = stringResource(R.string.home_recent),
+                actionLabel = stringResource(R.string.action_see_all),
+                onAction    = onNavigateToHistory
+            )
+        }
+
+        if (uiState.recentPurchases.isEmpty()) {
+            item {
+                EmptyState(
+                    icon     = Icons.Default.ShoppingBag,
+                    message  = stringResource(R.string.home_empty),
+                    modifier = Modifier.padding(vertical = 32.dp)
+                )
+            }
+        } else {
+            items(uiState.recentPurchases) { purchase ->
+                PurchaseCard(
+                    supermarket  = purchase.supermarket,
+                    date         = purchase.date.format(dateFormatter),
+                    time         = purchase.time.format(timeFormatter),
+                    total        = "$ ${moneyFormat.format(purchase.total)}",
+                    productCount = purchase.displayProductCount,
+                    onClick      = { onNavigateToPurchaseDetail(purchase.id) }
+                )
+            }
+        }
+
+        item { Spacer(Modifier.height(80.dp)) }
+    }
+}
+
+// ── Tarjeta de resumen mensual (gasto total + barra de presupuesto) ──────────
+
+@Composable
+private fun MonthSummaryCard(
+    uiState: HomeUiState,
+    isDark: Boolean,
+    moneyFormat: java.text.NumberFormat,
+    animatedTotal: Float
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .coloredShadow(
+                color        = MaterialTheme.colorScheme.primary,
+                borderRadius = 24.dp,
+                blurRadius   = 24.dp,
+                offsetY      = 8.dp
+            )
+            .background(
+                Brush.linearGradient(
+                    colorStops = arrayOf(
+                        0.0f to Color(if (isDark) 0xFF1E3A8A else 0xFF2563EB),
+                        0.6f to Color(if (isDark) 0xFF164E63 else 0xFF0E7490),
+                        1.0f to Color(if (isDark) 0xFF065F46 else 0xFF065F46)
+                    )
+                )
+            )
+            .glowBorder(cornerRadius = 24.dp, isDark = isDark)
+    ) {
+        Column(modifier = Modifier.padding(22.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text  = stringResource(R.string.home_month_total),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.75f)
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text  = stringResource(R.string.home_this_month),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text  = "$ ${moneyFormat.format(animatedTotal)}",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
+
+            // ── Barra de presupuesto mensual ──────────────
+            val budgetProgress = (uiState.totalThisMonth / uiState.monthlyLimit)
+                .toFloat().coerceIn(0f, 1f)
+            val budgetColor = when {
+                budgetProgress >= 1f  -> Color(0xFFEF4444) // rojo
+                budgetProgress >= 0.8f -> Color(0xFFF59E0B) // amarillo
+                else -> Color.White.copy(alpha = 0.85f)
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text  = stringResource(R.string.home_monthly_budget),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+                Text(
+                    text  = "${(budgetProgress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = budgetColor
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            com.undef.superahorroturina.ui.screens.stats.SegmentBar(
+                progress   = budgetProgress,
+                color      = budgetColor,
+                height     = 6.dp,
+                trackColor = Color.White.copy(alpha = 0.2f)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text  = "$ ${moneyFormat.format(uiState.totalThisMonth.toLong())} de $ ${moneyFormat.format(uiState.monthlyLimit.toLong())}",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.6f)
+            )
+
+            Spacer(Modifier.height(16.dp))
+            GradientDivider(color = Color.White.copy(alpha = 0.3f))
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatCard(
+                    label          = stringResource(R.string.stat_purchases),
+                    value          = uiState.purchaseCount.toString(),
+                    icon           = Icons.Default.ShoppingCart,
+                    modifier       = Modifier.weight(1f),
+                    containerColor = Color.White.copy(alpha = 0.14f),
+                    contentColor   = Color.White,
+                    accentColor    = Color.White
+                )
+                StatCard(
+                    label          = stringResource(R.string.stat_supermarkets),
+                    value          = uiState.supermarketCount.toString(),
+                    icon           = Icons.Default.Store,
+                    modifier       = Modifier.weight(1f),
+                    containerColor = Color.White.copy(alpha = 0.14f),
+                    contentColor   = Color.White,
+                    accentColor    = Color.White
+                )
+            }
+        }
+    }
+}
+
+// ── Tarjetas de Asistente IA / Comparativa ────────────────────────────────────
+
+@Composable
+private fun AiToolsRow(
+    onNavigateToChat: () -> Unit,
+    onNavigateToPriceComparison: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AiFeatureCard(
+            modifier  = Modifier.weight(1f),
+            icon      = Icons.Default.AutoAwesome,
+            title     = stringResource(R.string.home_ai_assistant),
+            subtitle  = stringResource(R.string.home_ai_assistant_subtitle),
+            gradientColors = listOf(Color(0xFF3B82F6), Color(0xFF06B6D4)),
+            onClick   = onNavigateToChat
+        )
+        AiFeatureCard(
+            modifier  = Modifier.weight(1f),
+            icon      = Icons.Default.CompareArrows,
+            title     = stringResource(R.string.home_comparison_card_title),
+            subtitle  = stringResource(R.string.home_comparison_card_subtitle),
+            gradientColors = listOf(Color(0xFF059669), Color(0xFF0E7490)),
+            onClick   = onNavigateToPriceComparison
+        )
     }
 }
 
@@ -500,13 +545,13 @@ private fun AppDrawerContent(
             // ── Herramientas IA ────────────────────────────────
             NavigationDrawerItem(
                 icon     = { Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF3B82F6)) },
-                label    = { Text("Asistente IA") },
+                label    = { Text(stringResource(R.string.home_ai_assistant)) },
                 selected = false,
                 onClick  = onNavigateToChat
             )
             NavigationDrawerItem(
                 icon     = { Icon(Icons.Default.CompareArrows, contentDescription = null, tint = Color(0xFF059669)) },
-                label    = { Text("Comparativa de precios") },
+                label    = { Text(stringResource(R.string.home_price_comparison)) },
                 selected = false,
                 onClick  = onNavigateToPriceComparison
             )
@@ -555,17 +600,17 @@ private fun CheapestSummaryCard(
             )
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text  = "¿Dónde conviene comprar este mes?",
+                    text  = stringResource(R.string.home_cheapest_question),
                     style = MaterialTheme.typography.titleSmall
                 )
                 when {
                     loading -> Text(
-                        text  = "Calculando…",
+                        text  = stringResource(R.string.home_cheapest_calculating),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     error || headline.isNullOrBlank() -> Text(
-                        text  = "Aún no hay suficientes datos para calcularlo",
+                        text  = stringResource(R.string.home_cheapest_no_data),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

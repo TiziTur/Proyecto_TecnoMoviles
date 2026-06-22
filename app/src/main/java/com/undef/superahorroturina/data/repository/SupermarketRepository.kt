@@ -1,35 +1,45 @@
-// Repositorio de supermercados: obtiene la lista desde el backend.
-// Este endpoint NO requiere autenticación — es la "API externa" del TP.
-// Los nombres se cachean en memoria mientras la app esté abierta.
+// Repositorio de supermercados: Room es la fuente de verdad para la UI (igual que
+// PurchaseRepository/ProductRepository) — el dropdown siempre lee del Flow de Room, y
+// refreshSupermarkets() es quien llama a la API (el endpoint "externo" del TP, sin auth)
+// y graba el resultado en Room. Si todavía no hay nada en caché y la red falla (primer
+// arranque sin conexión), se siembra Room con una lista fallback para que el dropdown
+// nunca quede vacío.
 package com.undef.superahorroturina.data.repository
 
+import com.undef.superahorroturina.data.local.db.SupermarketDao
+import com.undef.superahorroturina.data.local.db.SupermarketEntity
 import com.undef.superahorroturina.data.network.ApiService
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SupermarketRepository @Inject constructor(
-    private val api: ApiService
+    private val api: ApiService,
+    private val supermarketDao: SupermarketDao
 ) {
-    // Cache en memoria para no hacer la petición en cada apertura del dropdown
-    private var cachedSupermarkets: List<String>? = null
+    fun getSupermarketsFlow(): Flow<List<String>> =
+        supermarketDao.getAll().map { entities -> entities.map { it.name } }
 
-    suspend fun getSupermarkets(): ApiResult<List<String>> {
-        cachedSupermarkets?.let { return ApiResult.Success(it) }
+    suspend fun refreshSupermarkets(): ApiResult<Unit> = runCatching {
+        val response = api.getSupermarkets()
+        if (response.isSuccessful) {
+            val names = response.body()!!.map { it.name }
+            supermarketDao.replaceAll(names.map { SupermarketEntity(it) })
+            ApiResult.Success(Unit)
+        } else {
+            seedFallbackIfEmpty()
+            ApiResult.Error("Error al cargar supermercados: ${response.code()}")
+        }
+    }.getOrElse {
+        seedFallbackIfEmpty()
+        ApiResult.Error(it.message ?: "Error de conexión")
+    }
 
-        return runCatching {
-            val response = api.getSupermarkets()
-            if (response.isSuccessful) {
-                val list = response.body()!!.map { it.name }
-                cachedSupermarkets = list
-                ApiResult.Success(list)
-            } else {
-                // Fallback a lista hardcodeada si el servidor falla
-                ApiResult.Success(fallbackSupermarkets())
-            }
-        }.getOrElse {
-            // Sin conexión — usar fallback local
-            ApiResult.Success(fallbackSupermarkets())
+    private suspend fun seedFallbackIfEmpty() {
+        if (supermarketDao.count() == 0) {
+            supermarketDao.insertAll(fallbackSupermarkets().map { SupermarketEntity(it) })
         }
     }
 

@@ -23,8 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.undef.superahorroturina.R
 import com.undef.superahorroturina.data.network.dto.SeedSearchResultDto
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
@@ -47,10 +49,10 @@ fun TicketConfirmScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Confirmar productos") },
+                title = { Text(stringResource(R.string.ticket_confirm_title)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancelar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_cancel))
                     }
                 }
             )
@@ -64,7 +66,7 @@ fun TicketConfirmScreen(
                         .navigationBarsPadding()
                         .padding(16.dp)
                 ) {
-                    Text("Confirmar y guardar (${products.size})")
+                    Text(stringResource(R.string.ticket_confirm_save, products.size))
                 }
             }
         }
@@ -72,7 +74,7 @@ fun TicketConfirmScreen(
         Column(modifier = Modifier.padding(padding)) {
             if (!supermarket.isNullOrBlank()) {
                 Text(
-                    text     = "Supermercado: ${supermarket.replaceFirstChar { it.uppercaseChar() }}",
+                    text     = stringResource(R.string.purchase_supermarket_label, supermarket.replaceFirstChar { it.uppercaseChar() }),
                     style    = MaterialTheme.typography.bodySmall,
                     color    = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -148,7 +150,7 @@ private fun ScannedProductRow(
                 IconButton(onClick = onEditClick, modifier = Modifier.size(28.dp)) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "Corregir producto",
+                        contentDescription = stringResource(R.string.edit_scanned_product_title),
                         tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -175,7 +177,7 @@ private fun ScannedProductRow(
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text     = seedMatch?.let { "Vinculado a $it" } ?: "Sin coincidencia — tocar para buscar",
+                    text     = seedMatch?.let { stringResource(R.string.seed_linked_to, it) } ?: stringResource(R.string.seed_no_match),
                     style    = MaterialTheme.typography.labelSmall,
                     color    = if (seedMatch != null) Color(0xFF059669) else Color(0xFFF59E0B),
                     maxLines = 1
@@ -211,16 +213,16 @@ private fun SeedLinkPickerSheet(
             modifier            = Modifier.padding(16.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Vincular con el catálogo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.seed_link_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value         = query,
                 onValueChange = { query = it },
-                label         = { Text("Buscar producto…") },
+                label         = { Text(stringResource(R.string.search_product_placeholder)) },
                 leadingIcon   = { Icon(Icons.Default.Search, null) },
                 modifier      = Modifier.fillMaxWidth(),
                 singleLine    = true
             )
-            TextButton(onClick = onUnlink) { Text("No vincular este producto") }
+            TextButton(onClick = onUnlink) { Text(stringResource(R.string.seed_unlink)) }
             LazyColumn(
                 modifier            = Modifier.fillMaxWidth().heightIn(max = 320.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -238,7 +240,7 @@ private fun SeedLinkPickerSheet(
                 if (results.isEmpty()) {
                     item {
                         Text(
-                            "Sin resultados",
+                            stringResource(R.string.seed_no_results),
                             style    = MaterialTheme.typography.bodySmall,
                             color    = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 12.dp)
@@ -264,18 +266,18 @@ private fun EditProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Corregir producto") },
+        title = { Text(stringResource(R.string.edit_scanned_product_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Si la IA no leyó bien este producto, corregilo acá antes de guardar.",
+                    stringResource(R.string.edit_scanned_product_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
                     value         = name,
                     onValueChange = { name = it },
-                    label         = { Text("Nombre") },
+                    label         = { Text(stringResource(R.string.ticket_edit_name_label)) },
                     singleLine    = true,
                     modifier      = Modifier.fillMaxWidth()
                 )
@@ -286,7 +288,7 @@ private fun EditProductDialog(
                     OutlinedTextField(
                         value         = quantityText,
                         onValueChange = { quantityText = it.filter { c -> c.isDigit() } },
-                        label         = { Text("Cantidad") },
+                        label         = { Text(stringResource(R.string.field_quantity)) },
                         singleLine    = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier      = Modifier.weight(1f)
@@ -294,7 +296,7 @@ private fun EditProductDialog(
                     OutlinedTextField(
                         value         = priceText,
                         onValueChange = { priceText = it.filter { c -> c.isDigit() || c == '.' } },
-                        label         = { Text("Precio unitario") },
+                        label         = { Text(stringResource(R.string.ticket_edit_price_label)) },
                         singleLine    = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier      = Modifier.weight(1f)
@@ -307,10 +309,10 @@ private fun EditProductDialog(
                 val price = priceText.toDoubleOrNull() ?: item.product.price
                 val quantity = quantityText.toIntOrNull()?.coerceAtLeast(1) ?: item.product.quantity
                 onSave(name.trim().ifBlank { item.product.name }, price, quantity)
-            }) { Text("Guardar") }
+            }) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     )
 }

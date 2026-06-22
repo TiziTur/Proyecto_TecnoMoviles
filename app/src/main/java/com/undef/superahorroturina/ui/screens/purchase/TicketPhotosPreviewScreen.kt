@@ -22,8 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.undef.superahorroturina.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,10 +39,10 @@ fun TicketPhotosPreviewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Fotos del ticket (${photos.size})") },
+                title = { Text(stringResource(R.string.ticket_photos_title, photos.size)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancelar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_cancel))
                     }
                 }
             )
@@ -59,14 +61,14 @@ fun TicketPhotosPreviewScreen(
                     ) {
                         Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Agregar más fotos")
+                        Text(stringResource(R.string.action_add_more_photos))
                     }
                     Button(
                         onClick  = onScan,
                         enabled  = photos.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Escanear ticket (${photos.size})")
+                        Text(stringResource(R.string.action_scan_ticket, photos.size))
                     }
                 }
             }
@@ -78,7 +80,7 @@ fun TicketPhotosPreviewScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "No hay fotos cargadas",
+                    stringResource(R.string.ticket_photos_empty),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -94,7 +96,7 @@ fun TicketPhotosPreviewScreen(
                 Icon(Icons.Default.Receipt, contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 Text(
-                    "Si el ticket es largo, sacá una foto por tramo: se analizan todas juntas como un solo ticket.",
+                    stringResource(R.string.ticket_photos_long_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -132,7 +134,7 @@ private fun TicketPhotoThumbnail(
     ) {
         AsyncImage(
             model              = uri,
-            contentDescription = "Foto ${index + 1} del ticket",
+            contentDescription = stringResource(R.string.ticket_photo_description, index + 1),
             contentScale       = ContentScale.Crop,
             modifier           = Modifier.fillMaxSize()
         )
@@ -161,7 +163,7 @@ private fun TicketPhotoThumbnail(
         ) {
             Icon(
                 Icons.Default.Close,
-                contentDescription = "Quitar foto ${index + 1}",
+                contentDescription = stringResource(R.string.ticket_photo_remove, index + 1),
                 tint     = Color.White,
                 modifier = Modifier.size(16.dp)
             )
