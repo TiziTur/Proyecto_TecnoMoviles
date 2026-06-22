@@ -47,6 +47,7 @@ Todas esas líneas (nombre, código+IVA, cantidad x precio, y el descuento si ex
 La línea "CANTIDAD x PRECIO_UNITARIO" a veces aparece ANTES del nombre del producto en vez de después; sigue perteneciendo al mismo bloque/producto, no es un producto aparte.
 Una línea que es SOLO un descuento (texto tipo "X% OFF ...", "2x1 ...", "2DA ... 50% ...", o que termina en un monto negativo "$-...") NUNCA es un producto en sí misma — es un ajuste que se resta del producto inmediatamente anterior. Si un producto tiene una línea de descuento, calculá su price final como (precio_total_de_linea + descuento_con_su_signo_negativo) / cantidad, es decir el precio unitario YA con el descuento aplicado.
 Ignorá por completo líneas que son código de barras suelto, porcentaje de IVA suelto, subtotal, total, "Régimen de Transparencia Fiscal", impuestos nacionales, vuelto, CAE, QR, o cualquier línea sin un nombre de producto real asociado. Nunca inventes un producto genérico como "Producto" para una línea que no puedas identificar — si no podés leer bien un producto, omitilo en vez de inventar un nombre o precio placeholder.
+Si el nombre impreso de un producto es parcialmente ilegible (letras borrosas, cortadas, etc.) pero podés leer su código de barras y su precio con claridad, NUNCA reemplaces el nombre por el de otro producto de una categoría distinta que "suene parecido" o que te parezca plausible — eso es peor que no saberlo. En ese caso usá como name el código de barras tal como aparece impreso (ej: "Producto 7799120000993"), manteniendo price, quantity y code correctos. Solo escribí un nombre de producto real cuando puedas leerlo con razonable certeza letra por letra.
 
 Devolvé ÚNICAMENTE un JSON válido con este formato exacto, sin texto adicional ni markdown:
 {
@@ -87,25 +88,37 @@ Reglas:
         ]
       }],
       generationConfig: {
-        temperature: 0.1,
+        temperature: 0,
         maxOutputTokens: 4096
       }
     };
 
-    const response = await fetch(geminiUrl, {
+    // Gemini devuelve 503 "high demand" con bastante frecuencia incluso en uso normal —
+    // sin retry, esos picos transitorios tiraban a cualquier usuario directo al fallback
+    // de ML Kit (mucho peor que esperar un par de segundos y reintentar).
+    const fetchGemini = () => fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(geminiBody)
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
+    let geminiResponse = await fetchGemini();
+    let attempt = 1;
+    const maxAttempts = 3;
+    while (!geminiResponse.ok && (geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < maxAttempts) {
+      console.warn(`Gemini ${geminiResponse.status}, reintentando (${attempt}/${maxAttempts})...`);
+      await new Promise(r => setTimeout(r, attempt * 1500));
+      attempt++;
+      geminiResponse = await fetchGemini();
+    }
+
+    if (!geminiResponse.ok) {
+      const errText = await geminiResponse.text();
       console.error('Gemini error:', errText);
       res.status(502).json({ error: 'Error al contactar Gemini Vision' });
       return;
     }
-
-    const geminiData = await response.json() as any;
+    const geminiData = await geminiResponse.json() as any;
     const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
     // Limpiar markdown si Gemini lo agregó (```json ... ```)

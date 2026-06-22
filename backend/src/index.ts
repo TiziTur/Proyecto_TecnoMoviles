@@ -19,7 +19,8 @@ const app = express();
 const PORT = process.env.PORT ?? 3000;
 
 app.use(cors());
-app.use(express.json());
+// Límite default de express.json() es 100kb — muy poco para varias fotos de ticket en base64.
+app.use(express.json({ limit: '20mb' }));
 
 // Health check — Railway lo usa para saber si el servicio está vivo
 app.get('/health', (_req, res) => {

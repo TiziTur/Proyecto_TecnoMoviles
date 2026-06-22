@@ -4,6 +4,10 @@
 package com.undef.superahorroturina.ui.screens.purchase
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.util.Base64
 import androidx.lifecycle.ViewModel
@@ -111,14 +115,13 @@ class PurchaseDetailViewModel @Inject constructor(
             try {
                 val images = mutableListOf<TicketImageDto>()
                 for (imageUri in imageUris) {
-                    val bytes = context.contentResolver.openInputStream(imageUri)?.readBytes()
+                    val bytes = resizeImageForUpload(context, imageUri)
                         ?: run {
                             _ticketScanState.value = TicketScanState.Error("No se pudo leer la imagen")
                             return@launch
                         }
                     val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                    val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
-                    images.add(TicketImageDto(base64, mimeType))
+                    images.add(TicketImageDto(base64, "image/jpeg"))
                 }
 
                 val token = session.bearerToken.first()
@@ -142,6 +145,44 @@ class PurchaseDetailViewModel @Inject constructor(
                     _ticketScanState.value = TicketScanState.Error("Error al escanear: ${ex.message}")
                 }
             }
+        }
+    }
+
+    // Las fotos de cámara salen a resolución completa (varios MB cada una) — subirlas crudas
+    // hace que el body JSON supere el límite del backend y la llamada a Gemini falle en silencio
+    // (cae al fallback de ML Kit, que es mucho peor). Las reescalamos a un ancho máximo razonable
+    // para OCR y las recomprimimos a JPEG antes de mandarlas, corrigiendo además la rotación EXIF
+    // (al recomprimir se pierden los metadatos, así que hay que rotar los píxeles a mano).
+    // maxDimension generoso a propósito: el texto de un ticket térmico es chico y cualquier
+    // downscale agresivo le come legibilidad al OCR. Esto solo actúa como freno para fotos
+    // extremas (cámaras de 50+ MP); una foto de celular típica (3000-6000px de lado largo)
+    // pasa prácticamente intacta.
+    private fun resizeImageForUpload(context: Context, uri: Uri, maxDimension: Int = 6000, quality: Int = 90): ByteArray? {
+        val original = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+            ?: return null
+
+        val rotationDegrees = context.contentResolver.openInputStream(uri)?.use { stream ->
+            when (ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90  -> 90
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                else -> 0
+            }
+        } ?: 0
+
+        val rotated = if (rotationDegrees != 0) {
+            val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
+            Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
+        } else original
+
+        val scale = maxDimension.toFloat() / maxOf(rotated.width, rotated.height)
+        val resized = if (scale < 1f) {
+            Bitmap.createScaledBitmap(rotated, (rotated.width * scale).toInt(), (rotated.height * scale).toInt(), true)
+        } else rotated
+
+        return java.io.ByteArrayOutputStream().use { out ->
+            resized.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            out.toByteArray()
         }
     }
 
