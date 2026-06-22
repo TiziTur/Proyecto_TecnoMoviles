@@ -26,11 +26,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
 import com.undef.superahorroturina.ui.components.*
+import java.io.File
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -99,15 +101,34 @@ fun PurchaseDetailScreen(
         }
     }
 
+    // Launcher de cámara: la app de cámara del sistema escribe la foto en el Uri que le
+    // pasamos (vía FileProvider) y nos avisa con un booleano de éxito, no con el Uri en sí.
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            pendingCameraUri?.let { stagedPhotos = stagedPhotos + it }
+        }
+        pendingCameraUri = null
+    }
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+
+    fun launchCamera() {
+        val dir = File(context.cacheDir, "ticket_photos").also { it.mkdirs() }
+        val file = File(dir, "ticket_${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        pendingCameraUri = uri
+        cameraLauncher.launch(uri)
+    }
+
     // Pantalla de preview de fotos staged (reemplaza el flujo normal mientras hay fotos
     // cargadas pero no enviadas). Permite agregar más fotos o quitar alguna antes de escanear.
     if (stagedPhotos.isNotEmpty()) {
         TicketPhotosPreviewScreen(
             photos   = stagedPhotos,
             onRemove = { index -> stagedPhotos = stagedPhotos.toMutableList().also { it.removeAt(index) } },
-            onAddMore = {
-                multiPhotoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-            },
+            onAddMore = { showPhotoSourceDialog = true },
             onScan = {
                 val photosToScan = stagedPhotos
                 stagedPhotos = emptyList()
@@ -134,6 +155,44 @@ fun PurchaseDetailScreen(
             LaunchedEffect(Unit) { viewModel.resetTicketScan() }
         }
         else -> Unit
+    }
+
+    // ── Diálogo para elegir cámara o galería al adjuntar un ticket ─────
+    if (showPhotoSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showPhotoSourceDialog = false },
+            title = { Text("Adjuntar ticket") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = {
+                            showPhotoSourceDialog = false
+                            launchCamera()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Tomar foto")
+                    }
+                    TextButton(
+                        onClick = {
+                            showPhotoSourceDialog = false
+                            multiPhotoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Elegir de galería")
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showPhotoSourceDialog = false }) { Text(stringResource(R.string.action_cancel)) }
+            }
+        )
     }
 
     // ── Diálogo de confirmación de eliminación ────────────────
@@ -339,11 +398,7 @@ fun PurchaseDetailScreen(
                                     )
                                 }
                                 FilledTonalButton(
-                                    onClick = {
-                                        multiPhotoLauncher.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    },
+                                    onClick = { showPhotoSourceDialog = true },
                                     enabled = ticketState !is TicketScanState.Scanning && ticketState !is TicketScanState.Inserting,
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                     modifier = Modifier.height(36.dp)

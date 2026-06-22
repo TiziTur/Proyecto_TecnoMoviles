@@ -36,6 +36,18 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
   const prompt = `Analizá este ticket de supermercado y extraé la lista de productos.
 A continuación se incluyen una o más fotos. Si hay más de una imagen, son fragmentos consecutivos de UN MISMO ticket de supermercado muy largo que no entraba en una sola foto — analizalas todas juntas como si fueran un solo documento continuo, en el orden en que se presentan. Si dos fotos se solapan levemente y un mismo producto aparece visible en ambas, contalo UNA SOLA VEZ en la lista final.
+
+IMPORTANTE — cómo está estructurado cada renglón de producto en este tipo de ticket (tickets argentinos de supermercado, formato AFIP):
+Cada producto comprado ocupa VARIAS líneas consecutivas, no una sola. Un bloque típico de un producto se ve así:
+  NOMBRE DEL PRODUCTO
+  CODIGO_DE_BARRAS (XX.XX%)              PRECIO_TOTAL_DE_LINEA
+  CANTIDAD x PRECIO_UNITARIO
+  [línea opcional de descuento, ej: "15% OFF QR MP / $-824.85" o "2x1 Marca $-2999.00" o "2DA AL 50% TODO $-529.00"]
+Todas esas líneas (nombre, código+IVA, cantidad x precio, y el descuento si existe) son UN SOLO producto — agrupalas en una sola entrada del JSON, nunca generes una entrada separada por cada línea.
+La línea "CANTIDAD x PRECIO_UNITARIO" a veces aparece ANTES del nombre del producto en vez de después; sigue perteneciendo al mismo bloque/producto, no es un producto aparte.
+Una línea que es SOLO un descuento (texto tipo "X% OFF ...", "2x1 ...", "2DA ... 50% ...", o que termina en un monto negativo "$-...") NUNCA es un producto en sí misma — es un ajuste que se resta del producto inmediatamente anterior. Si un producto tiene una línea de descuento, calculá su price final como (precio_total_de_linea + descuento_con_su_signo_negativo) / cantidad, es decir el precio unitario YA con el descuento aplicado.
+Ignorá por completo líneas que son código de barras suelto, porcentaje de IVA suelto, subtotal, total, "Régimen de Transparencia Fiscal", impuestos nacionales, vuelto, CAE, QR, o cualquier línea sin un nombre de producto real asociado. Nunca inventes un producto genérico como "Producto" para una línea que no puedas identificar — si no podés leer bien un producto, omitilo en vez de inventar un nombre o precio placeholder.
+
 Devolvé ÚNICAMENTE un JSON válido con este formato exacto, sin texto adicional ni markdown:
 {
   "supermarket": "nombre del supermercado si es visible, sino null",
@@ -53,11 +65,11 @@ Devolvé ÚNICAMENTE un JSON válido con este formato exacto, sin texto adiciona
 }
 Reglas:
 - name debe ser la descripción EXACTA del producto como figura en el ticket, incluyendo marca, tamaño y variedad
-- price debe ser el precio UNITARIO (no total de linea)
+- price debe ser el precio UNITARIO ya con cualquier descuento de esa línea aplicado (no el total de línea, no el precio sin descuento)
 - Si el ticket muestra "2x $500" el price es 500 y quantity es 2
 - category: Bebida para gaseosas/jugos/aguas/cervezas; Lácteo para leche/yogur/queso; Limpieza para detergentes/lavandina; Perfumería para higiene personal; Snack para golosinas/papas fritas; Alimento para el resto de comestibles
 - Si no podés leer bien un producto, omitilo
-- Solo incluí items que son productos comprados, no descuentos ni subtotales`;
+- Una entrada del JSON por producto comprado, nunca una entrada por línea de texto. No incluyas descuentos, subtotales, impuestos ni líneas sin nombre de producto como entradas propias`;
 
   try {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;

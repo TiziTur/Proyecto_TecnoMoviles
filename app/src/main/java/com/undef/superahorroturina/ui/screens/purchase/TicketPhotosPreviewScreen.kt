@@ -47,7 +47,12 @@ fun TicketPhotosPreviewScreen(
         },
         bottomBar = {
             Surface(shadowElevation = 8.dp) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedButton(
                         onClick  = onAddMore,
                         modifier = Modifier.fillMaxWidth()

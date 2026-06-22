@@ -54,7 +54,10 @@ fun TicketConfirmScreen(
             Surface(shadowElevation = 8.dp) {
                 Button(
                     onClick  = onConfirm,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(16.dp)
                 ) {
                     Text("Confirmar y guardar (${products.size})")
                 }
