@@ -12,9 +12,6 @@ import android.net.Uri
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.undef.superahorroturina.data.local.SessionDataStore
 import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.network.dto.ScannedProductDto
@@ -26,12 +23,12 @@ import com.undef.superahorroturina.data.repository.ProductRepository
 import com.undef.superahorroturina.data.repository.PurchaseRepository
 import com.undef.superahorroturina.model.Purchase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 data class PurchaseDetailUiState(
@@ -107,8 +104,11 @@ class PurchaseDetailViewModel @Inject constructor(
     }
 
     // ── Ticket OCR ────────────────────────────────────────────────
-    // Intenta con Gemini Vision (multi-imagen, para tickets largos escaneados en varias fotos);
-    // si falla, usa ML Kit como fallback.
+    // Antes había un fallback silencioso a ML Kit (OCR de texto crudo + un regex de precios) si
+    // Gemini fallaba por cualquier motivo — eso convertía cualquier error transitorio (un 503 de
+    // Gemini, un redeploy del backend, una mala conexión) en una pantalla de confirmación con
+    // basura que parecía un escaneo exitoso. Ahora reintenta la llamada real un par de veces y,
+    // si de verdad no se pudo escanear, lo dice — no inventa productos falsos.
     fun scanTicketFromUris(context: Context, imageUris: List<Uri>, purchaseId: Int) {
         viewModelScope.launch {
             _ticketScanState.value = TicketScanState.Scanning
@@ -125,25 +125,46 @@ class PurchaseDetailViewModel @Inject constructor(
                 }
 
                 val token = session.bearerToken.first()
-                val response = api.scanTicket(token, purchaseId, ScanTicketRequest(images))
+                val request = ScanTicketRequest(images)
 
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    val products = body?.products ?: emptyList()
-                    if (products.isNotEmpty()) {
-                        _ticketScanState.value = buildConfirmState(products, body?.supermarket)
+                val maxAttempts = 3
+                for (attempt in 1..maxAttempts) {
+                    val response = try {
+                        api.scanTicket(token, purchaseId, request)
+                    } catch (e: Exception) {
+                        if (attempt == maxAttempts) {
+                            _ticketScanState.value = TicketScanState.Error(
+                                "No se pudo conectar para escanear el ticket. Revisá tu conexión e intentá de nuevo."
+                            )
+                            return@launch
+                        }
+                        delay(attempt * 1500L)
+                        continue
+                    }
+
+                    if (response.isSuccessful) {
+                        val body = response.body()
+                        val products = body?.products ?: emptyList()
+                        if (products.isNotEmpty()) {
+                            _ticketScanState.value = buildConfirmState(products, body?.supermarket)
+                        } else {
+                            _ticketScanState.value = TicketScanState.Error(
+                                "No se reconoció ningún producto en el ticket. Probá con fotos más nítidas."
+                            )
+                        }
                         return@launch
                     }
+
+                    if (attempt == maxAttempts) {
+                        _ticketScanState.value = TicketScanState.Error(
+                            "No se pudo escanear el ticket (error del servidor). Intentá de nuevo en unos segundos."
+                        )
+                        return@launch
+                    }
+                    delay(attempt * 1500L)
                 }
-
-                // Fallback: ML Kit OCR (sin parseo de productos — extrae texto crudo)
-                mlKitFallback(context, imageUris, purchaseId)
-
             } catch (e: Exception) {
-                try { mlKitFallback(context, imageUris, purchaseId) }
-                catch (ex: Exception) {
-                    _ticketScanState.value = TicketScanState.Error("Error al escanear: ${ex.message}")
-                }
+                _ticketScanState.value = TicketScanState.Error("Error al escanear: ${e.message}")
             }
         }
     }
@@ -183,46 +204,6 @@ class PurchaseDetailViewModel @Inject constructor(
         return java.io.ByteArrayOutputStream().use { out ->
             resized.compress(Bitmap.CompressFormat.JPEG, quality, out)
             out.toByteArray()
-        }
-    }
-
-    // ML Kit: reconoce el texto de cada foto del ticket y concatena el resultado como si fuera
-    // un único documento continuo, antes de armar una lista de producto genérico con el texto
-    // completo para que el usuario lo vea y ajuste manualmente.
-    private suspend fun mlKitFallback(context: Context, imageUris: List<Uri>, purchaseId: Int) {
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        val texts = mutableListOf<String>()
-        for (imageUri in imageUris) {
-            val image = InputImage.fromFilePath(context, imageUri)
-            val visionText = recognizer.process(image).await()
-            texts.add(visionText.text.trim())
-        }
-        val rawText = texts.joinToString("\n").trim()
-
-        if (rawText.isBlank()) {
-            _ticketScanState.value = TicketScanState.Error("No se pudo extraer texto del ticket")
-            return
-        }
-
-        val parsed = mutableListOf<ScannedProductDto>()
-        val priceRegex = Regex("""(\d{1,6}[.,]\d{2})""")
-        rawText.lines().forEach { line ->
-            val match = priceRegex.find(line)
-            if (match != null) {
-                val price = match.value.replace(",", ".").toDoubleOrNull() ?: 0.0
-                val name  = line.substring(0, match.range.first).trim()
-                    .takeIf { it.length >= 2 } ?: "Producto"
-                if (price > 0) parsed.add(ScannedProductDto(name = name, price = price))
-            }
-        }
-
-        _ticketScanState.value = if (parsed.isNotEmpty()) {
-            buildConfirmState(parsed, null)
-        } else {
-            buildConfirmState(
-                listOf(ScannedProductDto(name = "Ticket escaneado", price = 0.0, description = rawText.take(200))),
-                null
-            )
         }
     }
 

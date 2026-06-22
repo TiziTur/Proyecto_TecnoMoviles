@@ -2,7 +2,7 @@
 // Incluye un Intent.ACTION_SEND para compartir el resumen de la compra
 // (requisito de la segunda entrega: "al menos un Intent").
 // El AlertDialog de confirmación de eliminación es un ejemplo de diálogos en Compose.
-// El botón "Adjuntar ticket" abre cámara/galería y lanza el flujo de OCR con Gemini + ML Kit.
+// El botón "Adjuntar ticket" abre cámara/galería y lanza el flujo de OCR con Gemini.
 package com.undef.superahorroturina.ui.screens.purchase
 
 import android.content.Intent
