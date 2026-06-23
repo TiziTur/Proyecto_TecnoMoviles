@@ -1,150 +1,126 @@
-# Klarity — Android App
+<div align="center">
 
-Aplicación Android para el registro y seguimiento de compras en supermercados.
-Mismo nombre y paleta de colores que el proyecto web Klarity.
-Trabajo Práctico — Materia: Tecnologías Móviles — Universidad Nacional de Entre Ríos (UNER)
+# Klarity
 
----
+### Registrá, analizá y ahorrá en tus compras de supermercado
 
-## Estado del proyecto
+Conocé a dónde va tu dinero — escaneá tickets con IA, compará precios entre supermercados y llevá el control de tu presupuesto, todo desde el celular.
 
-| Entrega | Fecha límite | Estado |
-|---------|-------------|--------|
-| Primera entrega (UI / datos mockeados) | 08/05/2026 | ✅ Completa |
-| Segunda entrega (funcionalidad real) | TBD | Pendiente |
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Railway-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 
----
+<br/>
 
-## Descripción
+<img src="docs/assets/home-screen-mockup.svg" alt="Pantalla Home de Klarity" width="280"/>
 
-SUPER AHORRO permite al usuario:
-
-- Registrar compras realizadas en distintos supermercados
-- Agregar y editar productos dentro de cada compra
-- Ver el historial completo de compras con búsqueda y filtros
-- Consultar estadísticas de gasto por mes y por supermercado
-- Gestionar su perfil y preferencias de la app
+</div>
 
 ---
 
-## Stack tecnológico
+## ✨ Funcionalidades
+
+- 🔐 **Cuenta y sesión** — registro, login y biometría (huella/PIN) con el token cifrado en Android Keystore, nunca en texto plano.
+- 🧾 **Compras y productos** — alta, edición y borrado de compras con sus productos, foto del ticket adjunta desde cámara o galería.
+- 🤖 **Escaneo de ticket con IA** — Gemini Vision lee el ticket y carga los productos automáticamente (nombre, precio, cantidad), con corrección manual para lo que no se lee bien.
+- 💬 **Asistente de chat IA** — preguntás en lenguaje natural sobre tu historial de compras y consumos.
+- 📊 **Comparativa de precios** — compara tu ticket contra precios de referencia (SEPA) y entre supermercados, mostrando dónde te convenía comprar.
+- 📈 **Estadísticas** — gasto por mes, por supermercado, productos más comprados y evolución del presupuesto.
+- 🔔 **Alertas de precio** — notificaciones periódicas (WorkManager) cuando un producto sube de precio.
+- 🌓 **Tema e idioma** — modo oscuro y soporte español / inglés.
+
+## 🏗️ Arquitectura
+
+**MVVM** de punta a punta, con **Room como fuente de verdad** para todo lo que se puede cachear: el `Repository` consulta Room primero, refresca contra la API cuando corresponde, y la UI siempre observa el `Flow` de Room — nunca lee una respuesta de red directamente.
+
+```
+ViewModel → Repository → ① Room (caché, Flow que observa la UI)
+                       → ② Retrofit (red, escribe el resultado en Room)
+```
 
 | Capa | Tecnología |
 |------|-----------|
-| Lenguaje | Kotlin 2.0.21 |
-| UI | Jetpack Compose + Material Design 3 |
-| Arquitectura | MVVM |
-| Inyección de dependencias | Hilt 2.51.1 |
-| Navegación | Navigation Compose 2.8.4 |
-| Build | AGP 8.7.3 / Gradle 9.3.1 |
-| minSdk | 26 (Android 8.0) |
-| compileSdk | 35 |
+| UI | Jetpack Compose + Material 3 |
+| Arquitectura | MVVM (`ViewModel` + `StateFlow`) |
+| Inyección de dependencias | Hilt |
+| Navegación | Navigation Compose |
+| Persistencia de sesión/preferencias | Jetpack DataStore |
+| Base de datos local | Room (compras, productos, supermercados, comparativa de precios) |
+| Networking | Retrofit + OkHttp + Gson |
+| Biometría | AndroidX Biometric + Android Keystore (AES-GCM) |
+| Imágenes | Coil |
+| Gráficos | Vico (Compose) |
+| Background work | WorkManager + Hilt Work |
 
----
+### Backend (`/backend`)
 
-## Estructura del proyecto
+| Capa | Tecnología |
+|------|-----------|
+| Runtime | Node.js + TypeScript |
+| Framework | Express |
+| Base de datos | PostgreSQL (Railway) |
+| Auth | JWT + bcrypt |
+| IA | Gemini Vision (OCR de ticket) y Gemini (chat) |
+
+<details>
+<summary><strong>📁 Estructura del proyecto</strong></summary>
 
 ```
 app/src/main/java/com/undef/superahorroturina/
-├── MainActivity.kt
-├── SuperAhorroApp.kt
-├── model/
-│   ├── Models.kt          # Data classes: User, Purchase, Product, StatSummary
-│   └── MockData.kt        # Datos mockeados: supermercados argentinos, productos reales
+├── data/
+│   ├── local/          # DataStore, Room (entidades, DAOs, AppDatabase)
+│   ├── network/        # ApiService (Retrofit) y DTOs
+│   └── repository/      # Repositorios: Room + Retrofit, fuente de verdad para la UI
+├── di/                 # Módulos Hilt (Database, Network)
+├── model/               # Modelos de dominio
 └── ui/
-    ├── theme/
-    │   ├── Color.kt        # Paleta completa light/dark
-    │   ├── Type.kt         # Tipografía Material 3
-    │   └── Theme.kt        # Esquemas de color, status bar edge-to-edge
-    ├── navigation/
-    │   ├── Routes.kt       # Rutas tipadas
-    │   └── NavGraph.kt     # Grafo de navegación completo
-    ├── components/
-    │   └── Components.kt   # Componentes reutilizables
-    └── screens/
-        ├── splash/         # SplashScreen
-        ├── auth/           # LoginScreen, RegisterScreen
-        ├── home/           # HomeScreen (Navigation Drawer + Bottom Nav + FAB)
-        ├── history/        # HistoryScreen (búsqueda + FilterChips)
-        ├── stats/          # StatsScreen (gráfico Canvas + rankings)
-        ├── profile/        # ProfileScreen
-        ├── settings/       # SettingsScreen (dark mode, idioma)
-        ├── purchase/       # NewPurchaseScreen, PurchaseDetailScreen
-        └── product/        # ProductFormScreen
+    ├── biometric/        # BiometricPrompt + Keystore
+    ├── components/       # Componentes reutilizables
+    ├── navigation/       # Rutas tipadas + NavGraph
+    ├── screens/          # Una carpeta por pantalla (auth, home, history, stats,
+    │                     #  profile, settings, purchase, product, prices, chat)
+    └── theme/            # Paleta, tipografía, esquema de color
+
+backend/src/
+├── routes/              # auth, users, purchases, products, supermarkets,
+│                        #  ticket (OCR), chat, prices, purchaseComparison
+├── middleware/           # Auth JWT
+└── db.ts                 # Pool de PostgreSQL
 ```
 
----
+</details>
 
-## Pantallas implementadas
+## 🚀 Cómo correrlo
 
-| Pantalla | Descripción |
-|----------|-------------|
-| Splash | Animación Spring + auto-navegación a Login |
-| Login | Formulario con validación básica |
-| Registro | Nombre, apellido, email, teléfono, contraseña |
-| Home | Resumen del mes, últimas compras, Navigation Drawer + Bottom Nav + FAB |
-| Historial | Lista completa con búsqueda y FilterChips por supermercado |
-| Estadísticas | Gráfico de barras (Canvas), progreso por supermercado, ranking de productos |
-| Perfil | Avatar con iniciales, campos editables inline |
-| Ajustes | Dark mode toggle, selector de idioma, notificaciones |
-| Nueva compra | Formulario con selector de supermercado (ExposedDropdownMenu), fecha y hora |
-| Detalle de compra | Lista de productos, total calculado automáticamente, placeholder de ticket |
-| Formulario de producto | Nuevo/editar producto, cálculo de subtotal en tiempo real |
-
----
-
-## Paleta de colores
-
-| Token | Light | Dark |
-|-------|-------|------|
-| Background | `#F4F6FA` | `#0C0F18` |
-| Primary | `#3B82F6` | `#60A5FA` |
-| Secondary | `#06B6D4` | `#22D3EE` |
-| Error | `#EF4444` | `#F87171` |
-
-Paleta inspirada en el proyecto web Klarity del mismo alumno.
-
----
-
-## Internacionalización
-
-La app soporta **español** (por defecto) e **inglés**.  
-Archivos de recursos:
-- `res/values/strings.xml` — español
-- `res/values-en/strings.xml` — inglés
-
----
-
-## Datos mockeados
-
-- 8 compras con productos reales de supermercado argentino
-- 9 supermercados: Carrefour, Coto, Disco, Jumbo, La Anónima, Vea, Walmart, Día, Makro
-- Precios en ARS con 2 decimales
-- Estadísticas mensuales y por supermercado
-
----
-
-## Cómo compilar
-
-1. Clonar el repositorio
-2. Abrir en Android Studio Hedgehog o superior
-3. Sync Project with Gradle Files
-4. Run en emulador (API 26+) o dispositivo físico
+### App Android
 
 ```bash
+git clone https://github.com/TiziTur/Proyecto_TecnoMoviles.git
+cd Proyecto_TecnoMoviles
 ./gradlew assembleDebug
 ```
 
-El APK de debug queda en:  
-`app/build/outputs/apk/debug/app-debug.apk`
+El APK queda en `app/build/outputs/apk/debug/app-debug.apk`. También se puede abrir directamente en Android Studio y correr en un emulador o dispositivo (API 26+).
+
+### Backend
+
+```bash
+cd backend
+cp .env.example .env   # completar DATABASE_URL, JWT_SECRET y GEMINI_API_KEY
+npm install
+npm run dev
+```
+
+## 🌐 Internacionalización
+
+Español (por defecto) e inglés — `res/values/strings.xml` y `res/values-en/strings.xml`.
 
 ---
 
-## Registro de cambios
+<div align="center">
 
-| Commit | Descripción |
-|--------|-------------|
-| `02d9e65` | feat: estructura base completa — 11 pantallas, navegación, tema, datos mockeados, i18n |
-| `345fcaa` | fix: agregar useAndroidX y enableJetifier a gradle.properties |
-| `c480034` | fix: corregir warnings de deprecación (AutoMirrored icons, menuAnchor, statusBarColor) + README |
-| HEAD | feat: renombrar a Klarity, logo vectorial, paleta exacta del proyecto web, diseño premium (shapes, tipografía, KlarityButton, botones en 1 línea) |
+Proyecto académico — Trabajo Práctico Integrador de **Tecnologías Móviles**, Universidad Nacional de Entre Ríos (UNER).
+
+</div>
