@@ -18,3 +18,7 @@ local.properties
 Log errores.txt
 Contenido clases.docx
 Clases/
+
+# Herramientas de IA — cache/estado local, no son parte del proyecto
+.claude/skills/
+.superpowers/
