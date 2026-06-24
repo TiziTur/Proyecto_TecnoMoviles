@@ -5,12 +5,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import kotlin.io.path.createTempDirectory
 
 class TicketPhotoStorageTest {
 
     @Test
     fun `savePhoto escribe los bytes en filesDir-ticket_photos-purchaseId y devuelve la ruta`() {
-        val baseDir = createTempDir()
+        val baseDir = createTempDirectory().toFile()
         val bytes = byteArrayOf(1, 2, 3, 4)
 
         val path = TicketPhotoStorage.savePhoto(baseDir, purchaseId = 7, bytes = bytes)
@@ -23,7 +24,7 @@ class TicketPhotoStorageTest {
 
     @Test
     fun `dos llamadas a savePhoto para la misma compra generan archivos distintos`() {
-        val baseDir = createTempDir()
+        val baseDir = createTempDirectory().toFile()
 
         val path1 = TicketPhotoStorage.savePhoto(baseDir, purchaseId = 1, bytes = byteArrayOf(1))
         val path2 = TicketPhotoStorage.savePhoto(baseDir, purchaseId = 1, bytes = byteArrayOf(2))
@@ -35,7 +36,7 @@ class TicketPhotoStorageTest {
 
     @Test
     fun `deletePurchasePhotos borra el directorio de esa compra`() {
-        val baseDir = createTempDir()
+        val baseDir = createTempDirectory().toFile()
         val path = TicketPhotoStorage.savePhoto(baseDir, purchaseId = 3, bytes = byteArrayOf(9))
 
         TicketPhotoStorage.deletePurchasePhotos(baseDir, purchaseId = 3)
@@ -45,7 +46,7 @@ class TicketPhotoStorageTest {
 
     @Test
     fun `deletePurchasePhotos no afecta los archivos de otra compra`() {
-        val baseDir = createTempDir()
+        val baseDir = createTempDirectory().toFile()
         val keepPath = TicketPhotoStorage.savePhoto(baseDir, purchaseId = 1, bytes = byteArrayOf(1))
         TicketPhotoStorage.savePhoto(baseDir, purchaseId = 2, bytes = byteArrayOf(2))
 
