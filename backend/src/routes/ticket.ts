@@ -131,7 +131,7 @@ Reglas:
     ];
 
     const grokBody = {
-      model: 'grok-2-vision-1212',
+      model: 'grok-2-vision',
       messages: [{ role: 'user', content: messageContent }],
       temperature: 0,
       max_tokens: 16000
