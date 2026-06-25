@@ -24,7 +24,8 @@ class PurchaseRepository @Inject constructor(
     private val api: ApiService,
     private val session: SessionDataStore,
     private val purchaseDao: PurchaseDao,
-    private val productDao: ProductDao
+    private val productDao: ProductDao,
+    private val ticketPhotoRepository: TicketPhotoRepository
 ) {
     fun getPurchasesFlow(): Flow<List<Purchase>> =
         purchaseDao.getAll().map { entities -> entities.map { it.toDomain() } }
@@ -92,6 +93,7 @@ class PurchaseRepository @Inject constructor(
         val response = api.deletePurchase(token, id)
         if (response.isSuccessful) {
             purchaseDao.delete(id)
+            ticketPhotoRepository.deletePhotosForPurchase(id)
             ApiResult.Success(Unit)
         } else {
             ApiResult.Error("Error al eliminar compra: ${response.code()}")
