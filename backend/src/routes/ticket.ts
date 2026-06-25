@@ -18,21 +18,22 @@ interface ParsedProduct {
 }
 
 // Modelos de visión gratuitos en OpenRouter, en orden de preferencia (mejor OCR primero).
-// Si el primero no está disponible en la cuenta actual, se prueba el siguiente.
 const FREE_VISION_MODELS = [
   'qwen/qwen2.5-vl-72b-instruct:free',
   'qwen/qwen-2.5-vl-7b-instruct:free',
   'qwen/qwen2-vl-7b-instruct:free',
+  'qwen/qwen2.5-vl-7b-instruct:free',
   'google/gemini-2.0-flash-exp:free',
+  'google/gemini-2.5-flash-preview:free',
   'google/gemini-flash-1.5-8b:free',
   'mistralai/pixtral-12b:free',
   'meta-llama/llama-3.2-90b-vision-instruct:free',
   'microsoft/phi-3.5-vision-instruct:free',
+  'nvidia/nemotron-nano-12b-v2-vl:free',
 ];
 
 let cachedVisionModel: string | null = null;
 
-// Consulta el catálogo de OpenRouter y devuelve el mejor modelo de visión gratuito disponible.
 async function resolveFreeVisionModel(apiKey: string): Promise<string> {
   if (cachedVisionModel) return cachedVisionModel;
   try {
@@ -41,25 +42,26 @@ async function resolveFreeVisionModel(apiKey: string): Promise<string> {
     });
     if (resp.ok) {
       const data = await resp.json() as any;
-      const availableIds: Set<string> = new Set(
-        (data.data ?? []).map((m: any) => String(m.id))
+      const allModels: any[] = data.data ?? [];
+      const availableIds: Set<string> = new Set(allModels.map((m: any) => String(m.id)));
+
+      // Loggear TODOS los modelos gratuitos con capacidad de visión para diagnóstico
+      const freeVisionAll = [...availableIds].filter(id =>
+        id.endsWith(':free') && (id.includes('vision') || id.includes('vl') || id.includes('pixtral') || id.includes('visual'))
       );
-      console.log('[OpenRouter] modelos disponibles (total):', availableIds.size);
+      console.log('[OpenRouter] modelos de visión gratuitos disponibles:', freeVisionAll.join(', ') || 'ninguno');
+
       for (const model of FREE_VISION_MODELS) {
         if (availableIds.has(model)) {
-          console.log('[OpenRouter] usando modelo de visión:', model);
+          console.log('[OpenRouter] usando modelo:', model);
           cachedVisionModel = model;
           return model;
         }
       }
-      // Último recurso: cualquier modelo gratuito con capacidad de imagen
-      const freeVision = [...availableIds].find(id =>
-        id.endsWith(':free') && (id.includes('vision') || id.includes('vl') || id.includes('pixtral'))
-      );
-      if (freeVision) {
-        console.log('[OpenRouter] usando modelo de visión (fallback):', freeVision);
-        cachedVisionModel = freeVision;
-        return freeVision;
+      if (freeVisionAll.length > 0) {
+        console.log('[OpenRouter] usando modelo (fallback):', freeVisionAll[0]);
+        cachedVisionModel = freeVisionAll[0];
+        return freeVisionAll[0];
       }
       console.error('[OpenRouter] ningún modelo de visión gratuito encontrado');
     } else {
@@ -68,7 +70,7 @@ async function resolveFreeVisionModel(apiKey: string): Promise<string> {
   } catch (e) {
     console.error('[OpenRouter] excepción al listar modelos:', e);
   }
-  return FREE_VISION_MODELS[0]; // fallback
+  return FREE_VISION_MODELS[0];
 }
 
 // Un ticket nunca tiene el mismo producto en dos entradas separadas — si aparece más de una vez
@@ -186,16 +188,21 @@ Reglas:
       max_tokens: 16000
     };
 
-    const fetchOR = () => fetch(orUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://klarity.app',
-        'X-Title': 'Klarity'
-      },
-      body: JSON.stringify(orBody)
-    });
+    const fetchOR = () => {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 100_000);
+      return fetch(orUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://klarity.app',
+          'X-Title': 'Klarity'
+        },
+        body: JSON.stringify(orBody),
+        signal: controller.signal
+      }).finally(() => clearTimeout(t));
+    };
 
     let orResponse = await fetchOR();
     let attempt = 1;
