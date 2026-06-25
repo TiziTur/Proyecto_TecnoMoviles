@@ -18,11 +18,53 @@ interface ParsedProduct {
   category?: string;
 }
 
+// Cachea el nombre del modelo de visión disponible en la cuenta xAI para no consultar
+// /v1/models en cada scan. Se resuelve la primera vez y se reutiliza.
+let resolvedVisionModel: string | null = null;
+
+async function resolveVisionModel(apiKey: string): Promise<string> {
+  if (resolvedVisionModel) return resolvedVisionModel;
+  try {
+    const resp = await fetch('https://api.x.ai/v1/models', {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    if (resp.ok) {
+      const data = await resp.json() as any;
+      const ids: string[] = (data.data ?? []).map((m: any) => String(m.id));
+      console.log('[xAI] modelos disponibles:', ids.join(', '));
+      // Prioridad: modelos más capaces primero
+      const preferred = [
+        'grok-2-vision-1212', 'grok-2-vision', 'grok-vision-beta',
+        'grok-3-vision', 'grok-3v', 'grok-2v-1212', 'grok-2v'
+      ];
+      for (const name of preferred) {
+        if (ids.includes(name)) {
+          console.log('[xAI] usando modelo de visión:', name);
+          resolvedVisionModel = name;
+          return name;
+        }
+      }
+      // Cualquier modelo con "vision" en el nombre como último recurso
+      const fallback = ids.find(id => id.includes('vision'));
+      if (fallback) {
+        console.log('[xAI] usando modelo de visión (fallback):', fallback);
+        resolvedVisionModel = fallback;
+        return fallback;
+      }
+      console.error('[xAI] ningún modelo de visión encontrado. Modelos disponibles:', ids);
+    } else {
+      const err = await resp.text();
+      console.error('[xAI] error al listar modelos:', err);
+    }
+  } catch (e) {
+    console.error('[xAI] excepción al listar modelos:', e);
+  }
+  // Si falla la detección, intenta con el nombre canónico
+  return 'grok-2-vision-1212';
+}
+
 // Un ticket nunca tiene el mismo producto en dos entradas separadas — si aparece más de una vez
-// (normalmente porque el ticket vino en 2+ fotos y Gemini no dedupe perfecto el solapamiento entre
-// fotos, a pesar de que el prompt se lo pide explícitamente), lo correcto es una sola entrada con
-// la cantidad sumada, nunca dos líneas del mismo producto. No confiamos esto solo al prompt: se
-// fuerza acá de forma determinística.
+// lo correcto es una sola entrada con la cantidad sumada.
 function mergeDuplicateProducts(products: ParsedProduct[]): ParsedProduct[] {
   const merged = new Map<string, ParsedProduct>();
   for (const p of products) {
@@ -116,9 +158,8 @@ Reglas:
 - Una entrada del JSON por producto comprado, nunca una entrada por línea de texto. No incluyas descuentos, subtotales, impuestos ni líneas sin nombre de producto como entradas propias`;
 
   try {
-    // Grok 2 Vision (xAI) — API compatible con OpenAI. Free tier sin el límite de 20 req/día
-    // de Gemini flash. grok-2-vision-1212 es el modelo con mejor capacidad OCR de imágenes.
     const grokUrl = 'https://api.x.ai/v1/chat/completions';
+    const visionModel = await resolveVisionModel(apiKey);
 
     const messageContent: any[] = [
       { type: 'text', text: prompt },
@@ -131,7 +172,7 @@ Reglas:
     ];
 
     const grokBody = {
-      model: 'grok-vision-beta',
+      model: visionModel,
       messages: [{ role: 'user', content: messageContent }],
       temperature: 0,
       max_tokens: 16000
