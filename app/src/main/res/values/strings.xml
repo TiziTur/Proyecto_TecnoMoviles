@@ -157,6 +157,7 @@
     <string name="settings_price_alerts_desc">Notificar cuando un producto suba de precio</string>
     <string name="settings_budget">Presupuesto mensual</string>
     <string name="settings_budget_limit">Límite de alerta</string>
+    <string name="settings_budget_hint">Ingresá el monto exacto</string>
     <string name="settings_sort_history">Ordenar historial</string>
     <string name="settings_sort_newest">Más reciente</string>
     <string name="settings_sort_oldest">Más antiguo</string>

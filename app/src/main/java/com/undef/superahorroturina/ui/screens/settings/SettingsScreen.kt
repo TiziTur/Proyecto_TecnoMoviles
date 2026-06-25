@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,9 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.biometric.BiometricPrompt
@@ -172,25 +175,39 @@ fun SettingsScreen(
 
                 SettingsCard(isDark = isDark) {
                     SettingsCategoryHeader(stringResource(R.string.settings_budget))
-                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(stringResource(R.string.settings_budget_limit),
-                                style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                "$ ${uiState.monthlyLimit.toInt()}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                    Column(modifier = Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.settings_budget_limit),
+                            style = MaterialTheme.typography.bodyLarge)
+
+                        // Input de texto en vez de Slider: el rango fijo (10000-200000, de a 10000)
+                        // no dejaba elegir un monto exacto. budgetFocused evita que el LaunchedEffect
+                        // pise lo que el usuario está tipeando, pero sigue sincronizando el campo si
+                        // el valor cambia desde afuera (ej: la carga inicial desde DataStore).
+                        var budgetInput by remember {
+                            mutableStateOf(if (uiState.monthlyLimit > 0f) uiState.monthlyLimit.toInt().toString() else "")
                         }
-                        Slider(
-                            value        = uiState.monthlyLimit,
-                            onValueChange = { viewModel.onMonthlyLimitChange(it) },
-                            valueRange   = 10000f..200000f,
-                            steps        = 18,
-                            modifier     = Modifier.fillMaxWidth()
+                        var budgetFocused by remember { mutableStateOf(false) }
+
+                        LaunchedEffect(uiState.monthlyLimit) {
+                            if (!budgetFocused) {
+                                budgetInput = if (uiState.monthlyLimit > 0f) uiState.monthlyLimit.toInt().toString() else ""
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = budgetInput,
+                            onValueChange = { raw ->
+                                val digits = raw.filter { it.isDigit() }
+                                budgetInput = digits
+                                digits.toFloatOrNull()?.let { viewModel.onMonthlyLimitChange(it) }
+                            },
+                            leadingIcon = { Text("$", style = MaterialTheme.typography.bodyLarge) },
+                            placeholder = { Text(stringResource(R.string.settings_budget_hint)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { budgetFocused = it.isFocused }
                         )
                     }
                 }
