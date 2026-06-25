@@ -75,7 +75,7 @@ fun PurchaseDetailScreen(
     // insertando productos). Se chequea antes que Confirm para que el overlay tape la pantalla
     // mientras el escaneo está en curso.
     if (ticketState is TicketScanState.Scanning || ticketState is TicketScanState.Inserting) {
-        TicketScanningOverlay()
+        TicketScanningOverlay(onCancel = { viewModel.resetTicketScan() })
         return
     }
 

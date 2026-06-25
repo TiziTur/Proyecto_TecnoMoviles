@@ -6,6 +6,7 @@ package com.undef.superahorroturina.ui.screens.purchase
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,8 +16,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.undef.superahorroturina.R
 
+// onCancel no cancela el llamado de red en curso (sigue corriendo en el viewModelScope),
+// solo le devuelve el control al usuario si la espera se siente demasiado larga — los timeouts
+// de OkHttp (30s conexión + 30s lectura, x3 reintentos) ya acotan el peor caso a un par de
+// minutos, pero ninguna otra pantalla a pantalla completa de este flujo deja al usuario sin
+// una salida explícita, y esta tampoco debería.
 @Composable
-fun TicketScanningOverlay() {
+fun TicketScanningOverlay(onCancel: () -> Unit) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -32,6 +38,10 @@ fun TicketScanningOverlay() {
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(Modifier.height(24.dp))
+            OutlinedButton(onClick = onCancel) {
+                Text(stringResource(R.string.action_cancel))
+            }
         }
     }
 }
