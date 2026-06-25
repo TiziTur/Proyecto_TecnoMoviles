@@ -9,11 +9,11 @@
         <include .../>
         <exclude .../>
         -->
+        <!-- Fotos de tickets: comprobantes de compra reales (datos financieros personales),
+             no deberían viajar a una copia de seguridad en la nube fuera del control del usuario. -->
+        <exclude domain="file" path="ticket_photos/"/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="file" path="ticket_photos/"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

@@ -10,4 +10,7 @@
    <include domain="sharedpref" path="."/>
    <exclude domain="sharedpref" path="device.xml"/>
 -->
+    <!-- Fotos de tickets: son comprobantes de compra reales (datos financieros personales),
+         no deberían viajar a una copia de seguridad en la nube fuera del control del usuario. -->
+    <exclude domain="file" path="ticket_photos/"/>
 </full-backup-content>
