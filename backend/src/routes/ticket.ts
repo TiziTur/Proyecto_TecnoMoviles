@@ -1,7 +1,6 @@
-// ticket.ts — Endpoint para escanear un ticket de supermercado con Grok Vision (xAI).
+// ticket.ts — Endpoint para escanear un ticket de supermercado con OpenRouter (LLaMA Vision).
 // Recibe una o más imágenes en base64 (fragmentos consecutivos de un mismo ticket largo),
-// las envía juntas a Grok con un prompt estructurado y devuelve los productos parseados
-// listos para guardar.
+// las envía juntas al modelo con un prompt estructurado y devuelve los productos parseados.
 // Montado en: POST /purchases/:id/scan-ticket
 import { Router, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
@@ -16,51 +15,6 @@ interface ParsedProduct {
   code?: string;
   description?: string;
   category?: string;
-}
-
-// Cachea el nombre del modelo de visión disponible en la cuenta xAI para no consultar
-// /v1/models en cada scan. Se resuelve la primera vez y se reutiliza.
-let resolvedVisionModel: string | null = null;
-
-async function resolveVisionModel(apiKey: string): Promise<string> {
-  if (resolvedVisionModel) return resolvedVisionModel;
-  try {
-    const resp = await fetch('https://api.x.ai/v1/models', {
-      headers: { 'Authorization': `Bearer ${apiKey}` }
-    });
-    if (resp.ok) {
-      const data = await resp.json() as any;
-      const ids: string[] = (data.data ?? []).map((m: any) => String(m.id));
-      console.log('[xAI] modelos disponibles:', ids.join(', '));
-      // Prioridad: modelos más capaces primero
-      const preferred = [
-        'grok-2-vision-1212', 'grok-2-vision', 'grok-vision-beta',
-        'grok-3-vision', 'grok-3v', 'grok-2v-1212', 'grok-2v'
-      ];
-      for (const name of preferred) {
-        if (ids.includes(name)) {
-          console.log('[xAI] usando modelo de visión:', name);
-          resolvedVisionModel = name;
-          return name;
-        }
-      }
-      // Cualquier modelo con "vision" en el nombre como último recurso
-      const fallback = ids.find(id => id.includes('vision'));
-      if (fallback) {
-        console.log('[xAI] usando modelo de visión (fallback):', fallback);
-        resolvedVisionModel = fallback;
-        return fallback;
-      }
-      console.error('[xAI] ningún modelo de visión encontrado. Modelos disponibles:', ids);
-    } else {
-      const err = await resp.text();
-      console.error('[xAI] error al listar modelos:', err);
-    }
-  } catch (e) {
-    console.error('[xAI] excepción al listar modelos:', e);
-  }
-  // Si falla la detección, intenta con el nombre canónico
-  return 'grok-2-vision-1212';
 }
 
 // Un ticket nunca tiene el mismo producto en dos entradas separadas — si aparece más de una vez
@@ -91,9 +45,9 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
     return;
   }
 
-  const apiKey = process.env.XAI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    res.status(503).json({ error: 'xAI API key no configurada en el servidor' });
+    res.status(503).json({ error: 'OpenRouter API key no configurada en el servidor' });
     return;
   }
 
@@ -158,8 +112,9 @@ Reglas:
 - Una entrada del JSON por producto comprado, nunca una entrada por línea de texto. No incluyas descuentos, subtotales, impuestos ni líneas sin nombre de producto como entradas propias`;
 
   try {
-    const grokUrl = 'https://api.x.ai/v1/chat/completions';
-    const visionModel = await resolveVisionModel(apiKey);
+    // OpenRouter — agrega modelos de vision gratis (Llama 3.2 Vision) sin necesidad de tarjeta.
+    // API compatible con OpenAI, misma estructura de request/response.
+    const orUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
     const messageContent: any[] = [
       { type: 'text', text: prompt },
@@ -171,42 +126,44 @@ Reglas:
       }))
     ];
 
-    const grokBody = {
-      model: visionModel,
+    const orBody = {
+      model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
       messages: [{ role: 'user', content: messageContent }],
       temperature: 0,
       max_tokens: 16000
     };
 
-    const fetchGrok = () => fetch(grokUrl, {
+    const fetchOR = () => fetch(orUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://klarity.app',
+        'X-Title': 'Klarity'
       },
-      body: JSON.stringify(grokBody)
+      body: JSON.stringify(orBody)
     });
 
-    let grokResponse = await fetchGrok();
+    let orResponse = await fetchOR();
     let attempt = 1;
     const maxAttempts = 3;
-    while (!grokResponse.ok && (grokResponse.status === 503 || grokResponse.status === 429) && attempt < maxAttempts) {
-      console.warn(`Grok ${grokResponse.status}, reintentando (${attempt}/${maxAttempts})...`);
+    while (!orResponse.ok && (orResponse.status === 503 || orResponse.status === 429) && attempt < maxAttempts) {
+      console.warn(`OpenRouter ${orResponse.status}, reintentando (${attempt}/${maxAttempts})...`);
       await new Promise(r => setTimeout(r, attempt * 1500));
       attempt++;
-      grokResponse = await fetchGrok();
+      orResponse = await fetchOR();
     }
 
-    if (!grokResponse.ok) {
-      const errText = await grokResponse.text();
-      console.error('Grok error:', errText);
-      res.status(502).json({ error: 'Error al contactar Grok Vision' });
+    if (!orResponse.ok) {
+      const errText = await orResponse.text();
+      console.error('OpenRouter error:', errText);
+      res.status(502).json({ error: 'Error al contactar el servicio de visión' });
       return;
     }
-    const grokData = await grokResponse.json() as any;
-    const rawText: string = grokData?.choices?.[0]?.message?.content ?? '';
+    const orData = await orResponse.json() as any;
+    const rawText: string = orData?.choices?.[0]?.message?.content ?? '';
 
-    // Limpiar markdown si Grok lo agregó (```json ... ```)
+    // Limpiar markdown si el modelo lo agregó (```json ... ```)
     const cleanText = rawText
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
@@ -216,9 +173,9 @@ Reglas:
     try {
       parsed = JSON.parse(cleanText);
     } catch {
-      console.error('Grok devolvió texto no parseable:', cleanText);
+      console.error('OpenRouter devolvió texto no parseable:', cleanText);
       res.status(422).json({
-        error: 'No se pudo interpretar la respuesta de Grok',
+        error: 'No se pudo interpretar la respuesta del modelo de visión',
         rawText
       });
       return;
