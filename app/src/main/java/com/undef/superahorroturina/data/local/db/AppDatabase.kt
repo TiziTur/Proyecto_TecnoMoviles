@@ -6,8 +6,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [PurchaseEntity::class, ProductEntity::class, SupermarketEntity::class, PriceComparisonEntity::class],
-    version = 5,
+    entities = [PurchaseEntity::class, ProductEntity::class, SupermarketEntity::class, PriceComparisonEntity::class, TicketPhotoEntity::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -15,6 +15,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun supermarketDao(): SupermarketDao
     abstract fun priceComparisonDao(): PriceComparisonDao
+    abstract fun ticketPhotoDao(): TicketPhotoDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -49,6 +50,19 @@ abstract class AppDatabase : RoomDatabase() {
                         savingsPct INTEGER NOT NULL
                     )"""
                 )
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // SQL extraído literal del schema generado por Room (kapt -Aroom.schemaLocation)
+                // para esta entidad, no escrito a mano: una CREATE TABLE sin el FOREIGN KEY no
+                // matchea lo que Room espera tras migrar, y con fallbackToDestructiveMigration()
+                // eso se traduce en un wipe silencioso de toda la base en el próximo upgrade real.
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `ticket_photos` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `purchaseId` INTEGER NOT NULL, `filePath` TEXT NOT NULL, `displayOrder` INTEGER NOT NULL, `capturedAt` INTEGER NOT NULL, FOREIGN KEY(`purchaseId`) REFERENCES `purchases`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ticket_photos_purchaseId` ON `ticket_photos` (`purchaseId`)")
             }
         }
     }

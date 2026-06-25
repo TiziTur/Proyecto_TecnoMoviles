@@ -210,6 +210,12 @@
     <string name="ticket_photos_long_hint">If the receipt is long, take one photo per section: they\'ll all be analyzed together as a single receipt.</string>
     <string name="ticket_photo_description">Receipt photo %1$d</string>
     <string name="ticket_photo_remove">Remove photo %1$d</string>
+    <string name="ticket_photos_saved_title">Receipt photos</string>
+    <string name="action_save_photos">Save photos (%1$d)</string>
+    <string name="ticket_choice_manual">Enter manually</string>
+    <string name="ticket_choice_ai">Help me with AI</string>
+    <string name="ticket_scanning_overlay_text">Analyzing your receipt with AI, this might take a few seconds…</string>
+    <string name="ticket_photo_viewer_title">Photo %1$d of %2$d</string>
     <string name="action_share_purchase">Share purchase</string>
     <string name="action_compare_prices">Compare prices</string>
     <string name="purchase_date_at_time">%1$s at %2$s</string>

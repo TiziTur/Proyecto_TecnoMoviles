@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.undef.superahorroturina.R
+import com.undef.superahorroturina.data.local.db.TicketPhotoEntity
 import com.undef.superahorroturina.ui.components.*
 import java.io.File
 import java.text.NumberFormat
@@ -61,12 +62,22 @@ fun PurchaseDetailScreen(
 
     val uiState       by viewModel.uiState.collectAsStateWithLifecycle()
     val ticketState   by viewModel.ticketScanState.collectAsStateWithLifecycle()
+    val ticketPhotos  by remember(purchaseId) { viewModel.ticketPhotosFlow(purchaseId) }
+        .collectAsStateWithLifecycle(initialValue = emptyList<TicketPhotoEntity>())
     val context        = LocalContext.current
     val isDark         = isSystemInDarkTheme()
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val moneyFormat   = remember { NumberFormat.getNumberInstance(Locale("es", "AR")) }
+
+    // Pantalla completa de escaneo (reemplaza el flujo normal mientras se está escaneando o
+    // insertando productos). Se chequea antes que Confirm para que el overlay tape la pantalla
+    // mientras el escaneo está en curso.
+    if (ticketState is TicketScanState.Scanning || ticketState is TicketScanState.Inserting) {
+        TicketScanningOverlay(onCancel = { viewModel.resetTicketScan() })
+        return
+    }
 
     // Pantalla completa de confirmación (reemplaza el flujo normal mientras hay productos para revisar).
     // Retorna antes de declarar showDeleteDialog/stagedPhotos — es seguro porque el diálogo de
@@ -130,10 +141,10 @@ fun PurchaseDetailScreen(
             photos   = stagedPhotos,
             onRemove = { index -> stagedPhotos = stagedPhotos.toMutableList().also { it.removeAt(index) } },
             onAddMore = { showPhotoSourceDialog = true },
-            onScan = {
-                val photosToScan = stagedPhotos
+            onSave = {
+                val photosToSave = stagedPhotos
                 stagedPhotos = emptyList()
-                viewModel.scanTicketFromUris(context, photosToScan, purchaseId)
+                viewModel.savePhotosForPurchase(context, photosToSave, purchaseId)
             },
             onCancel = { stagedPhotos = emptyList() }
         )
@@ -283,9 +294,11 @@ fun PurchaseDetailScreen(
 
                     item {
                         TicketAttachCard(
-                            ticketState = ticketState,
-                            isDark      = isDark,
-                            onAttachClick = { showPhotoSourceDialog = true }
+                            photos        = ticketPhotos,
+                            isDark        = isDark,
+                            onAttachClick = { showPhotoSourceDialog = true },
+                            onManualClick = { onNavigateToAddProduct(purchase.id) },
+                            onAiClick     = { viewModel.scanTicketFromSavedPhotos(purchase.id) }
                         )
                     }
 
@@ -440,9 +453,11 @@ private fun PurchaseInfoCard(
 
 @Composable
 private fun TicketAttachCard(
-    ticketState: TicketScanState,
+    photos: List<TicketPhotoEntity>,
     isDark: Boolean,
-    onAttachClick: () -> Unit
+    onAttachClick: () -> Unit,
+    onManualClick: () -> Unit,
+    onAiClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -459,42 +474,71 @@ private fun TicketAttachCard(
             containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)) {
-                Icon(Icons.Default.Receipt, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(22.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(stringResource(R.string.purchase_ticket),
-                        style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.purchase_ticket_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (photos.isEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Receipt, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(stringResource(R.string.purchase_ticket),
+                                style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.purchase_ticket_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    FilledTonalButton(
+                        onClick = onAttachClick,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null,
+                            modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.action_attach),
+                            maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                    }
                 }
-            }
-            // Indicador de carga mientras escanea
-            if (ticketState is TicketScanState.Scanning || ticketState is TicketScanState.Inserting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            }
-            FilledTonalButton(
-                onClick = onAttachClick,
-                enabled = ticketState !is TicketScanState.Scanning && ticketState !is TicketScanState.Inserting,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                modifier = Modifier.height(36.dp)
-            ) {
-                Icon(Icons.Default.CameraAlt, contentDescription = null,
-                    modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(stringResource(R.string.action_attach),
-                    maxLines = 1, style = MaterialTheme.typography.labelMedium)
+            } else {
+                Text(stringResource(R.string.ticket_photos_saved_title),
+                    style = MaterialTheme.typography.titleSmall)
+                TicketPhotoStrip(photos = photos)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick  = onManualClick,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.ticket_choice_manual),
+                            maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                    }
+                    Button(
+                        onClick  = onAiClick,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.ticket_choice_ai),
+                            maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
         }
     }

@@ -1,6 +1,8 @@
 // ViewModel para el detalle de una compra.
 // Carga la compra con sus productos desde el backend.
-// También maneja el flujo de OCR: escanear ticket → matchear contra la seed → confirmar inserción.
+// También maneja el flujo de fotos de ticket: guardarlas como registro de la compra,
+// y desde ahí cargar los productos a mano o pedirle ayuda a la IA (escanear → matchear
+// contra la seed → confirmar inserción).
 package com.undef.superahorroturina.ui.screens.purchase
 
 import android.content.Context
@@ -13,6 +15,7 @@ import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.undef.superahorroturina.data.local.SessionDataStore
+import com.undef.superahorroturina.data.local.db.TicketPhotoEntity
 import com.undef.superahorroturina.data.network.ApiService
 import com.undef.superahorroturina.data.network.dto.ScannedProductDto
 import com.undef.superahorroturina.data.network.dto.ScanTicketRequest
@@ -21,14 +24,17 @@ import com.undef.superahorroturina.data.network.dto.TicketImageDto
 import com.undef.superahorroturina.data.repository.ApiResult
 import com.undef.superahorroturina.data.repository.ProductRepository
 import com.undef.superahorroturina.data.repository.PurchaseRepository
+import com.undef.superahorroturina.data.repository.TicketPhotoRepository
 import com.undef.superahorroturina.model.Purchase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 data class PurchaseDetailUiState(
@@ -59,6 +65,7 @@ sealed class TicketScanState {
 class PurchaseDetailViewModel @Inject constructor(
     private val purchaseRepository: PurchaseRepository,
     private val productRepository: ProductRepository,
+    private val ticketPhotoRepository: TicketPhotoRepository,
     private val api: ApiService,
     private val session: SessionDataStore
 ) : ViewModel() {
@@ -70,6 +77,10 @@ class PurchaseDetailViewModel @Inject constructor(
     val ticketScanState: StateFlow<TicketScanState> = _ticketScanState.asStateFlow()
 
     fun resetTicketScan() { _ticketScanState.value = TicketScanState.Idle }
+
+    // Fotos del ticket ya guardadas como registro de esta compra (Room, reactivo).
+    fun ticketPhotosFlow(purchaseId: Int): Flow<List<TicketPhotoEntity>> =
+        ticketPhotoRepository.getPhotos(purchaseId)
 
     fun loadPurchase(purchaseId: Int) {
         viewModelScope.launch {
@@ -103,25 +114,49 @@ class PurchaseDetailViewModel @Inject constructor(
         }
     }
 
+    // ── Fotos del ticket ──────────────────────────────────────────
+    // Guarda las fotos staged como registro permanente de la compra. No escanea nada todavía:
+    // eso es una decisión separada que el usuario toma después (botón "Ayudame con IA").
+    fun savePhotosForPurchase(context: Context, imageUris: List<Uri>, purchaseId: Int) {
+        viewModelScope.launch {
+            try {
+                val photoBytes = imageUris.map { uri ->
+                    resizeImageForUpload(context, uri)
+                        ?: run {
+                            _ticketScanState.value = TicketScanState.Error("No se pudo leer la imagen")
+                            return@launch
+                        }
+                }
+                ticketPhotoRepository.savePhotos(purchaseId, photoBytes)
+            } catch (e: Exception) {
+                _ticketScanState.value = TicketScanState.Error("No se pudieron guardar las fotos: ${e.message}")
+            }
+        }
+    }
+
     // ── Ticket OCR ────────────────────────────────────────────────
     // Antes había un fallback silencioso a ML Kit (OCR de texto crudo + un regex de precios) si
     // Gemini fallaba por cualquier motivo — eso convertía cualquier error transitorio (un 503 de
     // Gemini, un redeploy del backend, una mala conexión) en una pantalla de confirmación con
     // basura que parecía un escaneo exitoso. Ahora reintenta la llamada real un par de veces y,
     // si de verdad no se pudo escanear, lo dice — no inventa productos falsos.
-    fun scanTicketFromUris(context: Context, imageUris: List<Uri>, purchaseId: Int) {
+    // Lee las fotos ya persistidas (guardadas por savePhotosForPurchase) en vez de URIs
+    // transitorias — el usuario puede pedir esto en cualquier momento, no solo justo después
+    // de sacar la foto.
+    fun scanTicketFromSavedPhotos(purchaseId: Int) {
         viewModelScope.launch {
             _ticketScanState.value = TicketScanState.Scanning
             try {
-                val images = mutableListOf<TicketImageDto>()
-                for (imageUri in imageUris) {
-                    val bytes = resizeImageForUpload(context, imageUri)
-                        ?: run {
-                            _ticketScanState.value = TicketScanState.Error("No se pudo leer la imagen")
-                            return@launch
-                        }
+                val savedPhotos = ticketPhotoRepository.getPhotosOnce(purchaseId)
+                if (savedPhotos.isEmpty()) {
+                    _ticketScanState.value = TicketScanState.Error("No hay fotos del ticket guardadas para escanear")
+                    return@launch
+                }
+
+                val images = savedPhotos.map { photo ->
+                    val bytes = File(photo.filePath).readBytes()
                     val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                    images.add(TicketImageDto(base64, "image/jpeg"))
+                    TicketImageDto(base64, "image/jpeg")
                 }
 
                 val token = session.bearerToken.first()
@@ -177,7 +212,8 @@ class PurchaseDetailViewModel @Inject constructor(
     // maxDimension generoso a propósito: el texto de un ticket térmico es chico y cualquier
     // downscale agresivo le come legibilidad al OCR. Esto solo actúa como freno para fotos
     // extremas (cámaras de 50+ MP); una foto de celular típica (3000-6000px de lado largo)
-    // pasa prácticamente intacta.
+    // pasa prácticamente intacta. Esta misma versión comprimida es la que se persiste como
+    // registro de la compra (no se guarda el original sin comprimir).
     private fun resizeImageForUpload(context: Context, uri: Uri, maxDimension: Int = 6000, quality: Int = 90): ByteArray? {
         val original = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
             ?: return null

@@ -33,7 +33,7 @@ fun TicketPhotosPreviewScreen(
     photos: List<Uri>,
     onRemove: (Int) -> Unit,
     onAddMore: () -> Unit,
-    onScan: () -> Unit,
+    onSave: () -> Unit,
     onCancel: () -> Unit
 ) {
     Scaffold(
@@ -64,11 +64,11 @@ fun TicketPhotosPreviewScreen(
                         Text(stringResource(R.string.action_add_more_photos))
                     }
                     Button(
-                        onClick  = onScan,
+                        onClick  = onSave,
                         enabled  = photos.isNotEmpty(),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.action_scan_ticket, photos.size))
+                        Text(stringResource(R.string.action_save_photos, photos.size))
                     }
                 }
             }
