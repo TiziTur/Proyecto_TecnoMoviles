@@ -215,6 +215,7 @@
     <string name="ticket_choice_manual">Cargar manualmente</string>
     <string name="ticket_choice_ai">Ayudame con IA</string>
     <string name="ticket_scanning_overlay_text">Analizando tu ticket con IA, esto puede tardar unos segundos…</string>
+    <string name="ticket_inserting_overlay_text">Guardando los productos en tu compra…</string>
     <string name="ticket_photo_viewer_title">Foto %1$d de %2$d</string>
     <string name="action_share_purchase">Compartir compra</string>
     <string name="action_compare_prices">Comparar precios</string>

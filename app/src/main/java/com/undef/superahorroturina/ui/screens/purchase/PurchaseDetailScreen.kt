@@ -75,7 +75,11 @@ fun PurchaseDetailScreen(
     // insertando productos). Se chequea antes que Confirm para que el overlay tape la pantalla
     // mientras el escaneo está en curso.
     if (ticketState is TicketScanState.Scanning || ticketState is TicketScanState.Inserting) {
-        TicketScanningOverlay(onCancel = { viewModel.resetTicketScan() })
+        val overlayText = if (ticketState is TicketScanState.Inserting)
+            stringResource(R.string.ticket_inserting_overlay_text)
+        else
+            stringResource(R.string.ticket_scanning_overlay_text)
+        TicketScanningOverlay(text = overlayText, onCancel = { viewModel.resetTicketScan() })
         return
     }
 

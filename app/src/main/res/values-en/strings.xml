@@ -215,6 +215,7 @@
     <string name="ticket_choice_manual">Enter manually</string>
     <string name="ticket_choice_ai">Help me with AI</string>
     <string name="ticket_scanning_overlay_text">Analyzing your receipt with AI, this might take a few seconds…</string>
+    <string name="ticket_inserting_overlay_text">Saving the products to your purchase…</string>
     <string name="ticket_photo_viewer_title">Photo %1$d of %2$d</string>
     <string name="action_share_purchase">Share purchase</string>
     <string name="action_compare_prices">Compare prices</string>

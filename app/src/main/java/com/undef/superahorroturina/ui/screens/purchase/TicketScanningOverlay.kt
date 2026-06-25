@@ -21,8 +21,11 @@ import com.undef.superahorroturina.R
 // de OkHttp (30s conexión + 30s lectura, x3 reintentos) ya acotan el peor caso a un par de
 // minutos, pero ninguna otra pantalla a pantalla completa de este flujo deja al usuario sin
 // una salida explícita, y esta tampoco debería.
+// text es explícito por llamada (no hardcodeado) porque este mismo overlay se usa tanto para
+// "escaneando con IA" como para "guardando productos en la compra" — son pasos distintos y
+// mostrar el mismo texto en los dos hacía parecer que el escaneo se reiniciaba en vez de avanzar.
 @Composable
-fun TicketScanningOverlay(onCancel: () -> Unit) {
+fun TicketScanningOverlay(text: String, onCancel: () -> Unit) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -34,7 +37,7 @@ fun TicketScanningOverlay(onCancel: () -> Unit) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(24.dp))
             Text(
-                text  = stringResource(R.string.ticket_scanning_overlay_text),
+                text  = text,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
