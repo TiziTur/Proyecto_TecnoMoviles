@@ -1,6 +1,6 @@
-// ticket.ts — Endpoint para escanear un ticket de supermercado con Gemini Vision.
+// ticket.ts — Endpoint para escanear un ticket de supermercado con Grok Vision (xAI).
 // Recibe una o más imágenes en base64 (fragmentos consecutivos de un mismo ticket largo),
-// las envía juntas a Gemini con un prompt estructurado y devuelve los productos parseados
+// las envía juntas a Grok con un prompt estructurado y devuelve los productos parseados
 // listos para guardar.
 // Montado en: POST /purchases/:id/scan-ticket
 import { Router, Response } from 'express';
@@ -49,9 +49,9 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.XAI_API_KEY;
   if (!apiKey) {
-    res.status(503).json({ error: 'Gemini API key no configurada en el servidor' });
+    res.status(503).json({ error: 'xAI API key no configurada en el servidor' });
     return;
   }
 
@@ -116,59 +116,56 @@ Reglas:
 - Una entrada del JSON por producto comprado, nunca una entrada por línea de texto. No incluyas descuentos, subtotales, impuestos ni líneas sin nombre de producto como entradas propias`;
 
   try {
-    // gemini-2.5-flash (sin "-lite") tiene una cuota free-tier de apenas 20 requests/día —
-    // se agota con cualquier uso real, no solo con pruebas. flash-lite tiene una cuota mucho
-    // más usable y, con el prompt ya corregido (IVA, descuentos, pesos), da resultados
-    // comparables en la práctica.
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+    // Grok 2 Vision (xAI) — API compatible con OpenAI. Free tier sin el límite de 20 req/día
+    // de Gemini flash. grok-2-vision-1212 es el modelo con mejor capacidad OCR de imágenes.
+    const grokUrl = 'https://api.x.ai/v1/chat/completions';
 
-    const geminiBody = {
-      contents: [{
-        parts: [
-          { text: prompt },
-          ...images.map((img: { imageBase64: string; mimeType?: string }) => ({
-            inline_data: {
-              mime_type: img.mimeType ?? 'image/jpeg',
-              data: img.imageBase64
-            }
-          }))
-        ]
-      }],
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 16000
-      }
+    const messageContent: any[] = [
+      { type: 'text', text: prompt },
+      ...images.map((img: { imageBase64: string; mimeType?: string }) => ({
+        type: 'image_url',
+        image_url: {
+          url: `data:${img.mimeType ?? 'image/jpeg'};base64,${img.imageBase64}`
+        }
+      }))
+    ];
+
+    const grokBody = {
+      model: 'grok-2-vision-1212',
+      messages: [{ role: 'user', content: messageContent }],
+      temperature: 0,
+      max_tokens: 16000
     };
 
-    // Gemini devuelve 503 "high demand" con bastante frecuencia incluso en uso normal —
-    // sin retry, esos picos transitorios tiraban a cualquier usuario directo al fallback
-    // de ML Kit (mucho peor que esperar un par de segundos y reintentar).
-    const fetchGemini = () => fetch(geminiUrl, {
+    const fetchGrok = () => fetch(grokUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(geminiBody)
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(grokBody)
     });
 
-    let geminiResponse = await fetchGemini();
+    let grokResponse = await fetchGrok();
     let attempt = 1;
     const maxAttempts = 3;
-    while (!geminiResponse.ok && (geminiResponse.status === 503 || geminiResponse.status === 429) && attempt < maxAttempts) {
-      console.warn(`Gemini ${geminiResponse.status}, reintentando (${attempt}/${maxAttempts})...`);
+    while (!grokResponse.ok && (grokResponse.status === 503 || grokResponse.status === 429) && attempt < maxAttempts) {
+      console.warn(`Grok ${grokResponse.status}, reintentando (${attempt}/${maxAttempts})...`);
       await new Promise(r => setTimeout(r, attempt * 1500));
       attempt++;
-      geminiResponse = await fetchGemini();
+      grokResponse = await fetchGrok();
     }
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      console.error('Gemini error:', errText);
-      res.status(502).json({ error: 'Error al contactar Gemini Vision' });
+    if (!grokResponse.ok) {
+      const errText = await grokResponse.text();
+      console.error('Grok error:', errText);
+      res.status(502).json({ error: 'Error al contactar Grok Vision' });
       return;
     }
-    const geminiData = await geminiResponse.json() as any;
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const grokData = await grokResponse.json() as any;
+    const rawText: string = grokData?.choices?.[0]?.message?.content ?? '';
 
-    // Limpiar markdown si Gemini lo agregó (```json ... ```)
+    // Limpiar markdown si Grok lo agregó (```json ... ```)
     const cleanText = rawText
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
@@ -178,9 +175,9 @@ Reglas:
     try {
       parsed = JSON.parse(cleanText);
     } catch {
-      console.error('Gemini devolvió texto no parseable:', cleanText);
+      console.error('Grok devolvió texto no parseable:', cleanText);
       res.status(422).json({
-        error: 'No se pudo interpretar la respuesta de Gemini',
+        error: 'No se pudo interpretar la respuesta de Grok',
         rawText
       });
       return;
