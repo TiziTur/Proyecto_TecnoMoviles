@@ -210,6 +210,12 @@
     <string name="ticket_photos_long_hint">Si el ticket es largo, sacá una foto por tramo: se analizan todas juntas como un solo ticket.</string>
     <string name="ticket_photo_description">Foto %1$d del ticket</string>
     <string name="ticket_photo_remove">Quitar foto %1$d</string>
+    <string name="ticket_photos_saved_title">Fotos del ticket</string>
+    <string name="action_save_photos">Guardar fotos (%1$d)</string>
+    <string name="ticket_choice_manual">Cargar manualmente</string>
+    <string name="ticket_choice_ai">Ayudame con IA</string>
+    <string name="ticket_scanning_overlay_text">Analizando tu ticket con IA, esto puede tardar unos segundos…</string>
+    <string name="ticket_photo_viewer_title">Foto %1$d de %2$d</string>
     <string name="action_share_purchase">Compartir compra</string>
     <string name="action_compare_prices">Comparar precios</string>
     <string name="purchase_date_at_time">%1$s a las %2$s</string>
