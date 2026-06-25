@@ -17,6 +17,60 @@ interface ParsedProduct {
   category?: string;
 }
 
+// Modelos de visión gratuitos en OpenRouter, en orden de preferencia (mejor OCR primero).
+// Si el primero no está disponible en la cuenta actual, se prueba el siguiente.
+const FREE_VISION_MODELS = [
+  'qwen/qwen2.5-vl-72b-instruct:free',
+  'qwen/qwen-2.5-vl-7b-instruct:free',
+  'qwen/qwen2-vl-7b-instruct:free',
+  'google/gemini-2.0-flash-exp:free',
+  'google/gemini-flash-1.5-8b:free',
+  'mistralai/pixtral-12b:free',
+  'meta-llama/llama-3.2-90b-vision-instruct:free',
+  'microsoft/phi-3.5-vision-instruct:free',
+];
+
+let cachedVisionModel: string | null = null;
+
+// Consulta el catálogo de OpenRouter y devuelve el mejor modelo de visión gratuito disponible.
+async function resolveFreeVisionModel(apiKey: string): Promise<string> {
+  if (cachedVisionModel) return cachedVisionModel;
+  try {
+    const resp = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    if (resp.ok) {
+      const data = await resp.json() as any;
+      const availableIds: Set<string> = new Set(
+        (data.data ?? []).map((m: any) => String(m.id))
+      );
+      console.log('[OpenRouter] modelos disponibles (total):', availableIds.size);
+      for (const model of FREE_VISION_MODELS) {
+        if (availableIds.has(model)) {
+          console.log('[OpenRouter] usando modelo de visión:', model);
+          cachedVisionModel = model;
+          return model;
+        }
+      }
+      // Último recurso: cualquier modelo gratuito con capacidad de imagen
+      const freeVision = [...availableIds].find(id =>
+        id.endsWith(':free') && (id.includes('vision') || id.includes('vl') || id.includes('pixtral'))
+      );
+      if (freeVision) {
+        console.log('[OpenRouter] usando modelo de visión (fallback):', freeVision);
+        cachedVisionModel = freeVision;
+        return freeVision;
+      }
+      console.error('[OpenRouter] ningún modelo de visión gratuito encontrado');
+    } else {
+      console.error('[OpenRouter] error al listar modelos:', await resp.text());
+    }
+  } catch (e) {
+    console.error('[OpenRouter] excepción al listar modelos:', e);
+  }
+  return FREE_VISION_MODELS[0]; // fallback
+}
+
 // Un ticket nunca tiene el mismo producto en dos entradas separadas — si aparece más de una vez
 // lo correcto es una sola entrada con la cantidad sumada.
 function mergeDuplicateProducts(products: ParsedProduct[]): ParsedProduct[] {
@@ -112,9 +166,8 @@ Reglas:
 - Una entrada del JSON por producto comprado, nunca una entrada por línea de texto. No incluyas descuentos, subtotales, impuestos ni líneas sin nombre de producto como entradas propias`;
 
   try {
-    // OpenRouter — agrega modelos de vision gratis (Llama 3.2 Vision) sin necesidad de tarjeta.
-    // API compatible con OpenAI, misma estructura de request/response.
     const orUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    const visionModel = await resolveFreeVisionModel(apiKey);
 
     const messageContent: any[] = [
       { type: 'text', text: prompt },
@@ -127,7 +180,7 @@ Reglas:
     ];
 
     const orBody = {
-      model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
+      model: visionModel,
       messages: [{ role: 'user', content: messageContent }],
       temperature: 0,
       max_tokens: 16000
