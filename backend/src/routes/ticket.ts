@@ -18,6 +18,27 @@ interface ParsedProduct {
   category?: string;
 }
 
+// Un ticket nunca tiene el mismo producto en dos entradas separadas — si aparece más de una vez
+// (normalmente porque el ticket vino en 2+ fotos y Gemini no dedupe perfecto el solapamiento entre
+// fotos, a pesar de que el prompt se lo pide explícitamente), lo correcto es una sola entrada con
+// la cantidad sumada, nunca dos líneas del mismo producto. No confiamos esto solo al prompt: se
+// fuerza acá de forma determinística.
+function mergeDuplicateProducts(products: ParsedProduct[]): ParsedProduct[] {
+  const merged = new Map<string, ParsedProduct>();
+  for (const p of products) {
+    const key = p.code && p.code.trim() !== ''
+      ? `code:${p.code.trim()}`
+      : `name:${p.name.trim().toLowerCase()}`;
+    const existing = merged.get(key);
+    if (existing) {
+      existing.quantity += p.quantity;
+    } else {
+      merged.set(key, { ...p });
+    }
+  }
+  return Array.from(merged.values());
+}
+
 // POST /purchases/:purchaseId/scan-ticket
 // Body: { images: Array<{ imageBase64: string, mimeType?: "image/jpeg" | "image/png" }> }
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -165,8 +186,10 @@ Reglas:
       return;
     }
 
-    const products: ParsedProduct[] = (parsed.products ?? []).filter(
-      p => p.name && typeof p.price === 'number' && p.price > 0
+    const products: ParsedProduct[] = mergeDuplicateProducts(
+      (parsed.products ?? []).filter(
+        p => p.name && typeof p.price === 'number' && p.price > 0
+      )
     );
 
     res.json({
