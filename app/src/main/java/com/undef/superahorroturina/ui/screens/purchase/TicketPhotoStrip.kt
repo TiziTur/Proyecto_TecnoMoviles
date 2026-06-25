@@ -2,7 +2,6 @@
 // de la compra. Tocar una miniatura la abre en grande a pantalla completa.
 package com.undef.superahorroturina.ui.screens.purchase
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -65,7 +64,10 @@ private fun TicketPhotoViewerDialog(
     initialIndex: Int,
     onDismiss: () -> Unit
 ) {
-    var index by remember { mutableStateOf(initialIndex) }
+    // coerceIn por las dudas: photos viene de un Flow de Room que en teoría podría reducirse
+    // mientras el diálogo está abierto (hoy no hay forma de borrar una foto individual, pero
+    // evita un IndexOutOfBoundsException si eso cambia más adelante).
+    val index = initialIndex.coerceIn(0, photos.lastIndex)
 
     Dialog(onDismissRequest = onDismiss) {
         Scaffold(
