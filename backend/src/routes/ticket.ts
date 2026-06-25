@@ -138,24 +138,10 @@ SOBRE FOTOS QUE CONTINÚAN UNA A LA OTRA:
 Cuando el ticket viene en varias fotos, es común que la última foto termine a mitad de un producto y la siguiente foto empiece repitiendo ese mismo producto desde el principio (para no perder esa línea). Antes de armar la lista final, compará los últimos 2-3 productos de una foto contra los primeros 2-3 productos de la foto siguiente: si coinciden en nombre y/o código de barras (aunque el recorte de la imagen sea distinto), es el MISMO producto fotografiado dos veces — incluilo una sola vez, usando la versión más completa (la que tenga más líneas legibles).
 
 SOBRE PRODUCTOS PESADOS (carne, fiambre, verdura, etc., vendidos por kilo):
-En estos productos la línea "CANTIDAD x PRECIO_UNITARIO" muestra un peso con decimales (ej: "1.270 x 16199.0000", "0.218 x 19999.0000", "2,000 x 2099,0000"), no una cantidad de unidades. Esta línea NO ES el nombre del producto — es información numérica del peso y precio por kilo. El nombre real del producto es la línea de texto con palabras (ej: "Check", "Milanesa Nalga", "Queso Cremoso"). El campo quantity de la respuesta SOLO puede ser un número entero — NUNCA escribas un peso en kilos. Para estos productos pesados, siempre poné quantity = 1 y price = el PRECIO_TOTAL_DE_LINEA que aparece a la derecha del código de barras.
-Ejemplo concreto:
-  Check                          ← este es el name del producto
-  7891234567890 (21.00%)  4198.00  ← price = 4198.00
-  2,000 x 2099,0000          ← esta línea NO es el name, es el peso×precio/kg; ignorala para el name
-
-LÍNEAS QUE NUNCA SON PRODUCTOS — ignoralas completamente, no las incluyas en el JSON:
-- "TOTAL", "SUBTOTAL", "TOTAL A PAGAR", "TOTAL COMPRA", "TOTAL CON DESCUENTO" y cualquier variante → son el total de la compra, no un producto
-- "VUELTO", "CAMBIO", "EFECTIVO", "TARJETA", "DÉBITO", "CRÉDITO" → son medios de pago
-- "IVA", "IVA 21%", "IVA 10.5%", "IIBB", "PERC." → son líneas de impuestos
-- "DESCUENTO TOTAL", "TOTAL DESCUENTOS", "AHORRO TOTAL" → son resúmenes de descuentos
-- "CAE", "CAE Vto", número de ticket, fecha, hora, razón social, CUIT, dirección del local → son datos del encabezado o pie del ticket
-- Cualquier línea con solo números (sin nombre de producto)
-- Cualquier línea con solo un monto de dinero sin nombre de producto asociado
-Si una línea es "TOTAL ... $NNNN" o "TOTAL A PAGAR ... $NNNN", ignorala completamente. No pongas "Total", "Subtotal" ni ninguna variante como entrada en products[].
+En estos productos la línea "CANTIDAD x PRECIO_UNITARIO" muestra un peso con decimales (ej: "1.270 x 16199.0000", "0.218 x 19999.0000"), no una cantidad de unidades. El campo quantity de la respuesta SOLO puede ser un número entero de unidades compradas — NUNCA escribas ahí un peso en kilos. Para estos productos pesados, siempre poné quantity = 1 y price = el PRECIO_TOTAL_DE_LINEA tal como figura impreso (el número grande a la derecha del código de barras, ya con descuento si tiene), sin dividir ni multiplicar por el peso. No intentes calcular un "precio por unidad" para estos productos: no existe, se pagó por peso.
 
 ANTES DE RESPONDER — revisión de cordura:
-Repasá la lista completa. Si algún elemento en products[] tiene como name solo números, solo un monto de dinero, "Total", "Subtotal" o cualquier otra línea que no sea un nombre de producto real → eliminalo de la lista. Si el name de un producto es una expresión del tipo "N,NNN x NNNN" (peso × precio/kg), reemplazalo por el nombre de texto real del mismo bloque o eliminalo si no encontrás el nombre. Revisá que todos los precios tengan el decimal en el lugar correcto.
+Repasá la lista completa de precios que vas a devolver. Si alguno te quedó con un dígito de más o de menos respecto al resto (por ejemplo 140649.00 en una lista donde los demás precios están entre 100 y 50000, probablemente el punto decimal está mal puesto y es 14064.90), corregilo. Ningún producto de supermercado (que no sea indumentaria o electrodomésticos) debería superar los $100000.
 
 Devolvé ÚNICAMENTE un JSON válido con este formato exacto, sin texto adicional ni markdown:
 {
@@ -255,17 +241,10 @@ Reglas:
       return;
     }
 
-    const INVALID_NAMES = /^(total|subtotal|vuelto|cambio|efectivo|tarjeta|débito|debito|crédito|credito|iva|iibb|descuento total|total descuentos|ahorro total|total a pagar|total compra)/i;
-    const WEIGHT_PRICE_PATTERN = /^\d[\d.,]* x \d[\d.,]*/;
-
     const products: ParsedProduct[] = mergeDuplicateProducts(
-      (parsed.products ?? []).filter(p => {
-        if (!p.name || typeof p.price !== 'number' || p.price <= 0) return false;
-        const name = p.name.trim();
-        if (INVALID_NAMES.test(name)) return false;
-        if (WEIGHT_PRICE_PATTERN.test(name)) return false;
-        return true;
-      })
+      (parsed.products ?? []).filter(
+        p => p.name && typeof p.price === 'number' && p.price > 0
+      )
     );
 
     res.json({
