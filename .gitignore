@@ -22,3 +22,6 @@ Clases/
 # Herramientas de IA — cache/estado local, no son parte del proyecto
 .claude/skills/
 .superpowers/
+
+# Notas/specs de diseño locales (no versionadas)
+.local/

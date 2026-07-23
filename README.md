@@ -11,10 +11,13 @@ Conocé a dónde va tu dinero — escaneá tickets con IA, compará precios entr
 [![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Railway-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Download APK](https://img.shields.io/badge/Download-APK%20v1.0-brightgreen?logo=android&logoColor=white)](https://github.com/TiziTur/Proyecto_TecnoMoviles/releases/latest/download/app-debug.apk)
 
 <br/>
 
-<img src="docs/assets/home-screen-mockup.svg" alt="Pantalla Home de Klarity" width="280"/>
+<!-- DEMO: reemplazá esta línea con el GIF/video una vez que lo tengas -->
+<!-- Ejemplo: <img src="docs/assets/demo.gif" alt="Demo de Klarity" width="320"/> -->
+<!-- O si usás un video de GitHub: pegar el link que te da GitHub al arrastrarlo acá -->
 
 </div>
 
@@ -92,7 +95,13 @@ backend/src/
 
 </details>
 
-## 🚀 Cómo correrlo
+## 📥 Descargar
+
+[![Download APK](https://img.shields.io/badge/Download-APK%20v1.0-brightgreen?logo=android&logoColor=white)](https://github.com/TiziTur/Proyecto_TecnoMoviles/releases/latest/download/app-debug.apk)
+
+Requiere Android 8.0 (API 26) o superior.
+
+## 🚀 Compilar desde el código
 
 ### App Android
 

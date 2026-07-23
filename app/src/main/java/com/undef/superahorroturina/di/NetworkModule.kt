@@ -18,7 +18,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // ⚠️ Reemplazar con la URL pública de Railway cuando esté disponible
+    // URL publica de Railway
     private const val BASE_URL = "https://proyectotecnomoviles-production.up.railway.app/"
 
     @Provides
