@@ -15,9 +15,7 @@ Conocé a dónde va tu dinero — escaneá tickets con IA, compará precios entr
 
 <br/>
 
-<!-- DEMO: reemplazá esta línea con el GIF/video una vez que lo tengas -->
-<!-- Ejemplo: <img src="docs/assets/demo.gif" alt="Demo de Klarity" width="320"/> -->
-<!-- O si usás un video de GitHub: pegar el link que te da GitHub al arrastrarlo acá -->
+<video src="https://github.com/user-attachments/assets/a7461b9d-1d1d-4015-b13c-151776be35bf" controls width="320"></video>
 
 </div>
 
