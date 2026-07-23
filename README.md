@@ -128,6 +128,6 @@ Español (por defecto) e inglés — `res/values/strings.xml` y `res/values-en/s
 
 <div align="center">
 
-Proyecto académico — Trabajo Práctico Integrador de **Tecnologías Móviles**, Universidad Nacional de Entre Ríos (UNER).
+Proyecto académico — Trabajo Práctico Integrador de **Tecnologías Móviles**, Instituto Universitario Aeronautico (IUA).
 
 </div>
